@@ -91,8 +91,8 @@ def design_print(handle, title, pitch, tags, collection, design=35, ship=55,
                  vak=None, bullets=None, vendor=VENDOR):
     add(handle, title, _body(pitch, bullets, vak), "Custom Design Service",
         tags, collection, ["Format"],
-        [(("Design File Only",), design, False, 0),
-         (("Print + Ship",), ship, True, 200)], vendor=vendor)
+        [(("Design File Only (You Print)",), design, False, 0),
+         (("Printed Shirt + Shipping",), ship, True, 200)], vendor=vendor)
 
 
 def book_editions(handle, title, pitch, tags, collection, vendor=VENDOR,
@@ -180,7 +180,7 @@ shirt_occasions = [
 for h, t, tag in shirt_occasions:
     design_print(h, t,
                  f"A {tag} shirt that turns heads and tells your story. Custom-built around your names, colors, and theme - with meaning worked into every element, not pulled off a template. Printed on premium DTF for full-color, crack-resistant results.",
-                 ["shirt", "apparel", tag, "custom", "dtf"], C1, design=35, ship=60,
+                 ["shirt", "apparel", tag, "custom", "dtf"], C1, design=25, ship=35,
                  vak="Bold visuals that pop in photos, a message people read out loud, a design you feel proud to wear.")
 
 # Vinyl + DTF are file-format flavors of custom apparel -> one product, variants
@@ -458,7 +458,7 @@ fulfill_items = [
     ("fulfill-business-flyers", "Business Flyers", "business flyer", 12, 34),
     ("fulfill-stickers", "Stickers", "sticker", 6, 18),
     ("fulfill-sticker-sheets", "Sticker Sheets", "sticker sheet", 8, 22),
-    ("fulfill-shirts", "Custom Shirts", "shirt", 32, 55),
+    ("fulfill-shirts", "Custom Shirts", "shirt", 25, 35),
     ("fulfill-handmade-books", "Handmade Books", "handmade book", 18, 45),
     ("fulfill-journals", "Journals", "journal", 16, 38),
     ("fulfill-coloring-books", "Coloring Books", "coloring book", 14, 32),

@@ -25,8 +25,12 @@ piece) **is** the product. It is premium by nature.
 > Edit (you tweak a template, 24-hr) → Bespoke (curated from scratch, scales with how many
 > designs they want). This lets a budget buyer and a premium buyer shop the *same* product.
 
-> **Shirts are DTF.** Full-color, crack-resistant — priced accordingly ($35 design, $60 printed
-> & shipped). Vinyl is offered as a secondary option while you ramp it up.
+> **Shirts are DTF.** Full-color, crack-resistant. A finished custom shirt is **$35 printed &
+> shipped** (design file only, you-print = $25). The math: blanks cost ~$4–5, the DIY crowd pays
+> ~$25 for Walmart transfer paper they iron on themselves — so $35 done-for-you with your pizzazz
+> wins on quality and stays in impulse range. $60 would scare the exact buyers you want. To test
+> $40 instead, change `ship=35` to `ship=40` in the shirt loop and re-run. Vinyl is a secondary
+> option while you ramp it up.
 
 ## Why the high anchor matters (this cures lowballing)
 When a **$750 Full Party Experience** and a **$650** illustration package sit on your menu,
