@@ -135,15 +135,33 @@ def delivery_product(handle, title, pitch, ptype, tags, collection,
          (("Print + Ship",), printship, True, 150)], vendor=vendor)
 
 
+def custom_design(handle, title, pitch, tags, collection, template=25,
+                  bespoke=45, bespoke_ship=62, vak=None, bullets=None,
+                  vendor=VENDOR, ptype="Custom Design Service"):
+    """Three service levels:
+    - Studio Template Edit: I personalize a Canva template + send within 24 hrs (low end)
+    - Bespoke Custom Design (Digital): fully curated, built for that person
+    - Bespoke Custom Design + Print/Ship: bespoke design printed & shipped
+    """
+    add(handle, title, _body(pitch, bullets, vak), ptype, tags, collection,
+        ["Service Level"],
+        [(("Studio Template Edit - Digital (24-hr)",), template, False, 0),
+         (("Bespoke Custom Design - Digital",), bespoke, False, 0),
+         (("Bespoke Custom Design - Print + Ship",), bespoke_ship, True, 150)],
+        vendor=vendor)
+
+
 # =============================================================================
 # 1. CUSTOM CELEBRATION DESIGN
 # =============================================================================
 C1 = "Custom Celebration Design"
-simple("custom-celebration-design-package", "Custom Celebration Design Package",
-       "Your full event, designed end to end. We build a matching suite of shirts, signage, and details so your whole celebration looks like it belongs together - every piece custom-built from a blank page around your theme, colors, and story.",
-       "Custom Design Service", ["celebration", "event", "package", "custom"], C1,
-       295, option=("Package", "Full Suite"),
-       vak="Picture the room, hear the gasps, feel the moment land - we design every touchpoint to hit.")
+add("custom-celebration-design-package", "Custom Celebration Design Package",
+    _body("Two ways to level up your celebration. The PREMIUM SUITE adds a coordinated set of statement pieces on top of your party - think a custom shirt, a welcome sign, and treat-table accents that tie the whole theme together. The FULL PARTY EXPERIENCE is the party: banners, backdrops, signage, favors, stickers, and keepsakes - the entire array, designed from a blank page as one cohesive world built around your story.",
+          vak="Picture the room, hear the gasps, feel the moment land - we design every touchpoint to hit."),
+    "Bundle", ["celebration", "event", "package", "custom", "suite"], C1,
+    ["Package"],
+    [(("Premium Suite - Party Accents",), 295, True, 400),
+     (("Full Party Experience - The Works",), 750, True, 1200)])
 
 shirt_occasions = [
     ("custom-birthday-shirt", "Custom Birthday Shirt", "birthday"),
@@ -161,18 +179,18 @@ shirt_occasions = [
 ]
 for h, t, tag in shirt_occasions:
     design_print(h, t,
-                 f"A {tag} shirt that turns heads and tells your story. Custom-built around your names, colors, and theme - with meaning worked into every element, not pulled off a template.",
-                 ["shirt", "apparel", tag, "custom"], C1, design=45, ship=70,
+                 f"A {tag} shirt that turns heads and tells your story. Custom-built around your names, colors, and theme - with meaning worked into every element, not pulled off a template. Printed on premium DTF for full-color, crack-resistant results.",
+                 ["shirt", "apparel", tag, "custom", "dtf"], C1, design=35, ship=60,
                  vak="Bold visuals that pop in photos, a message people read out loud, a design you feel proud to wear.")
 
 # Vinyl + DTF are file-format flavors of custom apparel -> one product, variants
-add("custom-shirt-file-format", "Custom Vinyl / DTF Transfer-Ready Shirt File",
-    _body("Production-ready shirt artwork built to your press. Choose a layered vinyl-ready cut file or a full-color DTF/transfer-ready file - color-corrected and sized to go straight to production.",
+add("custom-shirt-file-format", "Custom DTF / Transfer-Ready Shirt File",
+    _body("Production-ready shirt artwork built to press. Get a full-color DTF/transfer-ready file - color-corrected and sized to go straight to production - or a layered vinyl-ready cut file. DTF is our go-to for vivid, durable, full-color prints.",
           vak="Crisp edges your eyes love, a clean transfer you can feel, zero guesswork at the press."),
-    "Print-Ready File", ["shirt", "vinyl", "dtf", "transfer", "file"], C1,
+    "Print-Ready File", ["shirt", "dtf", "vinyl", "transfer", "file"], C1,
     ["File Type"],
-    [(("Vinyl-Ready Cut File",), 38, False, 0),
-     (("DTF / Full-Color Transfer File",), 45, False, 0)])
+    [(("DTF / Full-Color Transfer File",), 38, False, 0),
+     (("Vinyl-Ready Cut File",), 38, False, 0)])
 
 simple("custom-apparel-design-consultation", "Custom Apparel Design Consultation",
        "Not sure where to start? Book a focused session and we map your concept, colors, placement, and production plan before a single pixel is drawn.",
@@ -206,10 +224,9 @@ event_graphics = [
     ("custom-digital-backdrop", "Custom Digital Backdrop Design", "backdrop", "A custom step-and-repeat or themed backdrop for an unforgettable photo moment."),
 ]
 for h, t, tag, pitch in event_graphics:
-    delivery_product(h, t, pitch, "Custom Design Service",
-                     ["event", "graphics", tag, "custom"], C2,
-                     digital=32, printready=46, printship=62,
-                     vak="Vivid color that reads across the room, wording that sounds great out loud, details guests reach out to touch.")
+    custom_design(h, t, pitch, ["event", "graphics", tag, "custom"], C2,
+                  template=22, bespoke=45, bespoke_ship=62,
+                  vak="Vivid color that reads across the room, wording that sounds great out loud, details guests reach out to touch.")
 
 simple("custom-printable-event-bundle", "Custom Printable Event Bundle",
        "Every printable your event needs in one coordinated, money-saving bundle - invites, signs, menus, favors, and more, all matching.",
@@ -240,11 +257,11 @@ favor_items = [
     ("custom-thank-you-sticker", "Custom Thank-You Sticker Design", "thank you sticker"),
 ]
 for h, t, tag in favor_items:
-    delivery_product(h, t,
-                     f"A {tag} design that makes the little things look high-end. Themed to match your party perfectly.",
-                     "Custom Design Service", ["party favor", tag, "custom"], C3,
-                     digital=15, printready=25, printship=40,
-                     vak="Tiny details with big visual punch - the touches guests pick up, read, and keep.")
+    custom_design(h, t,
+                  f"A {tag} design that makes the little things look high-end. Themed to match your party perfectly.",
+                  ["party favor", tag, "custom"], C3,
+                  template=15, bespoke=30, bespoke_ship=42,
+                  vak="Tiny details with big visual punch - the touches guests pick up, read, and keep.")
 
 simple("custom-party-activity-sheet", "Custom Party Activity Sheet",
        "A themed activity sheet that keeps guests busy and entertained - personalized to your event.",
@@ -286,10 +303,10 @@ memorial_items = [
     ("custom-tribute-illustration", "Custom Tribute Illustration", "tribute illustration"),
 ]
 for h, t, tag in memorial_items:
-    delivery_product(h, t,
-                     f"A {tag} created with warmth and respect to honor your loved one and comfort everyone who gathers.",
-                     "Custom Design Service", ["memorial", "tribute", tag], C4,
-                     digital=32, printready=46, printship=62)
+    custom_design(h, t,
+                  f"A {tag} created with warmth and respect to honor your loved one and comfort everyone who gathers.",
+                  ["memorial", "tribute", tag], C4,
+                  template=24, bespoke=46, bespoke_ship=62)
 
 simple("memorial-social-announcement", "Memorial Social Media Announcement",
        "A graceful announcement graphic to share service details with family and friends online.",
@@ -326,10 +343,10 @@ biz_items = [
     ("custom-ebook-workbook-cover", "Custom E-book / Workbook Cover Design", "ebook cover"),
 ]
 for h, t, tag in biz_items:
-    delivery_product(h, t,
-                     f"A polished {tag} that makes your small business look like a big brand - on time and on point.",
-                     "Custom Design Service", ["business", tag], C5,
-                     digital=30, printready=45, printship=60)
+    custom_design(h, t,
+                  f"A polished {tag} that makes your small business look like a big brand - on time and on point.",
+                  ["business", tag], C5,
+                  template=24, bespoke=45, bespoke_ship=60)
 
 add("custom-instagram-templates", "Custom Instagram Post & Story Templates",
     _body("Branded, editable Instagram templates so your feed and stories stay consistent and on-brand without starting from scratch every time.",
@@ -401,7 +418,7 @@ for h, t, tag in canva_templates:
     simple(h, t,
            f"A fully editable {tag} Canva template - swap your text, colors, and photos in minutes and export print-ready. Instant download, edit forever.",
            "Canva Editable Template", ["canva", "template", tag, "editable"], C6,
-           14, option=("Delivery", "Canva Link"),
+           12, option=("Delivery", "Canva Link"),
            vak="See it come together instantly, follow simple prompts, drag and drop until it feels like yours.")
 
 # Canva bundles

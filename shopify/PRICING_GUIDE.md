@@ -13,17 +13,27 @@ piece) **is** the product. It is premium by nature.
 
 | Tier | Price range | Purpose | Examples |
 |---|---|---|---|
-| **On-ramp** | $5–$15 | Get first-time buyers in the door cheaply. Not where you make money. | Digital downloads, single printables, single Canva templates, small add-ons |
-| **Custom design** | $16–$70 | Your bread and butter — bespoke, built-from-blank-page design. | Custom invitations, shirts, favor labels, business graphics |
-| **Premium design** | $70–$165 | Bigger custom pieces & licensing. | Vinyl/DTF files, brand mini-packs, single book pages, consultations, covers |
-| **Suites & bundles** | $95–$295 | Coordinated multi-piece sets. The "do it all for me" offer. | Celebration suite, memorial suite, event/party bundles, business starter |
-| **High-end** | $300–$650 | Anchors. Full done-for-you book creation. | Custom story writing/illustration packages, full custom books |
+| **On-ramp (self-edit)** | $5–$15 | Canva templates the customer edits & saves themselves. Fully on them. Gets buyers in the door cheaply. | Editable Canva invitation/flyer/favor templates |
+| **Studio Template Edit** | $15–$25 | Same templates, but *you* personalize them and send within 24 hrs. Done-for-you, fast. | Lower-end custom invitations, favors, business graphics |
+| **Bespoke custom (digital)** | $30–$50 | Truly curated, built-from-blank-page design meant for that person. One custom design ≈ $35. | Custom shirt design ($35), bespoke invitation ($45) |
+| **Bespoke + Print/Ship** | $40–$70 | Bespoke design, printed (DTF for shirts) and shipped. | Print + ship shirt ($60), invitation ($62) |
+| **Premium Suite** | ~$295 | Coordinated statement pieces *on top of* the party (shirt + welcome sign + treat-table accents). An add-on, not the whole event. | Custom Celebration Package → Premium Suite |
+| **High-End Anchor** | **$750** | The *whole* party: banners, backdrops, signage, favors, stickers, keepsakes — the full array as one world. | Custom Celebration Package → Full Party Experience |
+| **Pro services** | $145–$650 | Full done-for-you book creation (writing, illustration, layout). | Custom book illustration package ($650) |
+
+> **The three custom levels matter.** Self-edit (cheapest, they do the work) → Studio Template
+> Edit (you tweak a template, 24-hr) → Bespoke (curated from scratch, scales with how many
+> designs they want). This lets a budget buyer and a premium buyer shop the *same* product.
+
+> **Shirts are DTF.** Full-color, crack-resistant — priced accordingly ($35 design, $60 printed
+> & shipped). Vinyl is offered as a secondary option while you ramp it up.
 
 ## Why the high anchor matters (this cures lowballing)
-When a **$650** illustration package and a **$295** celebration suite sit on your menu,
-your **$45 custom shirt** and **$65 consultation** feel like an *easy yes*. The premium
+When a **$750 Full Party Experience** and a **$650** illustration package sit on your menu,
+your **$35 custom shirt** and **$45 bespoke invitation** feel like an *easy yes*. The premium
 tier reframes everything below it as affordable. Remove the anchor and your mid-tier
-suddenly looks "expensive." Keep it.
+suddenly looks "expensive." Keep it. (We're testing $750 inside your $650–$850 band — room
+to push higher later once it proves out.)
 
 ## Don't scare people away — but don't apologize either
 - The **on-ramp tier** is your "no-risk, try-me" entry. It keeps you approachable.
