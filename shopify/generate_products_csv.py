@@ -12,8 +12,20 @@ owner can build automated (tag-based) collections after import.
 """
 
 import csv
+import re
 
 VENDOR = "Color Create Studio"
+
+
+def _strip_html(s):
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s)).strip()
+
+
+def _meta(plain, limit=158):
+    """Trim a plain-text string into a clean SEO meta description."""
+    if len(plain) <= limit:
+        return plain
+    return plain[:limit].rsplit(" ", 1)[0].rstrip(".,;:-") + "..."
 
 # Shopify product import header (standard columns).
 HEADER = [
@@ -30,6 +42,7 @@ HEADER = [
 ]
 
 rows = []
+seo_ref = []  # one entry per product, for the SEO reference export
 _sku_seen = set()
 
 
@@ -50,8 +63,16 @@ def add(handle, title, body, ptype, tags, collection,
     """
     all_tags = list(tags) + [collection, ptype]
     tag_str = ", ".join(dict.fromkeys(all_tags))  # de-dupe, keep order
-    seo_title = seo_title or f"{title} | Color Create Studio"
-    seo_desc = seo_desc or ""
+    seo_title = (seo_title or f"{title} | Color Create Studio")[:70]
+    if not seo_desc:
+        seo_desc = _meta(_strip_html(body))
+    # Image alt text: descriptive, accessibility- and SEO-friendly.
+    alt_text = _meta(f"{title} - {ptype.lower()} by Color Create Studio", 125)
+    seo_ref.append({
+        "Handle": handle, "Title": title, "Collection": collection,
+        "SEO Title": seo_title, "SEO Description": seo_desc,
+        "Image Alt Text": alt_text,
+    })
     first = True
     for i, (values, price, ship, grams) in enumerate(variants, start=1):
         base = handle.upper().replace("-", "")[:14]
@@ -65,7 +86,8 @@ def add(handle, title, body, ptype, tags, collection,
                 "Handle": handle, "Title": title, "Body (HTML)": body,
                 "Vendor": vendor, "Type": ptype, "Tags": tag_str,
                 "Published": "FALSE", "SEO Title": seo_title,
-                "SEO Description": seo_desc, "Status": "draft",
+                "SEO Description": seo_desc, "Image Alt Text": alt_text,
+                "Status": "draft",
             })
             first = False
         else:
@@ -468,7 +490,8 @@ for h, name, tag, digital, ship in fulfill_items:
     add(h, name, _body(
         f"Your {tag}, your way. Get the finished design delivered digitally to print yourself, or let us print and ship the done-for-you product straight to your door.",
         vak="Sharp, ready-to-print visuals, clear delivery options, a product you can hold and hand out."),
-        "Print + Ship Product", ["fulfillment", "print", "ship", tag], C8,
+        "Print + Ship Product",
+        ["fulfillment", "print", "ship", "Digital Print + Send", tag], C8,
         ["Delivery"],
         [(("Digital Print + Send",), digital, False, 0),
          (("Print + Ship",), ship, True, 250)])
@@ -905,6 +928,18 @@ with open(OUT, "w", newline="", encoding="utf-8") as f:
     w.writeheader()
     for r in rows:
         w.writerow(r)
+
+# SEO + alt-text reference (one row per product) for easy manual use when
+# uploading images/mockups in the Shopify admin.
+SEO_OUT = "shopify/seo_reference.csv"
+seo_cols = ["Handle", "Title", "Collection", "SEO Title", "SEO Description",
+            "Image Alt Text"]
+with open(SEO_OUT, "w", newline="", encoding="utf-8") as f:
+    w = csv.DictWriter(f, fieldnames=seo_cols)
+    w.writeheader()
+    for r in seo_ref:
+        w.writerow(r)
+print(f"Wrote {SEO_OUT} ({len(seo_ref)} products)")
 
 # Summary
 products = len(set(r["Handle"] for r in rows))

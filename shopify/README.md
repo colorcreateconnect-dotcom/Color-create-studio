@@ -6,7 +6,11 @@ format/edition duplicates collapse into variants).
 
 ## Files
 - `generate_products_csv.py` — the catalog + CSV generator (edit prices/copy here)
-- `products_import.csv` — the file you upload to Shopify
+- `products_import.csv` — the file you upload to Shopify (products, variants, SEO, alt text)
+- `seo_reference.csv` — one row per product: SEO title, meta description, image alt text
+- `generate_collections.py` — builds the collection files below
+- `collections_reference.csv` — the 16 collections + their automated tag rules
+- `COLLECTIONS_SETUP.md` — click-by-click native Shopify collection setup (no app)
 - `PRICING_GUIDE.md` — pricing strategy & rationale
 
 ## What's inside the CSV
@@ -26,14 +30,24 @@ format/edition duplicates collapse into variants).
 4. Build collections: Products → Collections → New → **Automated** → "Product tag is equal to"
    the collection name (e.g., `Memorial & Tribute Design`).
 
+## Collections
+All 16 collections are **automated (smart)** collections keyed off the collection-name tag
+each product already carries. See `COLLECTIONS_SETUP.md` for native setup (≈10 min, no app).
+New products with the tag join their collection automatically.
+
+## SEO & image alt text
+- Every product imports with an **SEO title** and **meta description** already filled in.
+- **Image alt text** is generated per product (in `products_import.csv` and `seo_reference.csv`).
+  Shopify only applies alt text to an image, so when you upload your product photos/mockups in
+  the admin, paste the matching alt text from `seo_reference.csv` (or re-import once you have
+  hosted image URLs to add to the `Image Src` column).
+
 ## To regenerate after edits
 ```bash
-python3 generate_products_csv.py
+python3 generate_products_csv.py     # products + seo_reference
+python3 generate_collections.py      # collections + setup guide
 ```
 
-## Notes / next steps
-- **Images** aren't included (CSV has empty `Image Src`). Add product photos after import,
-  or add image URLs to the generator if you host them somewhere.
-- Prices are a starting ladder — see `PRICING_GUIDE.md` for the reasoning before changing.
-- Want me to also generate **collection definitions**, **SEO descriptions** for every
-  product, or **image alt text**? Just ask.
+## Notes
+- **Images** aren't included yet (empty `Image Src`). Add photos/mockups after import.
+- Prices are a deliberate ladder — see `PRICING_GUIDE.md` before changing.
