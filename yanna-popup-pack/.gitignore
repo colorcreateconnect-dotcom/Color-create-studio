@@ -1,0 +1,16 @@
+# Generated animation outputs — regenerate anytime with scripts/animate.py.
+# Keep the folder structure (via .gitkeep) but don't bloat the repo with binaries.
+exports/gif/*
+exports/webm/*
+exports/png-sequence/*
+exports/tiktok-overlays/*
+exports/capcut-ready-png/*
+!**/.gitkeep
+
+# self-test scratch
+**/_selftest_*
+**/*_frames_tmp/
+
+# python
+__pycache__/
+*.pyc

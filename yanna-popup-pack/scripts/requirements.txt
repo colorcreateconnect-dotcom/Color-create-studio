@@ -1,0 +1,4 @@
+# Yanna Mini Popup Pack — animation toolchain
+# Install with:  pip install -r scripts/requirements.txt
+Pillow>=10.0
+imageio-ffmpeg>=0.4.9   # bundles an ffmpeg binary for transparent WebM export
