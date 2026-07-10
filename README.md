@@ -1,28 +1,31 @@
 # Color-create-studio
 
-Home of the **[Yanna Mini Popup Pack](./yanna-popup-pack/)** — a reusable
-animation asset system for the Yanna TikTok series (a stylized 3D chibi
-"inner voice" pop-up character).
+Home of the **Yanna Mini Popup Pack** — a stylized 3D chibi "inner voice" pop-up
+character for a TikTok series (Lizzie McGuire energy: the mini version pops in,
+reacts, and pops back out).
 
-## What's here
+## Two folders
 
-- **[`yanna-popup-pack/`](./yanna-popup-pack/)** — the full asset system:
-  - `manifest/` — CSV + JSON manifest of all 25 reactions (use case, CapCut
-    animation, on-screen phrase, preset)
-  - `source/` — where the original transparent PNG stickers go
-  - `exports/` — generated CapCut-ready overlays (WebM · GIF · PNG sequence · stills)
-  - `scripts/` — the manifest builder, transparency checker, and 7-preset
-    animation engine
-  - `docs/` — CapCut workflow guide + naming convention
+| Folder | Role |
+|---|---|
+| **[`Yanna_Mini_Popup_Pack/`](./Yanna_Mini_Popup_Pack/)** | The original pack — **source of truth**. Character reference sheet, 150 transparent PNGs across 6 categories, the pack's own CapCut docs, prompt bank, contact sheets, and grid-slicer tool. Left unchanged. |
+| **[`yanna-popup-pack/`](./yanna-popup-pack/)** | The **animation workspace**. Takes the pack's transparent PNGs and generates ready-to-use animated overlays (transparent WebM + GIF), a use-case manifest (CSV/JSON), a transparency audit, and cleaned CapCut-ready stills. |
 
 ## Start here
 
-Read **[`yanna-popup-pack/README.md`](./yanna-popup-pack/README.md)**, then:
+- New to the pack? Read **[`Yanna_Mini_Popup_Pack/README.md`](./Yanna_Mini_Popup_Pack/README.md)**.
+- Want the animated overlays / manifest? Read **[`yanna-popup-pack/README.md`](./yanna-popup-pack/README.md)**:
 
 ```bash
 cd yanna-popup-pack
 pip install -r scripts/requirements.txt
-# drop your PNGs into source/reactions/ then:
-python3 scripts/check_transparency.py
-python3 scripts/animate.py
+python3 scripts/check_transparency.py   # transparency audit
+python3 scripts/animate.py              # generate GIF + WebM overlays
 ```
+
+## Transparency status
+
+All 150 transparent PNGs were audited: **147 clean cut-outs, 3 opaque** (three
+`signature_alt` files shipped with backgrounds not removed). The core **signature**
+set — the 25 named popup reactions — is 100% clean. Details in
+`yanna-popup-pack/manifest/transparency_report.csv`.

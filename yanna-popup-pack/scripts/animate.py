@@ -37,9 +37,21 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 PACK_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PACK_ROOT / "source" / "reactions"
+SRC_ROOT = PACK_ROOT / "source"
 EXPORT = PACK_ROOT / "exports"
 MANIFEST = PACK_ROOT / "manifest" / "yanna_manifest.json"
+
+# The 6 sticker categories in the pack. Each gets a sensible default preset;
+# the signature set is overridden per-sticker from the manifest.
+CATEGORIES = ["signature", "signature_alt", "reactions", "poses", "mouths", "expressions"]
+CATEGORY_DEFAULT_PRESET = {
+    "signature": "pop_in",       # overridden per-name by the manifest
+    "signature_alt": "pop_in",   # matched to its signature twin at runtime
+    "reactions": "pop_in",       # emotion poses
+    "poses": "slide_in",         # full-body poses make a grand entrance
+    "expressions": "pulse",      # face close-ups draw attention
+    "mouths": "pop_in",          # viseme shapes (usually better as lip-sync stills)
+}
 
 FPS = 30
 CANVAS_PAD = 0.35  # extra transparent margin (fraction of size) so motion never clips
@@ -254,33 +266,85 @@ def load_manifest():
     return {"reactions": []}
 
 
-def preset_for(name, manifest):
-    for r in manifest.get("reactions", []):
-        if r["reaction_name"] == name:
-            return r["animation_preset"]
-    return "pop_in"
+def signature_presets(manifest):
+    """reaction_name -> preset, from the manifest (the 25 signature reactions)."""
+    return {r["reaction_name"]: r["animation_preset"]
+            for r in manifest.get("reactions", [])}
 
 
-def render_one(base, name, preset, formats, ffmpeg):
+def reaction_name_from_stem(stem):
+    """
+    Pull the human reaction name out of a real pack filename.
+        yanna_sig_01_side_eye      -> side_eye
+        yanna_sigalt_13_celebration_bounce -> celebration_bounce
+    Returns None if the stem isn't a numbered pack sticker.
+    """
+    parts = stem.split("_")
+    # find the 2-digit index token; the name is everything after it
+    for i, tok in enumerate(parts):
+        if tok.isdigit():
+            return "_".join(parts[i + 1:]) or None
+    return None
+
+
+def preset_for_file(png, category, sig_presets):
+    """Signature/alt inherit the manifest preset by name; others use a category default."""
+    if category in ("signature", "signature_alt"):
+        name = reaction_name_from_stem(png.stem)
+        if name and name in sig_presets:
+            return sig_presets[name]
+    return CATEGORY_DEFAULT_PRESET.get(category, "pop_in")
+
+
+def is_opaque(base, threshold_pct=1.0):
+    """True if the sticker's background was never removed (no real transparency),
+    so animating it would just produce a moving rectangle with a visible box."""
+    a = base.getchannel("A")
+    transparent = a.histogram()[0]
+    return 100.0 * transparent / (base.width * base.height) < threshold_pct
+
+
+def render_one(base, category, stem, preset, formats, ffmpeg):
     func, secs = PRESET_FUNCS[preset]
     n = max(2, int(secs * FPS))
     cw, ch = make_canvas(base)
     frames = func(base, cw, ch, n)
-    stem = f"{name}_{preset}"
+    out_name = f"{stem}_{preset}"
     made = []
     if "gif" in formats:
-        p = EXPORT / "gif" / f"{stem}.gif"
+        p = EXPORT / "gif" / category / f"{out_name}.gif"
         export_gif(frames, p)
         made.append(p)
     if "webm" in formats and ffmpeg:
-        p = EXPORT / "webm" / f"{stem}.webm"
+        p = EXPORT / "webm" / category / f"{out_name}.webm"
         export_webm(frames, p, ffmpeg)
         made.append(p)
     if "png-sequence" in formats:
-        d = EXPORT / "png-sequence" / stem
+        d = EXPORT / "png-sequence" / category / out_name
         export_png_sequence(frames, d)
         made.append(d)
     return made
+
+
+def copy_stills(categories):
+    """Populate exports/capcut-ready-png/<category>/ with the untouched transparent stills,
+    and drop the 25 signature stills into exports/tiktok-overlays/ as the hero set."""
+    import shutil as _sh
+    n_still = 0
+    for cat in categories:
+        src = SRC_ROOT / cat
+        if not src.is_dir():
+            continue
+        dst = EXPORT / "capcut-ready-png" / cat
+        dst.mkdir(parents=True, exist_ok=True)
+        for png in sorted(src.glob("*.png")):
+            _sh.copy2(png, dst / png.name)
+            n_still += 1
+            if cat == "signature":
+                overlays = EXPORT / "tiktok-overlays"
+                overlays.mkdir(parents=True, exist_ok=True)
+                _sh.copy2(png, overlays / png.name)
+    return n_still
 
 
 def get_ffmpeg():
@@ -314,12 +378,16 @@ def make_test_blob(size=512):
 def main():
     ap = argparse.ArgumentParser(description="Animate Yanna popup stickers.")
     ap.add_argument("--preset", choices=list(PRESET_FUNCS),
-                    help="force one preset for all stickers")
+                    help="force one preset for every sticker")
+    ap.add_argument("--category", nargs="*", default=CATEGORIES, choices=CATEGORIES,
+                    help="which category folders to render (default: all 6)")
     ap.add_argument("--only", nargs="*", default=None,
-                    help="reaction names to render (default: all found)")
+                    help="only render files whose stem contains one of these substrings")
     ap.add_argument("--formats", nargs="*",
-                    default=["gif", "webm", "png-sequence"],
+                    default=["gif", "webm"],  # png-sequence is opt-in (huge)
                     choices=["gif", "webm", "png-sequence"])
+    ap.add_argument("--no-stills", action="store_true",
+                    help="skip copying the still PNGs into exports/capcut-ready-png")
     ap.add_argument("--self-test", action="store_true",
                     help="render every preset on a labeled test blob")
     args = ap.parse_args()
@@ -332,26 +400,43 @@ def main():
         blob = make_test_blob()
         print("Self-test: rendering all 7 presets on a labeled test blob…")
         for preset in PRESET_FUNCS:
-            made = render_one(blob, "_selftest", preset, args.formats, ffmpeg)
+            made = render_one(blob, "_selftest", "_selftest", preset, args.formats, ffmpeg)
             print(f"  {preset:11s} -> " + ", ".join(str(m.relative_to(PACK_ROOT)) for m in made))
         return
 
     manifest = load_manifest()
-    pngs = sorted(SRC_DIR.glob("yanna_reaction_*.png"))
-    if not pngs:
-        print(f"No stickers found in {SRC_DIR.relative_to(PACK_ROOT)}/")
-        print("Drop your transparent PNGs there named yanna_reaction_<name>.png,")
-        print("then re-run.  (Try `python3 scripts/animate.py --self-test` to verify the pipeline.)")
-        return
+    sig_presets = signature_presets(manifest)
 
-    for png in pngs:
-        name = png.stem.replace("yanna_reaction_", "")
-        if args.only and name not in args.only:
+    total = 0
+    skipped = []
+    for category in args.category:
+        cat_dir = SRC_ROOT / category
+        pngs = sorted(cat_dir.glob("*.png"))
+        if not pngs:
+            print(f"(skip) no PNGs in source/{category}/")
             continue
-        preset = args.preset or preset_for(name, manifest)
-        base = Image.open(png).convert("RGBA")
-        made = render_one(base, name, preset, args.formats, ffmpeg)
-        print(f"{name:20s} [{preset}] -> {len(made)} output(s)")
+        print(f"\n=== {category} ({len(pngs)}) ===")
+        for png in pngs:
+            if args.only and not any(s in png.stem for s in args.only):
+                continue
+            base = Image.open(png).convert("RGBA")
+            if is_opaque(base):
+                skipped.append(f"{category}/{png.name}")
+                print(f"  {png.stem:36s} [SKIP] background not removed (opaque)")
+                continue
+            preset = args.preset or preset_for_file(png, category, sig_presets)
+            made = render_one(base, category, png.stem, preset, args.formats, ffmpeg)
+            total += 1
+            print(f"  {png.stem:36s} [{preset:10s}] -> {len(made)} file(s)")
+
+    if not args.no_stills:
+        n = copy_stills(args.category)
+        print(f"\nStills: copied {n} transparent PNGs into exports/capcut-ready-png/ "
+              f"(+ signature set into exports/tiktok-overlays/)")
+    print(f"\nDone. Animated {total} sticker(s).")
+    if skipped:
+        print(f"Skipped {len(skipped)} opaque sticker(s) (background not removed): "
+              + ", ".join(skipped))
 
 
 if __name__ == "__main__":

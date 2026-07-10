@@ -3,6 +3,16 @@
 This is the practical, click-by-click guide for dropping Yanna into your TikToks
 as a Lizzie-McGuire-style pop-up inner voice.
 
+> **This guide is about the pre-animated exports** (GIF / WebM) that this workspace
+> generates — the thing the base pack doesn't ship. For the original pack's own CapCut
+> instructions, hand-built keyframe recipes, and lip-sync method, see the authoritative
+> docs in the pack itself:
+> - `../../Yanna_Mini_Popup_Pack/README.md`
+> - `../../Yanna_Mini_Popup_Pack/08_CapCut_Templates/animation_recipes.md`
+>
+> Use the pre-animated WebM/GIF when you want it done for you; use the pack's keyframe
+> recipes when you want to build the motion by hand in CapCut.
+
 ---
 
 ## Which export format should I use?

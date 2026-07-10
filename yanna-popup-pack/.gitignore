@@ -1,13 +1,12 @@
-# Generated animation outputs — regenerate anytime with scripts/animate.py.
-# Keep the folder structure (via .gitkeep) but don't bloat the repo with binaries.
-exports/gif/*
-exports/webm/*
+# Generated GIF + WebM + still overlays ARE committed (they're the deliverables).
+#
+# PNG sequences are intentionally NOT committed: 150 stickers x dozens of frames
+# would be tens of thousands of files. Regenerate any time with:
+#   python3 scripts/animate.py --formats png-sequence --category signature
 exports/png-sequence/*
-exports/tiktok-overlays/*
-exports/capcut-ready-png/*
-!**/.gitkeep
+!exports/png-sequence/.gitkeep
 
-# self-test scratch
+# self-test scratch + ffmpeg temp frames
 **/_selftest_*
 **/*_frames_tmp/
 

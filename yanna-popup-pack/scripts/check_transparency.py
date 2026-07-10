@@ -25,6 +25,14 @@ SRC = PACK_ROOT / "source"
 REPORT = PACK_ROOT / "manifest" / "transparency_report.csv"
 
 
+# A real cut-out has a meaningful transparent area. Below this, the background
+# was effectively never removed (a handful of stray alpha-0 pixels don't count).
+OPAQUE_PCT = 1.0
+# Full-body stickers legitimately touch the frame edge (braids, feet). Only treat
+# the border as a "box" when MOST of the border ring is opaque.
+BORDER_BOX_FRAC = 0.6
+
+
 def analyze(path: Path):
     img = Image.open(path)
     mode = img.mode
@@ -34,40 +42,37 @@ def analyze(path: Path):
         "size": f"{img.width}x{img.height}",
         "has_alpha": False,
         "transparent_pct": 0.0,
+        "border_opaque_pct": 0.0,
         "opaque_bbox": "",
-        "edge_clean": False,
         "verdict": "",
     }
 
+    row["has_alpha"] = "A" in img.getbands()
     if mode != "RGBA":
         img = img.convert("RGBA")
     alpha = img.getchannel("A")
-    row["has_alpha"] = "A" in Image.open(path).getbands()
 
     hist = alpha.histogram()
     total = img.width * img.height
-    fully_transparent = hist[0]
-    row["transparent_pct"] = round(100.0 * fully_transparent / total, 1)
+    row["transparent_pct"] = round(100.0 * hist[0] / total, 2)
+    row["opaque_bbox"] = str(alpha.getbbox() or "EMPTY")
 
-    bbox = alpha.getbbox()  # box of non-zero alpha
-    row["opaque_bbox"] = str(bbox) if bbox else "EMPTY"
-
-    # edges fully transparent? (a stray white background usually fails this)
+    # fraction of the 1px border ring that is opaque (alpha > 128)
     w, h = img.size
-    edge_px = (
-        [alpha.getpixel((x, 0)) for x in range(0, w, max(1, w // 50))] +
-        [alpha.getpixel((x, h - 1)) for x in range(0, w, max(1, w // 50))] +
-        [alpha.getpixel((0, y)) for y in range(0, h, max(1, h // 50))] +
-        [alpha.getpixel((w - 1, y)) for y in range(0, h, max(1, h // 50))]
+    step_x, step_y = max(1, w // 60), max(1, h // 60)
+    border = (
+        [alpha.getpixel((x, 0)) for x in range(0, w, step_x)] +
+        [alpha.getpixel((x, h - 1)) for x in range(0, w, step_x)] +
+        [alpha.getpixel((0, y)) for y in range(0, h, step_y)] +
+        [alpha.getpixel((w - 1, y)) for y in range(0, h, step_y)]
     )
-    row["edge_clean"] = all(p == 0 for p in edge_px)
+    border_opaque = sum(1 for p in border if p > 128) / len(border)
+    row["border_opaque_pct"] = round(100.0 * border_opaque, 1)
 
-    if not row["has_alpha"] or row["transparent_pct"] == 0.0:
-        row["verdict"] = "FAIL: no transparency (flat/opaque background)"
-    elif not row["edge_clean"]:
-        row["verdict"] = "WARN: edges not fully transparent (possible halo/box)"
-    elif bbox and (bbox[0] > w * 0.15 or bbox[1] > h * 0.15):
-        row["verdict"] = "WARN: lots of padding — consider trimming"
+    if not row["has_alpha"] or row["transparent_pct"] < OPAQUE_PCT:
+        row["verdict"] = "FAIL: background not removed (image is opaque)"
+    elif border_opaque > BORDER_BOX_FRAC:
+        row["verdict"] = "WARN: most of the frame border is opaque (possible box/halo)"
     else:
         row["verdict"] = "OK"
     return row
@@ -94,7 +99,14 @@ def main():
         print(f"{r['file'].ljust(name_w)}  {r['mode']:5} {r['transparent_pct']:>6}%  {r['verdict']}")
 
     ok = sum(r["verdict"] == "OK" for r in rows)
-    print(f"\n{ok}/{len(rows)} clean.  Full report -> {REPORT.relative_to(PACK_ROOT)}")
+    warn = [r for r in rows if r["verdict"].startswith("WARN")]
+    fail = [r for r in rows if r["verdict"].startswith("FAIL")]
+    print(f"\nSummary: {ok} OK · {len(warn)} WARN · {len(fail)} FAIL   (of {len(rows)})")
+    if fail:
+        print("FAIL (background not removed — not usable as a clean overlay until fixed):")
+        for r in fail:
+            print(f"   {r['file']}")
+    print(f"Full report -> {REPORT.relative_to(PACK_ROOT)}")
 
 
 if __name__ == "__main__":

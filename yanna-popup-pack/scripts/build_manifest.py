@@ -152,19 +152,22 @@ CHARACTER_LOCK = {
 def build_rows():
     rows = []
     for idx, name, use_case, capcut, preset, phrase, dur in REACTIONS:
+        # Real pack filenames: the "signature" set = the 25 named popup reactions,
+        # numbered in this exact order (yanna_sig_01_side_eye … yanna_sig_25_exit_slide).
+        stem = f"yanna_sig_{idx:02d}_{name}"
         rows.append({
-            "file_name": f"yanna_reaction_{name}.png",
-            "category": "reaction",
+            "file_name": f"{stem}.png",
+            "category": "signature",
             "reaction_name": name,
             "best_use_case": use_case,
             "suggested_capcut_animation": capcut,
             "suggested_on_screen_phrase": phrase,
             "animation_preset": preset,
             "suggested_duration_sec": dur,
-            "source_path": f"source/reactions/yanna_reaction_{name}.png",
-            "capcut_ready_png": f"exports/capcut-ready-png/yanna_reaction_{name}.png",
-            "gif": f"exports/gif/yanna_reaction_{name}_{preset}.gif",
-            "webm": f"exports/webm/yanna_reaction_{name}_{preset}.webm",
+            "source_path": f"source/signature/{stem}.png",
+            "capcut_ready_png": f"exports/capcut-ready-png/signature/{stem}.png",
+            "gif": f"exports/gif/signature/{stem}_{preset}.gif",
+            "webm": f"exports/webm/signature/{stem}_{preset}.webm",
         })
     return rows
 
