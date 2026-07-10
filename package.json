@@ -1,0 +1,22 @@
+{
+  "name": "color-create-studio",
+  "version": "0.1.0",
+  "description": "A moddable, online life-simulation game (Sims-style gameplay + GTA-Online-style shared world + a real mod system).",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "keywords": [
+    "game",
+    "life-simulation",
+    "sims",
+    "multiplayer",
+    "mods",
+    "sandbox"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
