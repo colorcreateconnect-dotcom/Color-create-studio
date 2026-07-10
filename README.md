@@ -1,109 +1,145 @@
-# 🎨 Color Create Studio
+# 🎨 Color Create Studio — Life Sim
 
-A **moddable, online life-simulation game** — think *The Sims* gameplay, an
-easy *mod system* baked in, and a *GTA-Online-style* shared world where you and
-your friends hang out in the same house in real time.
+A **moddable, data-driven life-simulation game** in the browser. Build a Sim,
+keep them alive and thriving, take on quests, grow friendships (that actually
+*remember* you), pick careers, go to school, adopt pets, and unlock a whole map
+of new worlds as you progress.
 
-It runs entirely in the browser. No game engine to install, no build step.
+It runs with **no build step and no game engine**. Everything is plain
+JavaScript over one serializable game state — which is the groundwork for
+online/social play later (see *Multiplayer-readiness* below).
 
 ---
 
-## ▶️ Play it (3 steps)
+## ▶️ Play it
 
-You need [Node.js](https://nodejs.org) installed (v18+). Then, in this folder:
+You need [Node.js](https://nodejs.org) (v18+). Then:
 
 ```bash
-npm install      # one-time: downloads the tiny multiplayer library
-npm start        # starts the game + multiplayer server
+npm install
+npm start
 ```
 
-Open **http://localhost:3000** in your browser. That's it — you're playing.
+Open **http://localhost:3000**. Make your Sim and start living.
 
-> The game also works fully single-player. Multiplayer + mods just need the
-> server running (which `npm start` does for you).
-
----
-
-## 🎮 How to play
-
-- **Move:** `W` `A` `S` `D` or the arrow keys.
-- **Do something:** walk up to a glowing object and press **`E`** (eat at the
-  fridge, sleep in the bed, shower, watch TV, work at the computer…).
-- **Stop early:** press **`Esc`**.
-- Keep your **needs** (hunger, energy, fun…) topped up — if they drop, your
-  Sim's **mood** drops with them. Working at the computer earns 💰.
+> It also opens straight from `index.html` if you prefer — but running the
+> server lets the (preserved) classic walk-around mode load its content too.
 
 ---
 
-## 🔧 The three pillars
+## 🎮 How it plays
 
-### 1. The Sims part — life simulation
-Your Sim has needs that drain over time, furniture that refills them, money, a
-day/night clock, and a mood that reflects how well you're taking care of them.
-It's all in `src/needs.js`, `src/world.js`, and `src/entity.js`.
+- It's **tap-based and mobile-first** — 8 tabs along the bottom.
+- **Do things** on the **Home** tab (sleep, eat, shower, post content, work…).
+  Every action costs **time** and shifts your **needs**.
+- Keep your 8 needs healthy — they drive your **mood**, and mood changes how
+  well actions go (Inspired boosts creativity, Burnt Out blocks big tasks…).
+- Follow **Quests** to unlock careers, worlds, pets and new storylines.
+- Everything **auto-saves** to your browser. Reset anytime from the `⋯` menu.
 
-### 2. The mods part
-Turn mods on and off live from the **Mods panel** on the left. The game ships
-with five example mods (money cheat, super speed, a hot tub, a coffee-addiction
-system that adds a *new need*, and a hard mode). **Making your own mod is a
-single small file** — see [`mods/README.md`](mods/README.md).
+### The tabs
+| Tab | What's there |
+|-----|--------------|
+| 🏠 Home | Your place + everyday actions on furniture |
+| 🧍 Sim | Needs, skills, traits, life path, outfit, XP |
+| 🗺️ World | 11 worlds; locked ones show how to unlock them |
+| 💼 Life | Careers (10 ladders) + School (6 majors) |
+| 💞 Social | NPCs, relationships, and their memories of you |
+| 🐾 Pets | Adopt & care for dogs/cats/bunnies |
+| 🗒️ Quests | Active objectives, progress, rewards |
+| 📰 Feed | Your life's activity log |
 
-### 3. The GTA-Online part — play together
-Type a **room name**, click **Go Online**, and share that room name with
-friends. Everyone in the same room sees each other move around the same house
-in real time, with live chat. Powered by `server/server.js` + `src/net.js`.
+---
+
+## 🧩 The systems (all data-driven)
+
+1. **Worlds & unlocks** — 11 areas (Home, Pet Park, Campus, Career/Fashion/
+   Fame/Nightlife/Business Districts, Travel Hub, Wedding World, Wellness
+   Retreat), each with its own unlock rule shown on the locked card.
+2. **Pets** — adopt, 4 pet needs, bonding, 5 care actions, cute random events.
+3. **Quests** — a modular engine: objectives with predicates, rewards, and
+   unlocks that chain into new questlines.
+4. **NPCs** — roles, personalities, schedules, and live friendship/romance/
+   trust/jealousy scores.
+5. **NPC memory** — NPCs remember how you treat them; memories bias future
+   interactions (flirting a stranger flops and leaves an awkward memory).
+6. **Deep needs & mood** — 8 needs feed a 10-state mood model that modifies
+   action outcomes.
+7. **Time & schedule** — day-of-week + clock; actions cost hours, needs decay
+   hourly, and some content is time-gated (nightlife after 7pm, classes 8–3…).
+8. **Careers** — 10 careers, each a 5-tier ladder with pay, schedules,
+   promotion requirements, and skill gates.
+9. **School** — enroll in a major; attend class, study, sit exams, track grades.
+10. **Objects** — modular home objects, each declaring its actions/effects/time.
+11. **Random events** — life happens, triggered by time, mood, pets, career, etc.
+12. **Expansion packs** — 10 content packs that unlock as you progress.
+13. **Multiplayer-readiness** — see below.
+14. **Tabbed UI** — mobile-first, neon-glam.
+15. **Save system** — full localStorage save/load + reset, with save migration.
+
+---
+
+## 🌐 Multiplayer-readiness (not built yet — by design)
+
+This upgrade deliberately does **not** add online play, but it's structured so
+that it can be added later without a rewrite:
+
+- **One serializable state** (`CCS.state`) — player / world / NPC / quests /
+  event-log are cleanly separated and JSON-safe.
+- **Action handlers are decoupled from the UI.** Every button just calls
+  `CCS.sim.performAction(id)`. A network layer could call the exact same entry
+  point. Nothing game-logical lives in click handlers.
+- **Data-driven content** (worlds/careers/NPCs/quests/objects/events/packs are
+  data tables), so shared/authoritative content is easy to sync.
+
+The original real-time **multiplayer server still ships** (`server/server.js`)
+and powers the preserved 🕹️ **classic walk-around mode** (`classic.html`,
+linked from the Sim tab) — so nothing that worked before was thrown away.
 
 ---
 
 ## 🗂️ Project layout
 
 ```
-index.html            The game page (loads everything, holds the layout/CSS)
-package.json          Project + the one dependency (ws) and the start script
-server/
-  server.js           Serves the game AND runs the multiplayer world
-src/
-  core.js             Shared namespace (CCS), event bus, helpers
-  needs.js            The needs system (hunger, energy, …)
-  world.js            The lot: floor, walls, furniture + interactions
-  entity.js           Your Sim (movement, using objects, money)
-  render.js           Draws everything to the canvas
-  input.js            Keyboard controls
-  mods.js             The mod loader + the API mods plug into
-  net.js              Multiplayer client (syncs players, chat)
-  ui.js               The HUD: needs bars, mods panel, chat, toasts
-  game.js             Boots the game and runs the main loop
-mods/
-  manifest.json       The list of mods to load
-  *.js                The example mods (copy one to make your own!)
+index.html              The life sim (mobile-first tabbed UI)
+classic.html            The original canvas walk-around game (preserved)
+src/core.js             Shared namespace (CCS), event bus, helpers
+src/sim/
+  state.js              The single serializable game state + factory
+  data-worlds.js        Worlds + unlock rules
+  data-careers.js       Career ladders + school majors
+  data-npcs.js          NPC cast + interaction catalog
+  data-objects.js       Home objects + the full action catalog
+  data-quests.js        Quest definitions (objectives/rewards/unlocks)
+  data-events-packs.js  Random events, expansion packs, moods, traits
+  time.js               Clock, schedule, hourly decay
+  needs-mood.js         Wellbeing + mood classifier
+  engine.js             performAction pipeline (effects/xp/requirements)
+  quests.js             Quest engine
+  npc.js                Relationships + memory
+  progression.js        Careers, school, pets, unlocks, events
+  save.js               localStorage save/load/reset
+  ui.js                 The tabbed interface
+  boot.js               Startup
+src/ (bed.js, world.js, …)  Classic-mode modules (unchanged)
+server/server.js        Static + realtime server (for classic mode)
+mods/                   Classic-mode example mods
 ```
 
 ---
 
-## 🌐 Playing with friends over the internet
+## 🔧 Extending it
 
-Out of the box, "online" means everyone on **your local network** (same Wi-Fi)
-can join via your computer's local IP (e.g. `http://192.168.1.20:3000`).
+Because content is data, adding to the game is mostly editing a data table:
 
-To play with friends anywhere, host `server/server.js` on any Node-friendly
-host (Render, Railway, Fly.io, a VPS, etc.) and share that URL. The client
-auto-detects `ws://` vs `wss://`, so it works behind HTTPS too.
+- **New action/object** → add to `src/sim/data-objects.js`.
+- **New quest** → add to `src/sim/data-quests.js` (objectives are predicates).
+- **New world / career / NPC / event / pack** → the matching `data-*.js`.
 
----
-
-## 🚧 What this is (and isn't)
-
-This is a genuine, playable **foundation** — the real core loop of a life sim,
-a working mod system, and working real-time multiplayer. It is intentionally
-small and readable so it's easy to grow.
-
-It is **not** (yet) a photorealistic 3D world with hundreds of hours of
-content — that's the long road we can build along from here. Natural next
-steps: build/buy mode (place your own furniture), multiple rooms/lots,
-relationships between Sims, careers, a proper save system, and richer art.
+No wiring required — the engine, quest system and UI pick it up automatically.
 
 ---
 
 ## 📜 License
 
-MIT — do whatever you like with it.
+MIT.
