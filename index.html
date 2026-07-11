@@ -182,6 +182,30 @@
       font-size:15px; transform:translate(-50%,-50%); border:2px solid #fffa; box-shadow:0 0 14px -2px currentColor; z-index:5; }
     .style-btns { display:flex; gap:6px; }
 
+    /* ---- 3D avatar / Style Studio ---- */
+    .a3d-card { padding:10px; }
+    .avatar3d { position:relative; height:300px; border-radius:14px; overflow:hidden;
+      border:1px solid var(--line); background:radial-gradient(400px 260px at 50% 20%, #241435, #120b1c); }
+    .avatar3d.tall { height:320px; }
+    .avatar3d canvas { display:block; width:100%; height:100%; cursor:grab; }
+    .avatar3d canvas:active { cursor:grabbing; }
+    .a3d-fallback { display:grid; place-items:center; height:100%; color:var(--muted); font-size:13px; }
+    .lookrow { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:6px; }
+    .lookcard { background:#0005; border:1px solid var(--line); border-radius:13px; padding:10px 6px;
+      color:var(--text); cursor:pointer; font-family:inherit; display:flex; flex-direction:column;
+      align-items:center; gap:3px; }
+    .lookcard b { font-size:11.5px; text-align:center; }
+    .lookcard small { font-size:9px; color:var(--muted); letter-spacing:.4px; }
+    .lookcard .lc-emoji { font-size:22px; }
+    .lookcard.on { border-color:var(--pink); background:linear-gradient(180deg,#ff8fd022,#e08bff14); }
+    .lookcard.on small { color:var(--pink); font-weight:700; }
+    .chipbtn { background:#0005; border:1px solid var(--line); color:var(--text); border-radius:999px;
+      padding:6px 11px; font-size:12px; cursor:pointer; font-family:inherit; margin:0 5px 5px 0; }
+    .chipbtn.on { border-color:var(--accent2); background:#e08bff1f; font-weight:700; }
+    .swatches { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+    .swatch { width:34px; height:34px; border-radius:50%; border:2px solid #ffffff22; cursor:pointer; }
+    .swatch.on { border-color:#fff; box-shadow:0 0 0 3px var(--pink), 0 0 14px -2px var(--pink); }
+
     .rfilter { display:flex; gap:7px; overflow-x:auto; padding-bottom:8px; margin-bottom:4px; }
     .rchip { flex:none; background:#0005; border:1px solid var(--line); color:var(--muted); border-radius:999px;
       padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
@@ -231,6 +255,7 @@
   <script src="src/sim/data-objects.js"></script>
   <script src="src/sim/data-catalog.js"></script>
   <script src="src/sim/data-lots.js"></script>
+  <script src="src/sim/data-avatar.js"></script>
   <script src="src/sim/data-quests.js"></script>
   <script src="src/sim/data-events-packs.js"></script>
   <!-- Systems -->
@@ -251,6 +276,8 @@
   <script src="src/render/renderer.js"></script>
   <script src="src/render/renderer-dom.js"></script>
   <script src="src/render/renderer-three-stub.js"></script>
+  <!-- 3D character viewer (ES module; loads Three.js from /vendor, runs before boot) -->
+  <script type="module" src="src/render/avatar3d.js"></script>
   <!-- UI + boot -->
   <script src="src/sim/ui.js"></script>
   <script src="src/sim/boot.js"></script>

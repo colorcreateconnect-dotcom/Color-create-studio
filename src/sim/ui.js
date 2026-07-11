@@ -68,6 +68,7 @@ CCS.ui.render = function render() {
       <span>${t.icon}</span><label>${t.label}</label></button>`).join('');
   renderModal();
   renderLotView();
+  renderAvatarView();
 };
 
 // Hand the lot view to the active renderer (contract in src/render/renderer.js).
@@ -78,6 +79,14 @@ function renderLotView() {
   if (!r) return;
   r.mount(el);
   r.renderScene(CCS.sim.lots.sceneDescription());
+}
+
+// Mount the 3D character viewer — the Style Studio modal's viewport wins if
+// both it and the Sim tab viewport are on screen.
+function renderAvatarView() {
+  const el = document.getElementById('avatar3d-modal') || document.getElementById('avatar3d-view');
+  if (!el || !CCS.avatar3d) return;
+  CCS.avatar3d.mount(el);
 }
 
 // ===========================================================================
@@ -229,6 +238,11 @@ RENDER.sim = function () {
           <div class="sub">${esc(p.pronouns)} · ${cap(p.ageStage)} · <b>${s.mood.state}</b> — ${md.blurb}</div>
           <div class="xpbar">${bar((p.xp / xpNeed) * 100, '#ffd76b')}<em>Lv ${p.level} · ${p.xp}/${xpNeed} XP</em></div>
         </div>
+      </div>
+
+      <div class="card a3d-card">
+        <div id="avatar3d-view" class="avatar3d"></div>
+        <button class="btn" data-act="openStyle">✨ Open Style Studio</button>
       </div>
 
       <div class="card">
@@ -387,8 +401,8 @@ function renderModal() {
   root.innerHTML = `<div class="overlay" ${m.locked ? '' : 'data-act="overlayClose"'}>
     <div class="sheet">${MODAL[m.type](m)}</div></div>`;
 }
-CCS.ui.openModal = (type, data = {}) => { CCS.ui.state.modal = { type, ...data }; renderModal(); };
-CCS.ui.closeModal = () => { CCS.ui.state.modal = null; renderModal(); };
+CCS.ui.openModal = (type, data = {}) => { CCS.ui.state.modal = { type, ...data }; renderModal(); renderAvatarView(); };
+CCS.ui.closeModal = () => { CCS.ui.state.modal = null; renderModal(); renderAvatarView(); };
 
 const MODAL = {
   create() {
@@ -419,6 +433,33 @@ const MODAL = {
       <label class="fld">Pet name<input id="petName" maxlength="16" value="Buddy"/></label>
       <div class="picks">${[['dog', '🐶'], ['cat', '🐱'], ['bunny', '🐰']].map(([t, e]) =>
         `<button class="pick" data-act="adopt" data-type="${t}">${e} ${cap(t)}</button>`).join('')}</div>`;
+  },
+  style() {
+    const a = CCS.sim.avatar.get();
+    const outfits = CCS.data.avatarOutfits.map((o) =>
+      `<button class="lookcard ${a.outfit === o.id ? 'on' : ''}" data-act="eqOutfit" data-id="${o.id}">
+        <span class="lc-emoji">${o.emoji}</span><b>${esc(o.name)}</b>
+        <small>${a.outfit === o.id ? 'EQUIPPED' : 'Tap to wear'}</small></button>`).join('');
+    const hairs = CCS.data.hairStyles.map((h) =>
+      `<button class="chipbtn ${a.hairStyle === h.id ? 'on' : ''}" data-act="setHair" data-id="${h.id}">${h.emoji} ${h.name}</button>`).join('');
+    const hairColors = CCS.data.hairColors.map((c) =>
+      `<button class="swatch ${a.hairColor === c.id ? 'on' : ''}" data-act="setHairColor" data-id="${c.id}"
+        style="background:${c.css}" title="${c.name}"></button>`).join('');
+    const skins = CCS.data.skinTones.map((sk) =>
+      `<button class="swatch ${a.skin === sk.id ? 'on' : ''}" data-act="setSkin" data-id="${sk.id}"
+        style="background:${sk.css}" title="${sk.name}"></button>`).join('');
+    return `<h2>✨ Style Studio</h2>
+      <div id="avatar3d-modal" class="avatar3d tall"></div>
+      <p class="sub" style="text-align:center;margin-top:6px">Drag to spin · your look saves automatically</p>
+      <div class="row-h">Outfits</div>
+      <div class="lookrow">${outfits}</div>
+      <div class="row-h" style="margin-top:10px">Hair</div>
+      <div class="chips">${hairs}</div>
+      <div class="row-h" style="margin-top:10px">Hair color</div>
+      <div class="swatches">${hairColors}</div>
+      <div class="row-h" style="margin-top:10px">Skin tone</div>
+      <div class="swatches">${skins}</div>
+      <button class="btn ghost" data-act="closeModal" style="margin-top:12px">Done</button>`;
   },
   interact(m) {
     const d = CCS.data.npcById[m.id], n = CCS.sim.npc.ensure(m.id);
@@ -462,6 +503,11 @@ function onClick(e) {
     case 'roomFilter': CCS.ui.state.room = d.room; CCS.ui.render(); break;
     case 'cycleWall': CCS.sim.lots.cycleRoomStyle(d.room, 'wallpaper'); break;
     case 'cycleFloor': CCS.sim.lots.cycleRoomStyle(d.room, 'flooring'); break;
+    case 'openStyle': CCS.ui.openModal('style'); break;
+    case 'eqOutfit': CCS.sim.avatar.equipOutfit(d.id); renderModal(); renderAvatarView(); break;
+    case 'setHair': CCS.sim.avatar.set({ hairStyle: d.id }); renderModal(); renderAvatarView(); break;
+    case 'setHairColor': CCS.sim.avatar.set({ hairColor: d.id }); renderModal(); renderAvatarView(); break;
+    case 'setSkin': CCS.sim.avatar.set({ skin: d.id }); renderModal(); renderAvatarView(); break;
     case 'lifepath': CCS.sim.progression.chooseLifePath(d.id); CCS.ui.closeModal(); break;
     case 'career': CCS.sim.progression.chooseCareer(d.id); CCS.ui.closeModal(); break;
     case 'enroll': CCS.sim.progression.enrollSchool(d.id); CCS.ui.closeModal(); break;

@@ -64,9 +64,10 @@ CCS.sim.newState = function newState(opts = {}) {
       xp: 0,
       money: 200,
       followers: 0,
-      outfit: 'Everyday Casual',
+      outfit: 'Pretty & Paid',
       savedLooks: [],
       pos: null,          // world coords {x,y,z} — set from lot spawn at boot
+      avatar: { skin: 'mocha', hairStyle: 'ponytail', hairColor: 'noir', outfit: 'prettyPaid' },
     },
 
     needs,

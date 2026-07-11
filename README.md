@@ -41,7 +41,7 @@ Open **http://localhost:3000**. Make your Sim and start living.
 | Tab | What's there |
 |-----|--------------|
 | 🏠 Home | Your place, by room + everyday actions; **🛠️ Build & Buy** |
-| 🧍 Sim | Needs, skills, traits, life path, outfit, XP |
+| 🧍 Sim | Your **3D character** + ✨ Style Studio, needs, skills, traits, XP |
 | 🗺️ World | 11 worlds; locked ones show how to unlock them |
 | 💼 Life | Careers (10 ladders) + School (6 majors) |
 | 💞 Social | NPCs, relationships, and their memories of you |
@@ -86,6 +86,12 @@ Open **http://localhost:3000**. Make your Sim and start living.
     placement validation, interaction-slot reservations, NPC autonomy state,
     and a renderer-neutral contract (DOM renderer today, Three.js later).
     **Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** for the full map.
+17. **3D character + Style Studio** — your Sim is rendered as a real-time 3D
+    character (Three.js, vendored in `/vendor`, no CDN) on a neon-glam stage:
+    drag to spin, idle animation, selfie pose. The ✨ Style Studio (Sim tab)
+    customizes skin tone (6), hair style (6), hair color (7) and outfit
+    presets (Pretty & Paid, Street Star, Angel Energy, Night Out, On Stage,
+    Luxury Vibes) — all data-driven in `src/sim/data-avatar.js`, all saved.
 
 ---
 
@@ -142,7 +148,10 @@ src/sim/
 src/render/
   renderer.js           Renderer-neutral contract + registry
   renderer-dom.js       Top-down DOM renderer (default)
-  renderer-three-stub.js  Placeholder for the future Three.js renderer
+  renderer-three-stub.js  Placeholder for the future Three.js lot renderer
+  avatar3d.js           Real-time 3D character viewer (Three.js, ES module)
+vendor/
+  three.module.js + three.core.js   Vendored Three.js (no CDN needed)
 docs/
   ARCHITECTURE.md       Simulation vs renderer, lots, rooms, placement, slots
 src/ (bed.js, world.js, …)  Classic-mode modules (unchanged)

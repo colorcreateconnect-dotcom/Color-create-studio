@@ -287,9 +287,10 @@ CCS.sim.handlers.exam = function (def) {
 };
 
 CCS.sim.handlers.changeOutfit = function (def) {
-  const looks = ['Everyday Casual', 'Street Chic', 'Cozy Mode', 'Business Slay', 'Y2K Revival', 'Soft Glam', 'Athleisure', 'Night Out Fit'];
-  CCS.state.player.outfit = CCS.util.pick(looks.filter((l) => l !== CCS.state.player.outfit));
-  return { feed: `🧥 You changed into a "${CCS.state.player.outfit}" fit.` };
+  // Cycles the 3D avatar outfit presets (data-avatar.js) so the closet, the
+  // lookbook, and the rendered character always agree.
+  const name = CCS.sim.avatar.cycleOutfit();
+  return { feed: `🧥 You changed into the "${name}" fit.` };
 };
 
 CCS.sim.handlers.saveLook = function (def) {
