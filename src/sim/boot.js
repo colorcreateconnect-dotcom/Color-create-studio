@@ -17,10 +17,15 @@ function boot() {
 
   // Make sure structural bits exist, then settle initial unlocks + mood.
   CCS.sim.worlds.ensureAll();
+  CCS.sim.lots.ensureAll();   // lots, rooms, fixtures, player world position
   CCS.sim.home.ensure();
   CCS.sim.npc.ensure('maya');
   CCS.sim.progression.checkUnlocks();
   CCS.sim.mood.recompute();
+
+  // Pick the renderer (contract in src/render/renderer.js). The DOM renderer
+  // is the default; a Three.js implementation swaps in here later.
+  CCS.renderer.use('dom');
 
   CCS.ui.init();
 

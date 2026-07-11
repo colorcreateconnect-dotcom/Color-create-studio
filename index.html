@@ -168,12 +168,19 @@
     .amb b { color:var(--good); }
     .amb .bar { max-width:150px; }
 
-    .room-scene { border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:10px; }
-    .room-scene .floor { min-height:76px; padding:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    /* Lot view — host element for the active renderer (DOM impl today) */
+    .lot-view { position:relative; border:1px solid var(--line); border-radius:14px; overflow:hidden;
+      margin-bottom:10px; width:100%; max-height:340px;
       background:repeating-linear-gradient(45deg,#241f38,#241f38 12px,#201b32 12px,#201b32 24px); }
-    .room-scene .tile { font-size:26px; filter:drop-shadow(0 3px 4px #0007); }
-    .room-scene .tile.me { width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
-      font-size:19px; box-shadow:0 0 16px -3px currentColor; border:2px solid #fff6; }
+    .lotdom .lv-room { position:absolute; border:1px solid #ffffff14; border-radius:4px; }
+    .lotdom .lv-room.outdoor { border-style:dashed; }
+    .lotdom .lv-roomname { position:absolute; top:2px; left:5px; font-size:8.5px; color:#fff8;
+      text-transform:uppercase; letter-spacing:.4px; pointer-events:none; }
+    .lotdom .lv-obj { position:absolute; font-size:19px; filter:drop-shadow(0 2px 3px #0008); cursor:pointer; }
+    .lotdom .lv-obj.bought { filter:drop-shadow(0 0 5px #7cc6ffaa); }
+    .lotdom .lv-ent { position:absolute; width:26px; height:26px; border-radius:9px; display:grid; place-items:center;
+      font-size:15px; transform:translate(-50%,-50%); border:2px solid #fffa; box-shadow:0 0 14px -2px currentColor; z-index:5; }
+    .style-btns { display:flex; gap:6px; }
 
     .rfilter { display:flex; gap:7px; overflow-x:auto; padding-bottom:8px; margin-bottom:4px; }
     .rchip { flex:none; background:#0005; border:1px solid var(--line); color:var(--muted); border-radius:999px;
@@ -217,11 +224,13 @@
   <script src="src/core.js"></script>
   <!-- Data tables -->
   <script src="src/sim/state.js"></script>
+  <script src="src/sim/coords.js"></script>
   <script src="src/sim/data-worlds.js"></script>
   <script src="src/sim/data-careers.js"></script>
   <script src="src/sim/data-npcs.js"></script>
   <script src="src/sim/data-objects.js"></script>
   <script src="src/sim/data-catalog.js"></script>
+  <script src="src/sim/data-lots.js"></script>
   <script src="src/sim/data-quests.js"></script>
   <script src="src/sim/data-events-packs.js"></script>
   <!-- Systems -->
@@ -230,9 +239,18 @@
   <script src="src/sim/engine.js"></script>
   <script src="src/sim/quests.js"></script>
   <script src="src/sim/npc.js"></script>
+  <script src="src/sim/autonomy.js"></script>
   <script src="src/sim/progression.js"></script>
+  <!-- World architecture: lots, placement, interaction slots -->
+  <script src="src/sim/placement.js"></script>
+  <script src="src/sim/slots.js"></script>
+  <script src="src/sim/lots.js"></script>
   <script src="src/sim/home.js"></script>
   <script src="src/sim/save.js"></script>
+  <!-- Renderers (contract + implementations) -->
+  <script src="src/render/renderer.js"></script>
+  <script src="src/render/renderer-dom.js"></script>
+  <script src="src/render/renderer-three-stub.js"></script>
   <!-- UI + boot -->
   <script src="src/sim/ui.js"></script>
   <script src="src/sim/boot.js"></script>

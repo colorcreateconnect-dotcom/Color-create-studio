@@ -43,6 +43,17 @@ CCS.ui.init = function init() {
   const rerender = () => CCS.ui.render();
   ['state-changed', 'feed-changed', 'quests-changed', 'worlds-changed', 'packs-changed', 'time-changed'].forEach((e) => CCS.events.on(e, rerender));
 
+  // Tapping the lot view — the renderer raycasts, we identify the hit.
+  CCS.events.on('renderer-select', (hit) => {
+    if (hit.type !== 'object') return;
+    const inst = CCS.sim.lots.findInstance(hit.instanceId);
+    if (!inst) return;
+    const bare = inst.catalogId.replace(/^fixture:/, '');
+    const name = CCS.data.catalogById[inst.catalogId]?.name
+      || CCS.data.objects.find((o) => o.id === bare)?.name || bare;
+    CCS.ui.toast(`${inst.builtin ? '🏠' : '🛒'} ${name} · ${roomName(inst.roomId)}`);
+  });
+
   CCS.ui.render();
 };
 
@@ -56,7 +67,18 @@ CCS.ui.render = function render() {
     `<button class="tabbtn ${CCS.ui.state.tab === t.id ? 'on' : ''}" data-act="tab" data-tab="${t.id}">
       <span>${t.icon}</span><label>${t.label}</label></button>`).join('');
   renderModal();
+  renderLotView();
 };
+
+// Hand the lot view to the active renderer (contract in src/render/renderer.js).
+function renderLotView() {
+  const el = document.getElementById('lot-view');
+  if (!el) return;
+  const r = CCS.renderer?.active || CCS.renderer?.use('dom');
+  if (!r) return;
+  r.mount(el);
+  r.renderScene(CCS.sim.lots.sceneDescription());
+}
 
 // ===========================================================================
 // Status bar
@@ -103,11 +125,9 @@ RENDER.home = function () {
     return `<button class="rchip ${room === rid ? 'on' : ''}" data-act="roomFilter" data-room="${rid}">${meta.emoji} ${meta.name}</button>`;
   }).join('');
 
-  // Little room "scene"
-  const sceneItems = room === 'all' ? rooms.flatMap((r) => H.furnitureInRoom(r.id)) : H.furnitureInRoom(room);
-  const tiles = sceneItems.slice(0, 14).map((f) => `<span class="tile">${f.emoji}</span>`).join('');
-  const scene = `<div class="room-scene"><div class="floor">${tiles}
-    <span class="tile me" style="background:${s.player.color}">${CCS.data.moods[s.mood.state]?.emoji || '🙂'}</span></div></div>`;
+  // The lot view — drawn by the active renderer (world coords, not DOM math).
+  const lotDef = CCS.sim.lots.activeLotDef();
+  const scene = `<div id="lot-view" class="lot-view" aria-label="${esc(lotDef?.name || 'Your lot')}"></div>`;
 
   // Furniture + actions (phone/anywhere always usable)
   const furniture = (room === 'all'
@@ -168,10 +188,26 @@ RENDER.build = function () {
       <div class="amb">💰 <b>$${Math.floor(s.player.money)}</b> &nbsp;·&nbsp; 🪄 Ambiance <b>${H.ambiance()}</b></div>
       <p class="sub">Buy furniture for new activities, and decor to keep your Environment high.</p>
       ${sections}
+      <h3 class="cat-h">🎨 Room styles</h3>
+      ${roomStylesList()}
       <h3 class="cat-h">📦 Your stuff (${owned.length})</h3>
       ${ownedList}
     </section>`;
 };
+
+function roomStylesList() {
+  const lotDef = CCS.sim.lots.activeLotDef();
+  if (!lotDef) return '';
+  return lotDef.rooms.map((r) => {
+    const st = CCS.sim.lots.roomStyle(r.roomId) || {};
+    return `<div class="owned-row">
+      <span>${CCS.sim.ROOMS.find((x) => x.id === r.roomId)?.emoji || '🚪'} ${esc(r.name)}</span>
+      <span class="style-btns">
+        <button class="sellbtn" data-act="cycleWall" data-room="${r.roomId}">🖌️ ${esc(st.wallpaper || '—')}</button>
+        <button class="sellbtn" data-act="cycleFloor" data-room="${r.roomId}">🧱 ${esc(st.flooring || '—')}</button>
+      </span></div>`;
+  }).join('');
+}
 
 RENDER.sim = function () {
   const s = CCS.state, p = s.player;
@@ -424,6 +460,8 @@ function onClick(e) {
     case 'buy': CCS.sim.home.buy(d.id); break;
     case 'sell': CCS.sim.home.sell(d.iid); break;
     case 'roomFilter': CCS.ui.state.room = d.room; CCS.ui.render(); break;
+    case 'cycleWall': CCS.sim.lots.cycleRoomStyle(d.room, 'wallpaper'); break;
+    case 'cycleFloor': CCS.sim.lots.cycleRoomStyle(d.room, 'flooring'); break;
     case 'lifepath': CCS.sim.progression.chooseLifePath(d.id); CCS.ui.closeModal(); break;
     case 'career': CCS.sim.progression.chooseCareer(d.id); CCS.ui.closeModal(); break;
     case 'enroll': CCS.sim.progression.enrollSchool(d.id); CCS.ui.closeModal(); break;

@@ -10,7 +10,7 @@
 /* CCS is the shared global from core.js */
 CCS.sim = CCS.sim || {};
 
-CCS.sim.SAVE_VERSION = 2;
+CCS.sim.SAVE_VERSION = 3;
 
 // Config knobs for the simulation layer (kept separate from the classic canvas).
 CCS.sim.config = {
@@ -66,6 +66,7 @@ CCS.sim.newState = function newState(opts = {}) {
       followers: 0,
       outfit: 'Everyday Casual',
       savedLooks: [],
+      pos: null,          // world coords {x,y,z} — set from lot spawn at boot
     },
 
     needs,
@@ -83,7 +84,10 @@ CCS.sim.newState = function newState(opts = {}) {
     pets: [],       // [{ id, type, name, needs:{}, bond }]
     npcs: {},       // id -> relationship state (see data-npcs / npc.js)
     inventory: [],  // [{ id, name, emoji }]
-    home: { owned: [], theme: 'cozy' }, // Build & Buy: purchased furniture/decor
+    home: { theme: 'cozy' },  // legacy shell; ownership now lives in lots[].placed
+    lots: {},                 // lotId -> { owned, placed:[instances], roomStyles } (lots.js)
+    currentLotId: 'home_lot',
+    reservations: {},         // interaction-slot reservations (slots.js)
     flags: {},      // arbitrary progression flags
 
     stats: {

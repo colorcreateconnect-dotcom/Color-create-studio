@@ -22,6 +22,8 @@ CCS.sim.npc = {
       };
       this.recomputeScore(id);
     }
+    // Autonomy record (architecture #8) — state only, no AI behavior yet.
+    CCS.sim.autonomy?.ensure(CCS.state.npcs[id]);
     return CCS.state.npcs[id];
   },
 

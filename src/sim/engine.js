@@ -129,6 +129,18 @@ CCS.sim.performAction = function performAction(actionId, ctx = {}) {
   const check = CCS.sim.checkRequires(def);
   if (!check.ok) { CCS.ui?.toast?.(check.reason); return { ok: false, reason: check.reason }; }
 
+  // Interaction slots (architecture #5): if a placed instance backs this
+  // object, the acting entity must hold a free slot on it. Objects with no
+  // spatial instance (phone, world actions) need none.
+  let slotKey = null;
+  if (def.objectId) {
+    const slot = CCS.sim.slots.reserveForAction(ctx.entityId || 'player', def.objectId);
+    if (!slot.ok) { CCS.ui?.toast?.(slot.reason); return { ok: false, reason: slot.reason }; }
+    slotKey = slot.key;
+  }
+
+  try {
+
   const tag = def.tag;
   let handled = false;
 
@@ -167,7 +179,14 @@ CCS.sim.performAction = function performAction(actionId, ctx = {}) {
   CCS.sim.progression.afterAction(def);
 
   CCS.sim.mood.recompute();
+  CCS.sim.autonomy?.tick();
   CCS.sim.save?.();
   CCS.events.emit('state-changed');
   return { ok: true };
+
+  } finally {
+    // Actions resolve atomically today, so the slot frees immediately; when
+    // actions become durational, release moves to activity completion.
+    CCS.sim.slots.release(slotKey);
+  }
 };

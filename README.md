@@ -79,7 +79,13 @@ Open **http://localhost:3000**. Make your Sim and start living.
 12. **Expansion packs** — 10 content packs that unlock as you progress.
 13. **Multiplayer-readiness** — see below.
 14. **Tabbed UI** — mobile-first, neon-glam.
-15. **Save system** — full localStorage save/load + reset, with save migration.
+15. **Save system** — versioned saves with a step-by-step migration chain
+    (old saves upgrade in place, never wiped).
+16. **World & renderer architecture** — lots with room graphs, world
+    coordinates (X/Y/Z), placed furniture instances with transforms,
+    placement validation, interaction-slot reservations, NPC autonomy state,
+    and a renderer-neutral contract (DOM renderer today, Three.js later).
+    **Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** for the full map.
 
 ---
 
@@ -123,10 +129,22 @@ src/sim/
   quests.js             Quest engine
   npc.js                Relationships + memory
   progression.js        Careers, school, pets, unlocks, events
-  home.js               Build & Buy: owning/placing/valuing furniture
-  save.js               localStorage save/load/reset
+  coords.js             World coordinate system (X/Y/Z) + legacy migration
+  data-lots.js          Lot definitions + room graphs
+  lots.js               Lot runtime: placed instances, room styles, scenes
+  placement.js          Placement rules + validation (footprints, mounts…)
+  slots.js              Interaction slots + reservations
+  autonomy.js           NPC autonomy state + interfaces (no AI yet)
+  home.js               Build & Buy: buying/selling, backed by placed instances
+  save.js               Versioned save/load with migration chain
   ui.js                 The tabbed interface
   boot.js               Startup
+src/render/
+  renderer.js           Renderer-neutral contract + registry
+  renderer-dom.js       Top-down DOM renderer (default)
+  renderer-three-stub.js  Placeholder for the future Three.js renderer
+docs/
+  ARCHITECTURE.md       Simulation vs renderer, lots, rooms, placement, slots
 src/ (bed.js, world.js, …)  Classic-mode modules (unchanged)
 server/server.js        Static + realtime server (for classic mode)
 mods/                   Classic-mode example mods
