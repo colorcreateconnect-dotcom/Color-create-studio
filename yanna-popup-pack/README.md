@@ -34,6 +34,7 @@ yanna-popup-pack/
 ├── scripts/
 │   ├── build_manifest.py           ← regenerate the manifest
 │   ├── check_transparency.py       ← audit every PNG's transparency
+│   ├── remove_flat_background.py   ← clean up a sticker that shipped with an opaque background
 │   ├── animate.py                  ← the 7-preset animation engine
 │   └── requirements.txt
 └── docs/
@@ -80,10 +81,12 @@ Other categories use a sensible default (poses→`slide_in`, expressions→`puls
 
 ## ✅ Transparency status
 
-`check_transparency.py` audited all 150 PNGs: **147 clean cut-outs, 3 opaque**. The 3
-(`signature_alt/we_dont_judge_nod`, `sale_whisper`, `exit_slide`) shipped with their
-background **not** removed, so they'd show a box in CapCut — the animator **skips** them.
-The full **signature** set (all 25) is clean. See `manifest/transparency_report.csv`.
+`check_transparency.py` audited all 150 PNGs: **150/150 clean cut-outs**. Three
+`signature_alt` files (`we_dont_judge_nod`, `sale_whisper`, `exit_slide`) shipped with
+their background **not** removed; they were fixed with `scripts/remove_flat_background.py`
+(a connected-background flood-fill that leaves the character untouched), then animated
+like the rest. The pack's original copies are left as delivered. See
+`manifest/transparency_report.csv`.
 
 ---
 

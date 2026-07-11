@@ -146,6 +146,6 @@ source/signature_alt/yanna_sigalt_19_inner_child_wave.png,RGBA,247x247,True,65.8
 source/signature_alt/yanna_sigalt_20_chill_mode.png,RGBA,247x247,True,69.72,3.6,"(0, 4, 247, 241)",OK
 source/signature_alt/yanna_sigalt_21_boss_mode.png,RGBA,246x247,True,69.93,6.5,"(8, 0, 178, 236)",OK
 source/signature_alt/yanna_sigalt_22_kitchen_table_ceo.png,RGBA,247x247,True,52.35,3.2,"(5, 0, 241, 247)",OK
-source/signature_alt/yanna_sigalt_23_we_dont_judge_nod.png,RGBA,247x247,True,0.01,100.0,"(0, 0, 247, 247)",FAIL: background not removed (image is opaque)
-source/signature_alt/yanna_sigalt_24_sale_whisper.png,RGBA,247x247,True,0.02,99.2,"(0, 0, 247, 247)",FAIL: background not removed (image is opaque)
-source/signature_alt/yanna_sigalt_25_exit_slide.png,RGBA,247x247,True,0.04,100.0,"(0, 0, 247, 247)",FAIL: background not removed (image is opaque)
+source/signature_alt/yanna_sigalt_23_we_dont_judge_nod.png,RGBA,247x247,True,67.45,8.5,"(0, 0, 247, 247)",OK
+source/signature_alt/yanna_sigalt_24_sale_whisper.png,RGBA,247x247,True,58.09,8.5,"(0, 0, 247, 247)",OK
+source/signature_alt/yanna_sigalt_25_exit_slide.png,RGBA,247x247,True,61.56,4.4,"(0, 0, 215, 235)",OK

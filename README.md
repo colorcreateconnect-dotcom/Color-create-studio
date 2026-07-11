@@ -25,7 +25,10 @@ python3 scripts/animate.py              # generate GIF + WebM overlays
 
 ## Transparency status
 
-All 150 transparent PNGs were audited: **147 clean cut-outs, 3 opaque** (three
-`signature_alt` files shipped with backgrounds not removed). The core **signature**
-set — the 25 named popup reactions — is 100% clean. Details in
+All 150 transparent PNGs were audited and are now **150/150 clean cut-outs**. Three
+`signature_alt` files (`we_dont_judge_nod`, `sale_whisper`, `exit_slide`) shipped with
+their background not removed; those were fixed during finishing with
+`yanna-popup-pack/scripts/remove_flat_background.py` (connected-background flood-fill —
+the character is untouched). The pack's original copies under
+`Yanna_Mini_Popup_Pack/` are left as delivered. Details in
 `yanna-popup-pack/manifest/transparency_report.csv`.
