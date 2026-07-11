@@ -9,7 +9,7 @@
 /* CCS is the shared global from core.js */
 CCS.ui = CCS.ui || {};
 
-CCS.ui.state = { tab: 'home', modal: null, createTraits: ['Creative'] };
+CCS.ui.state = { tab: 'home', modal: null, createTraits: ['Creative'], room: 'all' };
 
 const TABS = [
   { id: 'home', label: 'Home', icon: '🏠' },
@@ -86,7 +86,9 @@ function statusBar() {
 const RENDER = {};
 
 RENDER.home = function () {
-  const s = CCS.state;
+  const s = CCS.state, H = CCS.sim.home;
+  const room = CCS.ui.state.room || 'all';
+
   const low = Object.entries(CCS.sim.NEEDS)
     .map(([k, d]) => ({ k, d, v: s.needs[k], bad: d.dir > 0 ? s.needs[k] < 30 : s.needs[k] > 70 }))
     .filter((x) => x.bad);
@@ -94,19 +96,80 @@ RENDER.home = function () {
     ? `<div class="nudge">⚠️ ${low.map((x) => `${x.d.emoji} ${x.d.label}`).join(', ')} need attention.</div>`
     : `<div class="nudge good">✨ You're feeling balanced. Go live your life!</div>`;
 
-  const objs = CCS.data.objects.filter((o) => !(o.requires?.hasPet && s.pets.length === 0));
-  const cards = objs.map((o) => `
+  // Room filter chips
+  const rooms = H.activeRooms();
+  const chips = ['all', ...rooms.map((r) => r.id)].map((rid) => {
+    const meta = rid === 'all' ? { emoji: '🏠', name: 'All' } : CCS.sim.ROOMS.find((r) => r.id === rid);
+    return `<button class="rchip ${room === rid ? 'on' : ''}" data-act="roomFilter" data-room="${rid}">${meta.emoji} ${meta.name}</button>`;
+  }).join('');
+
+  // Little room "scene"
+  const sceneItems = room === 'all' ? rooms.flatMap((r) => H.furnitureInRoom(r.id)) : H.furnitureInRoom(room);
+  const tiles = sceneItems.slice(0, 14).map((f) => `<span class="tile">${f.emoji}</span>`).join('');
+  const scene = `<div class="room-scene"><div class="floor">${tiles}
+    <span class="tile me" style="background:${s.player.color}">${CCS.data.moods[s.mood.state]?.emoji || '🙂'}</span></div></div>`;
+
+  // Furniture + actions (phone/anywhere always usable)
+  const furniture = (room === 'all'
+    ? rooms.flatMap((r) => H.furnitureInRoom(r.id))
+    : H.furnitureInRoom(room)).concat(H.anywhere());
+  const cards = furniture.map((f) => `
     <div class="card obj">
-      <div class="obj-h">${o.emoji} <b>${esc(o.name)}</b><small>${o.room}</small></div>
-      <div class="acts">${o.actions.map(actBtn).join('')}</div>
+      <div class="obj-h">${f.emoji} <b>${esc(f.name)}</b>${f.catId ? '<small>✓ owned</small>' : ''}</div>
+      <div class="acts">${f.actions.map(actBtn).join('')}</div>
     </div>`).join('');
 
   return `
     <section>
-      <h2>🏠 Home</h2>
+      <div class="home-head"><h2>🏠 Home</h2>
+        <button class="pillbtn" data-act="openBuild">🛠️ Build &amp; Buy</button></div>
       ${nudge}
-      <p class="sub">Tap something to do it. Actions cost time and change your needs.</p>
+      <div class="amb">🪄 Ambiance <b>${H.ambiance()}</b>${bar(H.ambianceTarget(), '#a0e57a')}</div>
+      ${scene}
+      <div class="rfilter">${chips}</div>
       ${cards}
+    </section>`;
+};
+
+RENDER.build = function () {
+  const s = CCS.state, H = CCS.sim.home;
+  const sections = CCS.data.catalogCategories.map((c) => {
+    const items = CCS.data.catalog.filter((i) => i.cat === c.id);
+    const cards = items.map((i) => {
+      const owned = H.isOwned(i.id);
+      const locked = i.unlock && !i.unlock(s);
+      const afford = s.player.money >= i.price;
+      const tag = catalogBlurbTag(i);
+      const btn = owned
+        ? `<span class="owned-badge">✓ Owned</span>`
+        : locked ? `<span class="locked-badge">🔒 ${esc(i.req || 'Locked')}</span>`
+        : `<button class="buybtn ${afford ? '' : 'poor'}" data-act="buy" data-id="${i.id}">$${i.price}</button>`;
+      return `<div class="buy ${owned ? 'owned' : ''}">
+        <div class="buy-emoji">${i.emoji}</div>
+        <div class="buy-info"><b>${esc(i.name)}</b><small>${esc(i.desc || '')}</small>
+          <div class="tagrow">${i.ambiance ? `<span class="tagpill">🪄 +${i.ambiance}</span>` : ''}${tag ? `<span class="tagpill">${tag}</span>` : ''}</div>
+        </div>
+        <div class="buy-act">${btn}</div>
+      </div>`;
+    }).join('');
+    return `<h3 class="cat-h">${c.emoji} ${c.name}</h3>${cards}`;
+  }).join('');
+
+  const owned = H.ownedItems();
+  const ownedList = owned.length
+    ? owned.map((o) => `<div class="owned-row"><span>${o.def.emoji} ${esc(o.def.name)} <small>${roomName(o.room)}</small></span>
+        <button class="sellbtn" data-act="sell" data-iid="${o.iid}">Sell $${Math.round(o.def.price * 0.5)}</button></div>`).join('')
+    : '<p class="sub">Nothing bought yet — treat yourself!</p>';
+
+  return `
+    <section>
+      <div class="home-head"><h2>🛠️ Build &amp; Buy</h2>
+        <button class="pillbtn" data-act="backHome">← Home</button></div>
+      <div class="amb">💰 <b>$${Math.floor(s.player.money)}</b> &nbsp;·&nbsp; 🪄 Ambiance <b>${H.ambiance()}</b></div>
+      <p class="sub">Buy furniture for new activities, and decor to keep your Environment high.</p>
+      ${sections}
+      <h3 class="cat-h">📦 Your stuff (${owned.length})</h3>
+      ${ownedList}
     </section>`;
 };
 
@@ -356,6 +419,11 @@ function onClick(e) {
     case 'openCareer': CCS.ui.openModal('career'); break;
     case 'openMajor': CCS.ui.openModal('major'); break;
     case 'openAdopt': CCS.ui.openModal('adopt'); break;
+    case 'openBuild': CCS.ui.setTab('build'); break;
+    case 'backHome': CCS.ui.setTab('home'); break;
+    case 'buy': CCS.sim.home.buy(d.id); break;
+    case 'sell': CCS.sim.home.sell(d.iid); break;
+    case 'roomFilter': CCS.ui.state.room = d.room; CCS.ui.render(); break;
     case 'lifepath': CCS.sim.progression.chooseLifePath(d.id); CCS.ui.closeModal(); break;
     case 'career': CCS.sim.progression.chooseCareer(d.id); CCS.ui.closeModal(); break;
     case 'enroll': CCS.sim.progression.enrollSchool(d.id); CCS.ui.closeModal(); break;
@@ -407,6 +475,18 @@ CCS.ui.toast = function toast(msg) {
 // --- misc helpers ----------------------------------------------------------
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function petEmoji(t) { return { dog: '🐶', cat: '🐱', bunny: '🐰' }[t] || '🐾'; }
+function roomName(id) { return CCS.sim.ROOMS.find((r) => r.id === id)?.name || id; }
+// A tiny "what does it do" tag for a catalog item.
+function catalogBlurbTag(i) {
+  const a = (i.actions || [])[0];
+  if (!a) return '';
+  if (a.effects?.skills) return `+${cap(Object.keys(a.effects.skills)[0])}`;
+  if (a.effects?.needs) {
+    const [k, v] = Object.entries(a.effects.needs).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0];
+    return `${v > 0 ? '+' : ''}${cap(k)}`;
+  }
+  return '';
+}
 function petActEmoji(a) { return { feed: '🍖', play: '🎾', walk: '🦮', groom: '🛁', nap: '💤' }[a] || '🐾'; }
 function rewardText(r = {}, u = {}) {
   const parts = [];

@@ -40,7 +40,7 @@ Open **http://localhost:3000**. Make your Sim and start living.
 ### The tabs
 | Tab | What's there |
 |-----|--------------|
-| 🏠 Home | Your place + everyday actions on furniture |
+| 🏠 Home | Your place, by room + everyday actions; **🛠️ Build & Buy** |
 | 🧍 Sim | Needs, skills, traits, life path, outfit, XP |
 | 🗺️ World | 11 worlds; locked ones show how to unlock them |
 | 💼 Life | Careers (10 ladders) + School (6 majors) |
@@ -70,7 +70,11 @@ Open **http://localhost:3000**. Make your Sim and start living.
 8. **Careers** — 10 careers, each a 5-tier ladder with pay, schedules,
    promotion requirements, and skill gates.
 9. **School** — enroll in a major; attend class, study, sit exams, track grades.
-10. **Objects** — modular home objects, each declaring its actions/effects/time.
+10. **Objects & Build/Buy** — modular home objects, plus a **Build & Buy**
+    catalog: purchase furniture for new activities, hobby gear that trains new
+    skills (fitness, music, art), and **decor that raises home "ambiance"** —
+    which keeps your Environment need high. Furniture is grouped into **rooms**
+    with a little room preview, and everything can be sold back.
 11. **Random events** — life happens, triggered by time, mood, pets, career, etc.
 12. **Expansion packs** — 10 content packs that unlock as you progress.
 13. **Multiplayer-readiness** — see below.
@@ -110,6 +114,7 @@ src/sim/
   data-careers.js       Career ladders + school majors
   data-npcs.js          NPC cast + interaction catalog
   data-objects.js       Home objects + the full action catalog
+  data-catalog.js       Build & Buy catalog (furniture, hobby gear, decor)
   data-quests.js        Quest definitions (objectives/rewards/unlocks)
   data-events-packs.js  Random events, expansion packs, moods, traits
   time.js               Clock, schedule, hourly decay
@@ -118,6 +123,7 @@ src/sim/
   quests.js             Quest engine
   npc.js                Relationships + memory
   progression.js        Careers, school, pets, unlocks, events
+  home.js               Build & Buy: owning/placing/valuing furniture
   save.js               localStorage save/load/reset
   ui.js                 The tabbed interface
   boot.js               Startup
@@ -133,6 +139,8 @@ mods/                   Classic-mode example mods
 Because content is data, adding to the game is mostly editing a data table:
 
 - **New action/object** → add to `src/sim/data-objects.js`.
+- **New buyable furniture/decor** → add to `src/sim/data-catalog.js` (its
+  actions auto-register and only work once bought).
 - **New quest** → add to `src/sim/data-quests.js` (objectives are predicates).
 - **New world / career / NPC / event / pack** → the matching `data-*.js`.
 

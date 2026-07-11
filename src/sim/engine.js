@@ -100,6 +100,7 @@ CCS.sim.checkRequires = function checkRequires(def) {
   if (moodMods.blockHighEnergy && (def.time >= 3 || (def.effects?.needs?.energy || 0) <= -15))
     return { ok: false, reason: 'You\'re burnt out. Rest before doing something big.' };
   if (r.hasPet && s.pets.length === 0) return { ok: false, reason: 'You need a pet for that. Adopt one first!' };
+  if (r.owns && !CCS.sim.home.isOwned(r.owns)) return { ok: false, reason: 'Buy that in Build & Buy first!' };
   if (r.flag && !s.flags[r.flag]) return { ok: false, reason: 'Not available yet.' };
   if (r.money != null && s.player.money < r.money) return { ok: false, reason: 'You can\'t afford that.' };
   if ((def.effects?.money || 0) < 0 && s.player.money + def.effects.money < 0) return { ok: false, reason: 'You can\'t afford that.' };

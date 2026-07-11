@@ -42,6 +42,12 @@ CCS.sim.time = {
   decayNeeds(hours) {
     const n = CCS.state.needs;
     for (const key of Object.keys(CCS.sim.NEEDS)) {
+      // Environment drifts toward your home's ambiance (decor keeps it high).
+      if (key === 'environment' && CCS.sim.home) {
+        const target = CCS.sim.home.ambianceTarget();
+        n.environment = CCS.util.clamp(n.environment + (target - n.environment) * Math.min(1, 0.09 * hours), 0, 100);
+        continue;
+      }
       n[key] = CCS.util.clamp((n[key] ?? 70) + this.hourlyDelta(key) * hours, 0, 100);
     }
     // Pets get hungry and miss you too.

@@ -17,6 +17,7 @@ function boot() {
 
   // Make sure structural bits exist, then settle initial unlocks + mood.
   CCS.sim.worlds.ensureAll();
+  CCS.sim.home.ensure();
   CCS.sim.npc.ensure('maya');
   CCS.sim.progression.checkUnlocks();
   CCS.sim.mood.recompute();

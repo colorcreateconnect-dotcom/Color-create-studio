@@ -151,5 +151,41 @@ CCS.data.quests = [
     rewards: { xp: 40, money: 50 },
     unlocks: { flags: { entrepreneurDone: true }, packs: ['business'] },
   },
+
+  // --- Build & Buy / hobby questlines --------------------------------------
+  {
+    id: 'homeSweetHome', title: 'Home Sweet Home', type: 'lifestyle', chapter: 1,
+    description: 'Make your place yours. Buy 3 things in Build & Buy.',
+    available: () => true,
+    objectives: [ obj('buy3', 'Buy 3 furniture or decor items', (ev) => ev.kind === 'buy', 3) ],
+    rewards: { xp: 30, money: 60, confidence: 6 },
+    unlocks: { quests: ['interiorDesigner'] },
+  },
+  {
+    id: 'interiorDesigner', title: 'Interior Designer', type: 'lifestyle', chapter: 2,
+    description: 'A beautiful space lifts your whole life. Reach 40 home ambiance.',
+    available: (s) => s.quests.homeSweetHome?.completed,
+    objectives: [ obj('amb', 'Reach 40 ambiance (buy decor)', (ev) => CCS.sim.home.ambiance() >= 40) ],
+    rewards: { xp: 50, money: 120, confidence: 12 },
+    unlocks: { flags: { homeDesigner: true } },
+  },
+  {
+    id: 'gains', title: 'Making Gains', type: 'skill', chapter: 1,
+    description: 'Get moving. Work out 5 times (buy a treadmill, pool or yoga mat).',
+    available: () => true,
+    objectives: [ obj('sweat', 'Work out 5 times', isAction('workout'), 5) ],
+    rewards: { xp: 40, skills: { fitness: 12 }, confidence: 8 },
+    unlocks: {},
+  },
+  {
+    id: 'newHobby', title: 'Pick Up a Hobby', type: 'skill', chapter: 1,
+    description: 'Try something creative. Do 3 art or music sessions at home.',
+    available: () => true,
+    objectives: [
+      obj('create3', 'Do 3 art/music sessions', (ev) => ev.kind === 'action' && (ev.tag === 'art' || ev.tag === 'music'), 3),
+    ],
+    rewards: { xp: 40, skills: { creativity: 6, music: 4 } },
+    unlocks: {},
+  },
 ];
 CCS.data.questById = Object.fromEntries(CCS.data.quests.map((q) => [q.id, q]));

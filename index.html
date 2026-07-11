@@ -159,6 +159,49 @@
     .pick.on { border-color:var(--accent2); background:linear-gradient(180deg,#e08bff22,#7c4dff18); }
     .pick.dis { opacity:.5; cursor:default; }
 
+    /* ---- build & buy / home ---- */
+    .home-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+    .home-head h2 { margin:0; flex:1; }
+    .pillbtn { background:linear-gradient(90deg,#7c4dff,#e08bff); border:none; color:#fff; font-weight:700;
+      font-size:12.5px; padding:8px 13px; border-radius:999px; cursor:pointer; font-family:inherit; box-shadow:0 6px 18px -8px #7c4dff; }
+    .amb { display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--muted); margin:6px 0 10px; }
+    .amb b { color:var(--good); }
+    .amb .bar { max-width:150px; }
+
+    .room-scene { border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:10px; }
+    .room-scene .floor { min-height:76px; padding:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+      background:repeating-linear-gradient(45deg,#241f38,#241f38 12px,#201b32 12px,#201b32 24px); }
+    .room-scene .tile { font-size:26px; filter:drop-shadow(0 3px 4px #0007); }
+    .room-scene .tile.me { width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+      font-size:19px; box-shadow:0 0 16px -3px currentColor; border:2px solid #fff6; }
+
+    .rfilter { display:flex; gap:7px; overflow-x:auto; padding-bottom:8px; margin-bottom:4px; }
+    .rchip { flex:none; background:#0005; border:1px solid var(--line); color:var(--muted); border-radius:999px;
+      padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
+    .rchip.on { color:var(--text); border-color:var(--accent); background:#7cc6ff1a; }
+
+    .cat-h { margin:16px 0 8px; font-size:13px; color:var(--muted); }
+    .buy { display:flex; align-items:center; gap:11px; background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border:1px solid var(--line); border-radius:14px; padding:11px; margin-bottom:9px; }
+    .buy.owned { opacity:.75; }
+    .buy-emoji { font-size:28px; width:40px; text-align:center; flex:none; }
+    .buy-info { flex:1; min-width:0; }
+    .buy-info b { font-size:14px; }
+    .buy-info small { display:block; color:var(--muted); font-size:11.5px; margin-top:2px; line-height:1.35; }
+    .tagrow { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
+    .tagpill { font-size:10px; background:#0006; border:1px solid var(--line); color:var(--accent); padding:1px 7px; border-radius:999px; }
+    .buy-act { flex:none; }
+    .buybtn { background:linear-gradient(90deg,var(--good),#5fd6a0); border:none; color:#08221a; font-weight:800;
+      font-size:13px; padding:9px 13px; border-radius:11px; cursor:pointer; font-family:inherit; }
+    .buybtn.poor { background:#4b4468; color:#cbb; }
+    .owned-badge { color:var(--good); font-size:12px; font-weight:700; }
+    .locked-badge { color:var(--gold); font-size:11px; font-weight:600; }
+    .owned-row { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px;
+      padding:8px 2px; border-bottom:1px solid var(--line); }
+    .owned-row small { color:var(--muted); }
+    .sellbtn { background:#0005; border:1px solid var(--line); color:var(--pink); border-radius:9px;
+      padding:5px 10px; font-size:12px; cursor:pointer; font-family:inherit; }
+
     /* ---- toasts ---- */
     #toasts { position:fixed; left:50%; bottom:78px; transform:translateX(-50%); z-index:60;
       display:flex; flex-direction:column; gap:7px; align-items:center; pointer-events:none; width:100%; max-width:440px; padding:0 12px; }
@@ -178,6 +221,7 @@
   <script src="src/sim/data-careers.js"></script>
   <script src="src/sim/data-npcs.js"></script>
   <script src="src/sim/data-objects.js"></script>
+  <script src="src/sim/data-catalog.js"></script>
   <script src="src/sim/data-quests.js"></script>
   <script src="src/sim/data-events-packs.js"></script>
   <!-- Systems -->
@@ -187,6 +231,7 @@
   <script src="src/sim/quests.js"></script>
   <script src="src/sim/npc.js"></script>
   <script src="src/sim/progression.js"></script>
+  <script src="src/sim/home.js"></script>
   <script src="src/sim/save.js"></script>
   <!-- UI + boot -->
   <script src="src/sim/ui.js"></script>

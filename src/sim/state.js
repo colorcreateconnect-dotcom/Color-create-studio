@@ -83,6 +83,7 @@ CCS.sim.newState = function newState(opts = {}) {
     pets: [],       // [{ id, type, name, needs:{}, bond }]
     npcs: {},       // id -> relationship state (see data-npcs / npc.js)
     inventory: [],  // [{ id, name, emoji }]
+    home: { owned: [], theme: 'cozy' }, // Build & Buy: purchased furniture/decor
     flags: {},      // arbitrary progression flags
 
     stats: {

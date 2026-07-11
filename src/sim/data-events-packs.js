@@ -118,4 +118,21 @@ CCS.data.events = [
   { id: 'brandDeal', icon: '🤝', text: 'A brand slid into your DMs with a deal!', weight: 2,
     trigger: (s) => s.player.followers >= 500,
     effects: { money: +200, needs: { confidence: +8 }, feed: 'Cha-ching. Being known pays off.' } },
+
+  // --- Home / Build & Buy flavored events ----------------------------------
+  { id: 'cozyVibes', icon: '🕯️', text: 'Your place feels so cozy right now.', weight: 2,
+    trigger: (s) => CCS.sim.home && CCS.sim.home.ambiance() >= 25,
+    effects: { needs: { stress: -10, confidence: +6 } } },
+  { id: 'plantThriving', icon: '🌿', text: 'Your plants are absolutely thriving!', weight: 1,
+    trigger: (s) => CCS.sim.home && CCS.sim.home.isOwned('pottedPlant') || CCS.sim.home?.isOwned('gardenBed'),
+    effects: { needs: { environment: +8, confidence: +4 } } },
+  { id: 'applianceBroke', icon: '🔧', text: 'Something needed a quick repair.', weight: 1,
+    trigger: (s) => CCS.sim.home && CCS.sim.home.ownedItems().length >= 2,
+    effects: { money: -30, needs: { stress: +6 }, feed: 'Homeownership, am I right?' } },
+  { id: 'inspiredByArt', icon: '🖼️', text: 'Your art corner sparked a burst of inspiration.', weight: 2,
+    trigger: (s) => CCS.sim.home && (CCS.sim.home.isOwned('easel') || CCS.sim.home.isOwned('wallArt')),
+    effects: { needs: { confidence: +6 }, skills: { creativity: +5 } } },
+  { id: 'neighborCompliment', icon: '🏡', text: 'A neighbor complimented your place!', weight: 1,
+    trigger: (s) => CCS.sim.home && CCS.sim.home.ambiance() >= 40,
+    effects: { needs: { confidence: +8, social: +6 } } },
 ];
