@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Color Create Studio — a moddable online life sim</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%A8%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg: #14121f;
+      --panel: #1e1b2e;
+      --panel-2: #262238;
+      --line: #322c48;
+      --text: #eee7ff;
+      --muted: #a99fc6;
+      --accent: #7cc6ff;
+      --accent-2: #e08bff;
+      --good: #7cffa0;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%;
+      background: radial-gradient(1200px 700px at 20% -10%, #241f38, var(--bg));
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    a { color: var(--accent); }
+    code { background: #0006; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr) 300px;
+      gap: 14px;
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 14px;
+      min-height: 100%;
+    }
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 1fr; }
+      .stage { order: -1; }
+    }
+
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .panel h2 {
+      margin: 0 0 10px; font-size: 13px; letter-spacing: .5px;
+      text-transform: uppercase; color: var(--muted);
+      display: flex; align-items: center; gap: 8px; cursor: default; user-select: none;
+    }
+    h2[data-collapse] { cursor: pointer; }
+    h2[data-collapse]::after { content: '▾'; margin-left: auto; transition: transform .2s; }
+    h2[data-collapse].collapsed::after { transform: rotate(-90deg); }
+    .collapsible.collapsed { display: none; }
+
+    /* --- Title / brand --- */
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .brand .logo {
+      width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center;
+      font-size: 22px; background: conic-gradient(from 0deg, #ff8f6b, #ffd76b, #7cffa0, #7cc6ff, #e08bff, #ff8f6b);
+    }
+    .brand h1 { font-size: 17px; margin: 0; line-height: 1.1; }
+    .brand p { margin: 2px 0 0; font-size: 11px; color: var(--muted); }
+
+    /* --- Stage / canvas --- */
+    .stage { display: flex; flex-direction: column; gap: 12px; }
+    .topbar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 14px; padding: 10px 14px;
+    }
+    .stat { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .stat small { color: var(--muted); font-weight: 500; }
+    .stat.mood { font-size: 20px; }
+    .stat.mood span#mood-label { font-size: 13px; }
+    .topbar .spacer { flex: 1; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: #0004; border: 1px solid var(--line);
+      padding: 5px 11px; border-radius: 999px; font-size: 12px; color: var(--muted);
+    }
+    #net-dot { width: 9px; height: 9px; border-radius: 50%; background: #ff8f6b; }
+
+    canvas {
+      width: 100%; height: auto; display: block;
+      background: #0a0812; border: 1px solid var(--line);
+      border-radius: 14px; image-rendering: auto;
+      box-shadow: 0 20px 60px -30px #000;
+    }
+    .controls-hint {
+      display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted);
+      justify-content: center;
+    }
+    .controls-hint kbd {
+      background: #0006; border: 1px solid var(--line); border-bottom-width: 2px;
+      border-radius: 5px; padding: 1px 6px; color: var(--text); font-family: inherit; font-size: 11px;
+    }
+
+    /* --- Needs --- */
+    .need { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
+    .need-emoji { font-size: 18px; width: 22px; text-align: center; }
+    .need-body { flex: 1; }
+    .need-top { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .need-bar { height: 9px; background: #0007; border-radius: 999px; overflow: hidden; }
+    .need-fill { height: 100%; width: 80%; border-radius: 999px; transition: width .2s linear; }
+
+    /* --- Mods --- */
+    #mods-list { display: flex; flex-direction: column; gap: 9px; }
+    .mod {
+      display: flex; align-items: center; gap: 10px;
+      background: #0003; border: 1px solid var(--line); border-radius: 11px; padding: 10px;
+    }
+    .mod.on { border-color: #4a7dff66; background: #4a7dff12; }
+    .mod-info { flex: 1; min-width: 0; }
+    .mod-name { font-size: 13px; font-weight: 700; }
+    .mod-ver { font-size: 10px; color: var(--muted); font-weight: 500; }
+    .mod-desc { font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+    .mod-author { font-size: 10px; color: #6f6790; margin-top: 3px; }
+    .switch {
+      flex: none; width: 42px; height: 24px; border-radius: 999px; border: none;
+      background: #4b4468; position: relative; cursor: pointer; transition: background .2s;
+    }
+    .switch.on { background: var(--good); }
+    .switch span {
+      position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+      background: #fff; border-radius: 50%; transition: left .2s;
+    }
+    .switch.on span { left: 21px; }
+
+    .hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* --- Multiplayer / chat --- */
+    .field { margin-bottom: 9px; }
+    .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    input[type=text] {
+      width: 100%; background: #0006; border: 1px solid var(--line); color: var(--text);
+      border-radius: 9px; padding: 8px 10px; font-size: 13px; font-family: inherit;
+    }
+    input[type=text]:focus { outline: none; border-color: var(--accent); }
+    .btn {
+      width: 100%; border: none; border-radius: 10px; padding: 10px; cursor: pointer;
+      background: linear-gradient(180deg, #7cc6ff, #5aa9ff); color: #06121f;
+      font-weight: 700; font-size: 13px; margin-top: 4px;
+    }
+    .btn:hover { filter: brightness(1.06); }
+
+    #chat-log {
+      height: 150px; overflow-y: auto; background: #0006; border: 1px solid var(--line);
+      border-radius: 10px; padding: 8px; font-size: 12.5px; margin: 10px 0 8px; line-height: 1.5;
+    }
+    .chat-line { margin-bottom: 2px; word-wrap: break-word; }
+    .chat-line.system { color: #6f6790; font-style: italic; text-align: center; }
+    .chat-line.me { color: var(--good); }
+    .chat-line.them { color: var(--text); }
+
+    /* --- Toasts --- */
+    #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; gap: 8px; z-index: 50; align-items: center; pointer-events: none; }
+    .toast {
+      background: #201b34ee; border: 1px solid var(--line); color: var(--text);
+      padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+      opacity: 0; transform: translateY(12px); transition: all .25s; box-shadow: 0 10px 30px -12px #000;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- LEFT: brand + needs + mods -->
+    <aside>
+      <div class="brand">
+        <div class="logo">🎨</div>
+        <div>
+          <h1>Color Create Studio</h1>
+          <p>classic walk-around mode · <a href="index.html" style="color:#7cc6ff">← back to Life Sim</a></p>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:14px">
+        <h2>🧍 Your Sim's Needs</h2>
+        <div id="needs"></div>
+      </div>
+
+      <div class="panel">
+        <h2 data-collapse="mods-body">🔧 Mods</h2>
+        <div id="mods-body" class="collapsible">
+          <div id="mods-list"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER: the game -->
+    <main class="stage">
+      <div class="topbar">
+        <div class="stat mood"><span id="mood-face">🙂</span><span id="mood-label">Fine</span></div>
+        <div class="stat">💰 <span id="money">$200</span></div>
+        <div class="stat">🕐 <small><span id="day">Day 1</span></small> <span id="clock">8:00 AM</span></div>
+        <div class="spacer"></div>
+        <div class="pill"><span id="net-dot"></span><span id="net-status">Offline</span> <span id="player-count"></span></div>
+      </div>
+
+      <canvas id="game" width="800" height="600"></canvas>
+
+      <div class="controls-hint">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows — move</span>
+        <span><kbd>E</kbd> — use nearby object</span>
+        <span><kbd>Esc</kbd> — stop what you're doing</span>
+      </div>
+    </main>
+
+    <!-- RIGHT: multiplayer -->
+    <aside>
+      <div class="panel">
+        <h2>🌐 Play Online</h2>
+        <div class="field">
+          <label for="name-input">Your name</label>
+          <input id="name-input" type="text" value="Sim" maxlength="24" />
+        </div>
+        <div class="field">
+          <label for="room-input">Room name (share it with friends)</label>
+          <input id="room-input" type="text" value="lobby" maxlength="40" />
+        </div>
+        <button id="connect-btn" class="btn">Go Online</button>
+
+        <h2 style="margin-top:16px">💬 Chat</h2>
+        <div id="chat-log"></div>
+        <input id="chat-input" type="text" placeholder="Type a message + Enter…" maxlength="240" />
+        <p class="hint" style="margin-top:10px">
+          Everyone who joins the same <b>room name</b> shares this world in real time.
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  <div id="toasts"></div>
+
+  <!-- Load order matters: core first, game loop last. -->
+  <script src="src/core.js"></script>
+  <script src="src/needs.js"></script>
+  <script src="src/world.js"></script>
+  <script src="src/entity.js"></script>
+  <script src="src/render.js"></script>
+  <script src="src/input.js"></script>
+  <script src="src/mods.js"></script>
+  <script src="src/net.js"></script>
+  <script src="src/ui.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>
