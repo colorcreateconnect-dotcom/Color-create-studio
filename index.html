@@ -276,7 +276,11 @@
   <script src="src/render/renderer.js"></script>
   <script src="src/render/renderer-dom.js"></script>
   <script src="src/render/renderer-three-stub.js"></script>
-  <!-- 3D character viewer (ES module; loads Three.js from /vendor, runs before boot) -->
+  <!-- Rigged character pipeline: import map resolves 'three' for the viewer,
+       the CharacterRig runtime, and the vendored GLTFLoader/SkeletonUtils. -->
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.js" } }
+  </script>
   <script type="module" src="src/render/avatar3d.js"></script>
   <!-- UI + boot -->
   <script src="src/sim/ui.js"></script>

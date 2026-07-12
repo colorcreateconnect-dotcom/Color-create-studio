@@ -43,41 +43,47 @@
   ].map((c) => ({ ...c, css: css(c.hex) }));
 
   // --- Outfit presets (the closet from the concept art) -----------------------
-  // The builder reads: top {color, style, crop, hoodie, zipper, fur, sparkle},
-  // bottom {style, color, stars}, shoes {style, main, accent}.
+  // `slots` names the wardrobe meshes to equip on the rigged character
+  // (assets/characters/base_female.glb). Colors tint those slot materials.
   CCS.data.avatarOutfits = [
     {
       id: 'prettyPaid', name: 'Pretty & Paid', emoji: '💗', vibe: 'pink',
+      slots: { top: 'top_cropHoodie', bottom: 'bottom_joggers', shoe: 'shoe_sneaker' },
       top: { color: 0xf27ab8, style: 'long', crop: true, hoodie: true, zipper: true },
       bottom: { style: 'joggers', color: 0xf58cc0, stars: 0xd63384 },
       shoes: { style: 'sneaker', main: 0xf5f0f2, accent: 0xf7a8ce },
     },
     {
       id: 'streetStar', name: 'Street Star', emoji: '🖤', vibe: 'street',
+      slots: { top: 'top_cropHoodie', bottom: 'bottom_cargo', shoe: 'shoe_sneaker' },
       top: { color: 0x221e2b, style: 'long', crop: true, hoodie: true },
       bottom: { style: 'cargo', color: 0x2a2635, stars: 0xb9bdd9 },
       shoes: { style: 'sneaker', main: 0x17141f, accent: 0xe8e6f2 },
     },
     {
       id: 'angelEnergy', name: 'Angel Energy', emoji: '💙', vibe: 'denim',
+      slots: { top: 'top_cropZip', bottom: 'bottom_flare', shoe: 'shoe_sneaker' },
       top: { color: 0x7fa8dd, style: 'long', crop: true, zipper: true },
       bottom: { style: 'flare', color: 0x6c94cf, stars: 0xf2f6ff },
       shoes: { style: 'sneaker', main: 0xf2f6ff, accent: 0x7fa8dd },
     },
     {
       id: 'nightOut', name: 'Night Out', emoji: '🌙', vibe: 'glam',
+      slots: { dress: 'dress_slip', shoe: 'shoe_heel' },
       top: { color: 0x1c1522, style: 'strap' },
       bottom: { style: 'dress', color: 0x1c1522, sheen: true },
       shoes: { style: 'heel', main: 0x14101a, accent: 0xd4af37 },
     },
     {
       id: 'onStage', name: 'On Stage', emoji: '💚', vibe: 'bold',
+      slots: { top: 'top_strap', bottom: 'bottom_cargo', shoe: 'shoe_heel' },
       top: { color: 0x8fd44f, style: 'strap', crop: true },
       bottom: { style: 'cargo', color: 0x9ade5b },
       shoes: { style: 'heel', main: 0x221e2b, accent: 0xd4af37 },
     },
     {
       id: 'luxuryVibes', name: 'Luxury Vibes', emoji: '💎', vibe: 'luxe',
+      slots: { top: 'top_fur', bottom: 'bottom_skirt', shoe: 'shoe_heel' },
       top: { color: 0xf7a8ce, style: 'long', fur: true },
       bottom: { style: 'skirt', color: 0xf27ab8, sparkle: true },
       shoes: { style: 'heel', main: 0xf7a8ce, accent: 0xd4af37 },

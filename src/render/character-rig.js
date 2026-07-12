@@ -1,0 +1,170 @@
+// ============================================================================
+// character-rig.js — the rigged character runtime (the "CharacterKit").
+//
+// Loads the GLB character assets (assets/characters/base_*.glb), clones them
+// per character instance, and exposes the pipeline a life-sim needs:
+//
+//   Human body (skinned GLB, humanoid skeleton)
+//     → body customization (bone-scale hooks; slider-ready)
+//     → face customization (modules attached to the Head bone)
+//     → hair (modular, Head bone)
+//     → skin / materials (tint slots, physical materials)
+//     → clothing / shoes (named SkinnedMesh slots, show-hide + tint)
+//     → accessories (attach to any bone)
+//     → animation (AnimationMixer: base pose clips + additive layers)
+//
+// Customization SWAPS meshes and materials — nothing is rebuilt from
+// primitives at runtime. The contract with the assets is only:
+//   • bone names:  Hips Spine Chest Neck Head, L/R_Shoulder|UpperArm|
+//                  LowerArm|Hand, L/R_UpperLeg|LowerLeg|Foot
+//   • mesh names:  Body + slot meshes (top_*, bottom_*, dress_*, shoe_*)
+// so studio-authored GLBs can replace the generated ones with no code change.
+// ============================================================================
+
+import * as THREE from 'three';
+import { GLTFLoader } from '../../vendor/loaders/GLTFLoader.js';
+import * as SkeletonUtils from '../../vendor/utils/SkeletonUtils.js';
+
+const loader = new GLTFLoader();
+const cache = new Map();          // bodyType -> Promise<gltf>
+
+function loadBase(bodyType) {
+  if (!cache.has(bodyType)) {
+    cache.set(bodyType, loader.loadAsync(`assets/characters/base_${bodyType}.glb`));
+  }
+  return cache.get(bodyType);
+}
+
+export class CharacterRig {
+  static async create({ bodyType = 'female' } = {}) {
+    const gltf = await loadBase(bodyType);
+    const root = SkeletonUtils.clone(gltf.scene);
+    return new CharacterRig(root, gltf.animations, bodyType);
+  }
+
+  constructor(root, clips, bodyType) {
+    this.root = root;
+    this.bodyType = bodyType;
+    this.clips = clips;
+    this.bones = {};
+    this.meshes = {};
+    root.traverse((o) => {
+      if (o.isBone) this.bones[o.name] = o;
+      if (o.isSkinnedMesh) { o.frustumCulled = false; this.meshes[o.name] = o; }
+    });
+    this.mixer = new THREE.AnimationMixer(root);
+    this._actions = {};
+    this._attachments = [];
+  }
+
+  // ---- wardrobe slots -------------------------------------------------------
+  slotNames() { return Object.keys(this.meshes).filter((n) => n !== 'Body'); }
+
+  // Show exactly the meshes named in `slots` (an object of slot -> meshName).
+  equip(slots = {}) {
+    for (const [name, mesh] of Object.entries(this.meshes)) {
+      if (name !== 'Body') mesh.visible = false;
+    }
+    for (const meshName of Object.values(slots)) {
+      if (this.meshes[meshName]) this.meshes[meshName].visible = true;
+      else if (meshName) console.warn('[rig] no such slot mesh:', meshName);
+    }
+  }
+
+  // ---- materials -------------------------------------------------------------
+  tintSkin(hex) {
+    const skinC = new THREE.Color(hex);
+    const m = new THREE.MeshPhysicalMaterial({
+      color: hex, roughness: 0.52, metalness: 0.02,
+      sheen: 0.4, sheenColor: skinC.clone().lerp(new THREE.Color(0xfff1e6), 0.3), sheenRoughness: 0.65,
+    });
+    const old = this.meshes.Body.material;
+    this.meshes.Body.material = m;
+    old?.dispose?.();
+  }
+
+  tintMesh(meshName, { color, roughness, emissive, emissiveIntensity, sheen } = {}) {
+    const mesh = this.meshes[meshName];
+    if (!mesh) return;
+    const m = new THREE.MeshStandardMaterial({
+      color: color ?? 0xffffff,
+      roughness: roughness ?? 0.75,
+      emissive: emissive ?? 0x000000,
+      emissiveIntensity: emissiveIntensity ?? 1,
+    });
+    if (sheen != null) { /* reserved for physical fabric materials */ }
+    const old = mesh.material;
+    mesh.material = m;
+    old?.dispose?.();
+  }
+
+  // ---- accessories / modules ---------------------------------------------------
+  attachTo(boneName, object3d) {
+    const bone = this.bones[boneName];
+    if (!bone) { console.warn('[rig] no bone', boneName); return null; }
+    bone.add(object3d);
+    this._attachments.push(object3d);
+    return object3d;
+  }
+
+  // ---- posing + animation --------------------------------------------------------
+  // Set bone rotations (Euler radians), then bake them into a static base
+  // pose clip so additive animation layers play on top without clobbering it.
+  pose(rotations) {
+    const posed = [];
+    for (const [name, [x, y, z]] of Object.entries(rotations)) {
+      const b = this.bones[name];
+      if (!b) continue;
+      b.rotation.set(x, y, z);
+      posed.push(name);
+    }
+    const tracks = posed.map((n) => new THREE.QuaternionKeyframeTrack(
+      `${n}.quaternion`, [0], [...this.bones[n].quaternion.toArray()]));
+    const clip = new THREE.AnimationClip('pose', -1, tracks);
+    this._basePose?.stop();
+    this._basePose = this.mixer.clipAction(clip);
+    this._basePose.play();
+  }
+
+  // Additive layer from a baked asset clip ('idle', 'groove', …).
+  playAdditive(name, weight = 1, fade = 0.4) {
+    let action = this._actions[name];
+    if (!action) {
+      const src = this.clips.find((c) => c.name === name);
+      if (!src) { console.warn('[rig] no clip', name); return null; }
+      const additive = THREE.AnimationUtils.makeClipAdditive(src.clone());
+      action = this.mixer.clipAction(additive);
+      action.blendMode = THREE.AdditiveAnimationBlendMode;
+      this._actions[name] = action;
+    }
+    action.enabled = true;
+    action.setEffectiveWeight(weight);
+    if (!action.isRunning()) action.play();
+    action.fadeIn(fade);
+    return action;
+  }
+
+  fadeOut(name, fade = 0.4) {
+    this._actions[name]?.fadeOut(fade);
+  }
+
+  // Crossfade between additive layers (animation blending).
+  blendTo(name, fade = 0.5) {
+    for (const [n, a] of Object.entries(this._actions)) {
+      if (n !== name && a.isRunning()) a.fadeOut(fade);
+    }
+    return this.playAdditive(name, 1, fade);
+  }
+
+  update(dt) { this.mixer.update(dt); }
+
+  dispose() {
+    this.mixer.stopAllAction();
+    this.root.traverse((n) => { n.geometry?.dispose(); n.material?.dispose?.(); });
+    this.root.removeFromParent();
+  }
+}
+
+// Expose for tests/tools and non-module callers.
+window.CCS = window.CCS || {};
+window.CCS.characterKit = { CharacterRig, loadBase };

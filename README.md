@@ -86,12 +86,16 @@ Open **http://localhost:3000**. Make your Sim and start living.
     placement validation, interaction-slot reservations, NPC autonomy state,
     and a renderer-neutral contract (DOM renderer today, Three.js later).
     **Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** for the full map.
-17. **3D character + Style Studio** — your Sim is rendered as a real-time 3D
-    character (Three.js, vendored in `/vendor`, no CDN) on a neon-glam stage:
-    drag to spin, idle animation, selfie pose. The ✨ Style Studio (Sim tab)
-    customizes skin tone (6), hair style (6), hair color (7) and outfit
-    presets (Pretty & Paid, Street Star, Angel Energy, Night Out, On Stage,
-    Luxury Vibes) — all data-driven in `src/sim/data-avatar.js`, all saved.
+17. **Rigged 3D character + Style Studio** — your Sim is a fully rigged
+    humanoid: a skinned GLB body (female + male bases) on a 19-bone skeleton,
+    with modular clothing/shoes as named mesh slots, face + hair modules on
+    the Head bone, and an AnimationMixer blending a baked pose with additive
+    idle layers. Customization swaps meshes and materials — nothing is
+    rebuilt from primitives. Assets are authored by
+    `tools/build-character-assets.mjs` and live in `assets/characters/`;
+    studio-authored GLBs can replace them with no code changes. The
+    ✨ Style Studio customizes skin tone (6), hair (6 styles, 7 colors) and
+    outfit presets — all data-driven, all saved.
 
 ---
 
@@ -149,9 +153,14 @@ src/render/
   renderer.js           Renderer-neutral contract + registry
   renderer-dom.js       Top-down DOM renderer (default)
   renderer-three-stub.js  Placeholder for the future Three.js lot renderer
-  avatar3d.js           Real-time 3D character viewer (Three.js, ES module)
+  avatar3d.js           Character viewer: stage, face/hair modules, expressions
+  character-rig.js      CharacterRig: GLB loading, slots, tints, animation
+assets/characters/      Rigged GLB bodies + modular wardrobe (generated)
+tools/
+  build-character-assets.mjs   Authors the rigged character GLBs
 vendor/
   three.module.js + three.core.js   Vendored Three.js (no CDN needed)
+  loaders/ + utils/     Vendored GLTFLoader, SkeletonUtils, BufferGeometryUtils
 docs/
   ARCHITECTURE.md       Simulation vs renderer, lots, rooms, placement, slots
 src/ (bed.js, world.js, …)  Classic-mode modules (unchanged)

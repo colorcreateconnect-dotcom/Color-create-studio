@@ -124,6 +124,42 @@ Every NPC record carries `autonomy`: `autonomyEnabled` (off), `currentGoal`,
 is intentionally **no decision-making** yet — a future behavior system fills
 these in without another schema change.
 
+## The rigged character pipeline (CharacterKit)
+
+The player is a **fully rigged humanoid**, not a procedural model. The chain:
+
+```
+GLB base body (skinned mesh, humanoid skeleton)
+  → body customization   (bone-scale hooks; slider-ready)
+  → face customization   (face module on the Head bone + expression rig)
+  → hair                 (modular styles on the Head bone)
+  → skin                 (tinted physical material)
+  → clothing / shoes     (named SkinnedMesh slots — show/hide + tint)
+  → accessories          (attach to any bone: jewelry→Chest, phone→Hand)
+  → animation            (AnimationMixer: baked pose clip + additive layers)
+```
+
+- **Assets** (`assets/characters/base_female.glb`, `base_male.glb`) are
+  authored by `tools/build-character-assets.mjs`: a 19-bone humanoid skeleton
+  (`Hips Spine Chest Neck Head`, `L/R_Shoulder|UpperArm|LowerArm|Hand`,
+  `L/R_UpperLeg|LowerLeg|Foot`), one skinned `Body` mesh with per-vertex
+  weights, a modular wardrobe (every `top_*`, `bottom_*`, `dress_*`, `shoe_*`
+  as its own named SkinnedMesh on the shared skeleton), and baked animation
+  clips (`idle`, `groove`). These are first-generation assets — the runtime
+  depends only on bone names and slot names, so Blender-authored GLBs can
+  replace them with zero code changes.
+- **Runtime** (`src/render/character-rig.js`): `CharacterRig` loads + caches
+  the GLB, clones per instance (SkeletonUtils — one asset, many characters),
+  equips wardrobe slots, tints materials, attaches accessories to bones,
+  bakes the stance into a base pose clip and blends additive animation layers
+  over it (`blendTo('groove')` crossfades).
+- **Customization = mesh/material swapping.** Outfit presets in
+  `data-avatar.js` carry a `slots` manifest (`{top, bottom|dress, shoe}`)
+  naming the wardrobe meshes; changing outfits toggles mesh visibility and
+  re-tints — the skeleton, body, and animations are untouched.
+- The **face + hair modules** and the living expression system ride on the
+  `Head` bone, so they follow every animation for free.
+
 ## Save versioning
 
 Saves carry `version`. `save.js` runs `MIGRATIONS[n]` steps (v2→v3→…) so old
