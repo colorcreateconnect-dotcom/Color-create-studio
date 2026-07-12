@@ -99,6 +99,36 @@
     armLength: 1,       // shoulder → wrist distance
   };
 
+  // --- Expression states (Phase 2: face) ----------------------------------------
+  // Parameter sets the facial rig blends between. All values deliberately
+  // subtle — fashion-doll poise, never a frozen grin or anime exaggeration.
+  //   smile    -1..1  (corner drop .. soft smile)
+  //   browLift -1..1  (knit .. raised)      browTilt: + = worried inner-up, - = determined
+  //   browAsym  0..1  (one-brow raise, flirty)
+  //   lid       0..1  (lids lowered — bedroom eyes / bored half-lids)
+  //   eyeOpen   ~1    (eye white vertical openness)
+  //   gazeX/Y  -1..1  (gaze bias)           wander: how much the eyes roam
+  //   headTilt/headPitch (radians, added to the base pose)
+  //   blush     0..1  (cheek color amount)
+  CCS.data.expressions = {
+    neutral:     { smile: 0.18, browLift: 0,     browTilt: 0,     browAsym: 0,   lid: 0.10, eyeOpen: 1,    gazeX: 0,    gazeY: 0,     wander: 1,   headTilt: 0,     headPitch: 0,     blush: 0.20 },
+    happy:       { smile: 0.60, browLift: 0.35,  browTilt: 0,     browAsym: 0,   lid: 0.06, eyeOpen: 1,    gazeX: 0,    gazeY: 0.1,   wander: 1,   headTilt: 0.025, headPitch: -0.01, blush: 0.45 },
+    confident:   { smile: 0.38, browLift: -0.08, browTilt: -0.15, browAsym: 0,   lid: 0.30, eyeOpen: 1,    gazeX: 0,    gazeY: 0.05,  wander: 0.6, headTilt: -0.02, headPitch: -0.05, blush: 0.25 },
+    flirty:      { smile: 0.50, browLift: 0.15,  browTilt: 0,     browAsym: 0.8, lid: 0.42, eyeOpen: 1,    gazeX: 0.35, gazeY: 0.05,  wander: 0.7, headTilt: 0.06,  headPitch: 0.01,  blush: 0.60 },
+    stressed:    { smile: -0.28, browLift: 0.22, browTilt: 0.55,  browAsym: 0,   lid: 0.12, eyeOpen: 1.05, gazeX: 0,    gazeY: 0,     wander: 1.3, headTilt: 0,     headPitch: 0.03,  blush: 0.15 },
+    embarrassed: { smile: 0.12, browLift: 0.1,   browTilt: 0.30,  browAsym: 0,   lid: 0.35, eyeOpen: 0.98, gazeX: 0.15, gazeY: -0.55, wander: 0.5, headTilt: 0.03,  headPitch: 0.07,  blush: 1.0 },
+    bored:       { smile: -0.08, browLift: -0.12, browTilt: 0,    browAsym: 0,   lid: 0.55, eyeOpen: 0.94, gazeX: 0.5,  gazeY: -0.05, wander: 0.8, headTilt: 0.05,  headPitch: 0.015, blush: 0.15 },
+    focused:     { smile: 0.06, browLift: -0.22, browTilt: -0.35, browAsym: 0,   lid: 0.18, eyeOpen: 0.96, gazeX: 0,    gazeY: 0,     wander: 0.2, headTilt: -0.01, headPitch: 0.02,  blush: 0.18 },
+  };
+
+  // The simulation's mood states (needs-mood.js) → face expression states.
+  // Mapping only — mood math is untouched.
+  CCS.data.moodExpressionMap = {
+    Inspired: 'happy', Happy: 'happy', Confident: 'confident', Flirty: 'flirty',
+    Focused: 'focused', Bored: 'bored', Lonely: 'stressed', Stressed: 'stressed',
+    'Burnt Out': 'stressed', Embarrassed: 'embarrassed',
+  };
+
   // --- Live avatar state helpers ----------------------------------------------
   CCS.sim = CCS.sim || {};
   CCS.sim.avatar = {
@@ -114,6 +144,11 @@
     // overrides. Read-only merge — nothing is written to the save here.
     proportions() {
       return { ...CCS.data.avatarProportions, ...(this.get().proportions || {}) };
+    },
+
+    // Current facial expression id, derived from the live mood state.
+    expression() {
+      return CCS.data.moodExpressionMap[CCS.state?.mood?.state] || 'neutral';
     },
 
     // Fully-resolved look (hex colors + outfit params) for the renderer.

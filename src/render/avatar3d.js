@@ -26,6 +26,18 @@ let swayers = [];            // meshes that sway: { m, phase, amp, baseX }
 let spinTarget = 0.5, spin = 0.5, dragging = false, lastX = 0;
 let available = true;
 
+// --- facial rig + animation state (rebuilt with the character) --------------
+let faceRig = null;          // mesh refs + base transforms (see buildFace)
+let prevT = 0;
+let lastHeadC = 1.72;        // for camera focus modes
+let camFocus = 'full';
+const anim = {
+  expr: {},                              // current blended expression params
+  blink: { next: 1.5, start: -1, count: 0 },
+  gaze: { x: 0, y: 0, tx: 0, ty: 0, next: 0 },
+  browPulse: { next: 4, until: -1 },
+};
+
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
@@ -309,6 +321,7 @@ function buildCharacter() {
     c.traverse?.((n) => { n.geometry?.dispose(); n.material?.dispose?.(); });
   }
   swayers = [];
+  faceRig = null;
 
   const look = CCS.sim.avatar.resolved();
   const P = CCS.sim.avatar.proportions();
@@ -483,8 +496,9 @@ function buildCharacter() {
   // --- Head group (face + hair attach in local space; headScale-friendly) --
   const head = new THREE.Group();
   head.position.set(wShift * 0.4, M.headC, 0.004);
-  head.rotation.z = 0.028;                     // soft tilt
+  head.rotation.z = 0.028;                     // soft tilt (animated around this base)
   head.rotation.y = -0.06;                     // slight glance
+  lastHeadC = M.headC;
   g.add(head);
   buildFace(head, M, look, skin, hairM, gold);
   buildHair(head, look.hairStyle, hairM, M);
@@ -525,26 +539,142 @@ function buildFoot(g, ankle, side, shoes, skin) {
 
 // --- Face ---------------------------------------------------------------------
 // Local space: head center = origin, radius M.headR (default 0.115).
+// Builds the glam face AND registers every animatable part on `faceRig`.
 function buildFace(h, M, look, skin, hairM, gold) {
   const r = M.headR;
-  ball(h, [0, 0, 0], r, skin(), [0.96, 1.1, 0.99]);                      // cranium
-  ball(h, [0, -r * 0.48, r * 0.16], r * 0.66, skin(), [0.84, 0.82, 0.88]); // tapered jaw/chin
 
+  // Softer facial skin: physical material with a warm sheen (SSS-ish glow).
+  const skinC = new THREE.Color(look.skin);
+  const faceSkin = () => new THREE.MeshPhysicalMaterial({
+    color: look.skin, roughness: 0.5, metalness: 0.02,
+    sheen: 0.45, sheenColor: skinC.clone().lerp(new THREE.Color(0xfff1e6), 0.3), sheenRoughness: 0.65,
+  });
+  // Skin-derived glam colors — adapt to every skin tone.
+  const lipC = skinC.clone().lerp(new THREE.Color(0xb84a66), 0.62);
+  const blushC = skinC.clone().lerp(new THREE.Color(0xff5f7e), 0.42);
+  const linerC = 0x1c1116;
+
+  // ---- head structure ----
+  ball(h, [0, 0, 0], r, faceSkin(), [0.96, 1.08, 0.98]);                    // cranium
+  ball(h, [0, -0.05, 0.018], 0.08, faceSkin(), [0.88, 0.8, 0.92]);          // jaw
+  ball(h, [0, -0.1, 0.038], 0.024, faceSkin(), [1.05, 0.78, 0.9]);          // chin
   for (const side of [-1, 1]) {
-    ball(h, [side * 0.045, 0.012, 0.089], 0.021, mat(0xffffff, { roughness: 0.25 }), [1, 1.18, 0.55]); // eye
-    ball(h, [side * 0.045, 0.012, 0.103], 0.0115, mat(0x2a1a14, { roughness: 0.2 }));                  // iris
-    const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.005, 0.04, 3, 6), hairM());
-    brow.position.set(side * 0.047, 0.052, 0.094);
-    brow.rotation.z = Math.PI / 2 + side * -0.22;
-    h.add(brow);
-    ball(h, [side * 0.098, -0.012, 0.004], 0.017, skin(), [0.45, 0.95, 0.72]);  // ear
+    ball(h, [side * 0.056, -0.02, 0.05], 0.026, faceSkin(), [0.9, 0.7, 0.55]); // cheekbone (embedded)
+  }
+
+  faceRig = {
+    head: h, eyes: [], brows: [], blushMats: [], skinC, blushC,
+    headBase: { tilt: h.rotation.z, yaw: h.rotation.y },
+  };
+
+  // ---- blush layer (color animates between skin and blush) ----
+  for (const side of [-1, 1]) {
+    const bm = new THREE.MeshStandardMaterial({ color: skinC.clone(), roughness: 0.55 });
+    ball(h, [side * 0.055, -0.028, 0.066], 0.021, bm, [1.05, 0.62, 0.42]);
+    faceRig.blushMats.push(bm);
+  }
+
+  // ---- eyes: white + lids + liner/lashes + mobile iris group ----
+  for (const side of [-1, 1]) {
+    const eg = new THREE.Group();
+    eg.position.set(side * 0.047, 0.014, 0.082);
+    h.add(eg);
+
+    const white = new THREE.Mesh(new THREE.SphereGeometry(0.0255, 20, 16),
+      mat(0xfefefe, { roughness: 0.22 }));
+    white.scale.set(1.18, 1.05, 0.55);
+    eg.add(white);
+
+    // mobile iris group (gaze): iris + pupil + catchlight
+    const ig = new THREE.Group();
+    ig.position.set(0, 0, 0.009);
+    eg.add(ig);
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.0135, 16, 12), mat(0x4a2a18, { roughness: 0.25 }));
+    iris.scale.set(1, 1, 0.5);
+    iris.position.z = 0.004;
+    ig.add(iris);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.0062, 12, 10), mat(0x120a08, { roughness: 0.2 }));
+    pupil.scale.set(1, 1, 0.5);
+    pupil.position.z = 0.0075;
+    ig.add(pupil);
+    const spark = new THREE.Mesh(new THREE.SphereGeometry(0.0034, 8, 8),
+      mat(0xffffff, { roughness: 0.1, emissive: 0xffffff, emissiveIntensity: 0.6 }));
+    spark.position.set(side * 0.0045, 0.005, 0.0105);
+    ig.add(spark);
+
+    // upper lid group: skin lid + liner-lash line + corner flicks. The lid
+    // rests high (eyes open wide); blinking/half-lids slide the group down.
+    const lidUp = new THREE.Group();
+    lidUp.position.set(0, 0.0195, 0.001);
+    eg.add(lidUp);
+    const lid = new THREE.Mesh(new THREE.SphereGeometry(0.0265, 18, 14), faceSkin());
+    lid.scale.set(1.18, 0.72, 0.62);
+    lidUp.add(lid);
+    const liner = new THREE.Mesh(new THREE.SphereGeometry(0.0245, 18, 12), mat(linerC, { roughness: 0.45 }));
+    liner.scale.set(1.24, 0.17, 0.5);
+    liner.position.set(0, -0.003, 0.009);
+    lidUp.add(liner);
+    for (let i = 0; i < 2; i++) {                     // outer-corner lash flicks
+      const lash = new THREE.Mesh(new THREE.CapsuleGeometry(0.0012, 0.0085 - i * 0.002, 3, 5), mat(linerC, { roughness: 0.5 }));
+      lash.position.set(side * (0.027 + i * 0.0035), 0.0015 + i * 0.0035, 0.007);
+      lash.rotation.z = side * -(0.95 + i * 0.25);
+      lidUp.add(lash);
+    }
+
+    // lower lid (subtle)
+    const lidLo = new THREE.Mesh(new THREE.SphereGeometry(0.023, 16, 12), faceSkin());
+    lidLo.scale.set(1.12, 0.42, 0.55);
+    lidLo.position.set(0, -0.0205, 0.002);
+    eg.add(lidLo);
+
+    faceRig.eyes.push({
+      group: eg, white, whiteBaseY: 1.0, irisGroup: ig,
+      lidUp, lidUpBaseY: lidUp.position.y, lidLo, lidLoBaseY: lidLo.position.y,
+    });
+  }
+
+  // ---- brows: arched, two tapered segments meeting at a peak ----
+  for (const side of [-1, 1]) {
+    const bg = new THREE.Group();
+    bg.position.set(side * 0.049, 0.05, 0.086);
+    h.add(bg);
+    const bm = hairM();
+    limbT(bg, [side * -0.021, -0.003, 0], [side * 0.004, 0.0065, 0.003], 0.0048, 0.0038, bm); // inner rise
+    limbT(bg, [side * 0.004, 0.0065, 0.003], [side * 0.027, -0.0015, -0.002], 0.0038, 0.0022, bm); // outer taper
+    faceRig.brows.push({ g: bg, baseY: bg.position.y, side });
+  }
+
+  // ---- nose: bridge + tip ----
+  limbT(h, [0, 0.026, 0.104], [0, -0.004, 0.114], 0.006, 0.0078, faceSkin());
+  ball(h, [0, -0.009, 0.115], 0.0095, faceSkin(), [1.08, 0.8, 0.8]);
+
+  // ---- lips: cupid's-bow upper, full lower, corners, gloss ----
+  const lipMat = () => new THREE.MeshPhysicalMaterial({
+    color: lipC, roughness: 0.3, clearcoat: 0.55, clearcoatRoughness: 0.35,
+  });
+  const mouth = new THREE.Group();
+  mouth.position.set(0, -0.056, 0.096);
+  h.add(mouth);
+  ball(mouth, [-0.0085, 0.004, 0], 0.0122, lipMat(), [1.12, 0.6, 0.6]);   // upper L lobe
+  ball(mouth, [0.0085, 0.004, 0], 0.0122, lipMat(), [1.12, 0.6, 0.6]);    // upper R lobe
+  const lower = ball(mouth, [0, -0.0075, 0.001], 0.0152, lipMat(), [1.28, 0.72, 0.66]); // lower lip
+  const cornerL = ball(mouth, [-0.0245, -0.001, -0.005], 0.0062, lipMat());
+  const cornerR = ball(mouth, [0.0245, -0.001, -0.005], 0.0062, lipMat());
+  ball(mouth, [0, -0.0095, 0.0105], 0.0048, mat(0xffd9e2, { roughness: 0.2, emissive: 0xffb9cc, emissiveIntensity: 0.35 }), [1.5, 0.45, 0.5]); // gloss
+  faceRig.mouth = {
+    group: mouth, lower, lowerBaseSX: lower.scale.x,
+    corners: [cornerL, cornerR],
+    cornerBase: [cornerL.position.clone(), cornerR.position.clone()],
+  };
+
+  // ---- ears + hoops ----
+  for (const side of [-1, 1]) {
+    ball(h, [side * 0.099, -0.008, 0.002], 0.017, faceSkin(), [0.45, 0.92, 0.7]);
     const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.034, 0.0045, 8, 20), gold());
     hoop.position.set(side * 0.102, -0.052, 0.004);
     hoop.rotation.y = Math.PI / 2;
     h.add(hoop);
   }
-  ball(h, [0, -0.008, 0.108], 0.0125, skin(), [1, 0.82, 0.7]);            // nose
-  ball(h, [0, -0.052, 0.096], 0.023, mat(0xb95a6b, { roughness: 0.4 }), [1.32, 0.55, 0.6]); // lips
 }
 
 // --- Hair -----------------------------------------------------------------------
@@ -617,6 +747,94 @@ function buildHair(h, style, hairM, M) {
 }
 
 // ---------------------------------------------------------------------------
+// Facial animation — blends expression states (data-avatar.js) mapped from
+// the live mood, plus blinking, gaze saccades, smile drift, brow micro-raises
+// and breathing-linked head motion. Mood math itself is never touched.
+// ---------------------------------------------------------------------------
+function animateFace(t, dt) {
+  if (!faceRig) return;
+
+  // 1) Blend toward the mood's expression state.
+  const targetId = CCS.sim?.avatar?.expression?.() || 'neutral';
+  anim.exprId = targetId;
+  const target = (CCS.data.expressions || {})[targetId] || {};
+  const e = anim.expr;
+  const k = Math.min(1, dt * 3.2);              // ~0.6s ease between expressions
+  for (const key of ['smile', 'browLift', 'browTilt', 'browAsym', 'lid', 'eyeOpen',
+                     'gazeX', 'gazeY', 'wander', 'headTilt', 'headPitch', 'blush']) {
+    const tv = target[key] ?? (key === 'eyeOpen' || key === 'wander' ? 1 : 0);
+    e[key] = (e[key] ?? tv) + (tv - (e[key] ?? tv)) * k;
+  }
+
+  // 2) Blinking at irregular intervals (with occasional double-blinks).
+  if (t >= anim.blink.next && anim.blink.start < 0) {
+    anim.blink.start = t;
+    anim.blink.count++;
+    anim.blink.next = t + (Math.random() < 0.18 ? 0.4 : 2.2 + Math.random() * 3.6);
+  }
+  let blinkAmt = 0;
+  if (anim.blink.start >= 0) {
+    const p = (t - anim.blink.start) / 0.15;
+    if (p >= 1) anim.blink.start = -1;
+    else blinkAmt = Math.sin(Math.min(p, 1) * Math.PI);
+  }
+
+  // 3) Gaze saccades: pick a new target every couple of seconds, ease fast.
+  if (t >= anim.gaze.next) {
+    const w = e.wander ?? 1;
+    anim.gaze.tx = (e.gazeX ?? 0) * 0.5 + (Math.random() - 0.5) * 0.9 * w;
+    anim.gaze.ty = (e.gazeY ?? 0) * 0.5 + (Math.random() - 0.5) * 0.5 * w;
+    anim.gaze.next = t + 1.4 + Math.random() * 2.4;
+  }
+  anim.gaze.x += (anim.gaze.tx - anim.gaze.x) * Math.min(1, dt * 9);
+  anim.gaze.y += (anim.gaze.ty - anim.gaze.y) * Math.min(1, dt * 9);
+
+  // 4) Occasional brow micro-raise.
+  if (t >= anim.browPulse.next) {
+    anim.browPulse.until = t + 0.55;
+    anim.browPulse.next = t + 4.5 + Math.random() * 5;
+  }
+  const pulse = anim.browPulse.until > t ? Math.sin(((anim.browPulse.until - t) / 0.55) * Math.PI) * 0.5 : 0;
+
+  // 5) Living drift: tiny smile/head wobble so nothing is frozen.
+  const smile = (e.smile ?? 0.18) + Math.sin(t * 0.31 + 1.7) * 0.05 + Math.sin(t * 0.53) * 0.03;
+  const breath = Math.sin(t * 1.6);             // matches the body's idle bob
+
+  // ---- apply to the rig ----
+  const H = faceRig.head;
+  H.rotation.z = faceRig.headBase.tilt + (e.headTilt ?? 0) + Math.sin(t * 0.23) * 0.012;
+  H.rotation.x = (e.headPitch ?? 0) + breath * 0.007;
+  H.rotation.y = faceRig.headBase.yaw + Math.sin(t * 0.17) * 0.015 + anim.gaze.x * 0.06;
+
+  for (const eye of faceRig.eyes) {
+    const closed = Math.min(1, blinkAmt + (e.lid ?? 0) * 0.55);
+    eye.lidUp.position.y = eye.lidUpBaseY - 0.008 * (e.lid ?? 0) - 0.024 * blinkAmt;
+    eye.lidLo.position.y = eye.lidLoBaseY + 0.006 * blinkAmt;
+    eye.white.scale.y = Math.max(0.08, (e.eyeOpen ?? 1) * (1 - 0.85 * blinkAmt));
+    eye.irisGroup.position.x = anim.gaze.x * 0.006;
+    eye.irisGroup.position.y = anim.gaze.y * 0.005 - closed * 0.002;
+  }
+
+  faceRig.brows.forEach((b, i) => {
+    const asym = (e.browAsym ?? 0) * (i === 1 ? 1 : 0.1);   // flirty: her left brow
+    b.g.position.y = b.baseY + ((e.browLift ?? 0) * 0.45 + pulse + asym) * 0.009;
+    b.g.rotation.z = b.side * -(e.browTilt ?? 0) * 0.22;    // + = worried inner-up
+  });
+
+  const m = faceRig.mouth;
+  m.lower.scale.x = m.lowerBaseSX * (1 + smile * 0.14);
+  m.corners.forEach((c, i) => {
+    const base = m.cornerBase[i];
+    c.position.y = base.y + smile * 0.0085;
+    c.position.x = base.x * (1 + smile * 0.1);
+  });
+  m.group.rotation.x = -smile * 0.06;
+
+  faceRig.blushMats.forEach((bm) =>
+    bm.color.copy(faceRig.skinC).lerp(faceRig.blushC, Math.min(1, e.blush ?? 0.2)));
+}
+
+// ---------------------------------------------------------------------------
 // Loop + public API
 // ---------------------------------------------------------------------------
 function tick() {
@@ -624,6 +842,8 @@ function tick() {
   if (!host || !host.isConnected || !renderer) return;
 
   const t = clock.getElapsedTime();
+  const dt = Math.min(0.1, t - prevT || 0.016);
+  prevT = t;
   if (!dragging) spinTarget += 0.0028;                    // slow show-off spin
   spin += (spinTarget - spin) * 0.1;
   charGroup.rotation.y = spin;
@@ -632,6 +852,8 @@ function tick() {
   for (const s of swayers) {
     s.m.position.x = s.baseX + Math.sin(t * 1.8 + s.phase) * s.amp;
   }
+
+  animateFace(t, dt);
 
   // keep canvas sized to host
   const w = host.clientWidth, h = host.clientHeight;
@@ -664,6 +886,25 @@ CCS.avatar3d = {
   },
 
   refresh() { if (renderer) buildCharacter(); },
+
+  // Camera focus: 'full' (default) frames the whole look; 'face' moves in
+  // close for the Style Studio face view / makeup shots.
+  focus(mode = 'full') {
+    if (!camera) return;
+    camFocus = mode;
+    if (mode === 'face') {
+      camera.position.set(0.05, lastHeadC + 0.02, 1.0);
+      camera.lookAt(0, lastHeadC, 0);
+    } else {
+      camera.position.set(0, 1.42, 4.7);
+      camera.lookAt(0, 1.04, 0);
+    }
+  },
+
+  // Introspection for tests/tools (not gameplay).
+  get _debug() {
+    return { blinks: anim.blink.count, expression: anim.exprId || 'neutral', focus: camFocus };
+  },
 
   unmount() { host = null; },
 
