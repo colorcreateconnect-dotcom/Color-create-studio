@@ -85,6 +85,20 @@
   ];
   CCS.data.avatarOutfitById = Object.fromEntries(CCS.data.avatarOutfits.map((o) => [o.id, o]));
 
+  // --- Body proportion parameters ----------------------------------------------
+  // Multipliers on the base fashion-doll measurements in avatar3d.js. Used
+  // internally by the builder today; a future "body" tab can write per-player
+  // overrides to state.player.avatar.proportions without any schema change.
+  CCS.data.avatarProportions = {
+    headScale: 1,       // head size (kept stylized, not chibi)
+    shoulderWidth: 1,   // shoulder span
+    torsoLength: 1,     // hip → shoulder distance
+    waistScale: 1,      // waist radius
+    hipWidth: 1,        // hip radius
+    legLength: 1,       // floor → hip distance
+    armLength: 1,       // shoulder → wrist distance
+  };
+
   // --- Live avatar state helpers ----------------------------------------------
   CCS.sim = CCS.sim || {};
   CCS.sim.avatar = {
@@ -94,6 +108,12 @@
       const p = CCS.state.player;
       if (!p.avatar) p.avatar = { ...this.DEFAULTS };
       return p.avatar;
+    },
+
+    // Resolved body proportions: global defaults + (optional, future) per-player
+    // overrides. Read-only merge — nothing is written to the save here.
+    proportions() {
+      return { ...CCS.data.avatarProportions, ...(this.get().proportions || {}) };
     },
 
     // Fully-resolved look (hex colors + outfit params) for the renderer.

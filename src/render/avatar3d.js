@@ -1,13 +1,19 @@
 // ============================================================================
 // avatar3d.js — the real-time 3D character renderer (Three.js).
 //
-// Draws the player's Sim as a stylized parametric 3D character — skin tone,
-// hair style/color and outfit presets all come from data-avatar.js — standing
-// on a neon-glam stage (pink/blue rim light, glowing heart sign, spotlight).
+// Draws the player's Sim as a stylized fashion-doll character — skin tone,
+// hair style/color and outfit presets come from data-avatar.js — standing on
+// a neon-glam stage (pink/blue rim light, glowing heart sign, spotlight).
+//
+// The body is built parametrically from a measurement sheet (see layout()):
+// a smooth lathe-profile torso (real waist/hip curves, no stacked-sphere
+// seams), tapered limbs that share joint radii (no toy bulges), a slight
+// contrapposto pose, and a head group that hair/face attach to in local
+// space. Proportion multipliers come from CCS.sim.avatar.proportions().
 //
 // One renderer instance exists; mount(el) moves the canvas between hosts
 // (Sim tab viewport, Style Studio modal). Look changes call refresh().
-// Drag horizontally to spin her; she idles with a soft bob + ponytail sway.
+// Drag horizontally to spin her; she idles with a soft bob + hair sway.
 // ============================================================================
 
 import * as THREE from '../../vendor/three.module.js';
@@ -16,7 +22,7 @@ const CCS = window.CCS;
 
 let renderer = null, scene, camera, stage, charGroup;
 let host = null, rafId = 0, clock = null;
-let swayers = [];            // meshes that sway: { m, phase, amp }
+let swayers = [];            // meshes that sway: { m, phase, amp, baseX }
 let spinTarget = 0.5, spin = 0.5, dragging = false, lastX = 0;
 let available = true;
 
@@ -42,8 +48,8 @@ function ensureRenderer() {
   scene.fog = new THREE.Fog(0x120b1c, 6, 14);
 
   camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
-  camera.position.set(0, 1.35, 4.6);
-  camera.lookAt(0, 1.0, 0);
+  camera.position.set(0, 1.42, 4.7);
+  camera.lookAt(0, 1.04, 0);
 
   buildStage();
   charGroup = new THREE.Group();
@@ -154,20 +160,29 @@ function buildStage() {
 }
 
 // ---------------------------------------------------------------------------
-// Parametric character builder
+// Small geometry helpers
 // ---------------------------------------------------------------------------
 
-// Capsule between two points (the workhorse for limbs).
-function limb(group, a, b, r, material) {
+// Tapered limb segment between two points: a cylinder whose radius shrinks
+// from rA (at `a`) to rB (at `b`), with sphere caps at both ends. Consecutive
+// segments that share a point and radius join seamlessly — no toy bulges.
+function limbT(group, a, b, rA, rB, material) {
   const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b);
   const dir = vb.clone().sub(va);
   const len = dir.length();
-  const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 14), material);
-  m.position.copy(va.clone().add(vb).multiplyScalar(0.5));
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
-  group.add(m);
-  return m;
+  const cyl = new THREE.Mesh(new THREE.CylinderGeometry(rB, rA, len, 16, 1), material);
+  cyl.position.copy(va.clone().add(vb).multiplyScalar(0.5));
+  cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  group.add(cyl);
+  const capA = new THREE.Mesh(new THREE.SphereGeometry(rA, 16, 12), material);
+  capA.position.copy(va);
+  group.add(capA);
+  const capB = new THREE.Mesh(new THREE.SphereGeometry(rB, 16, 12), material);
+  capB.position.copy(vb);
+  group.add(capB);
+  return cyl;
 }
+
 function ball(group, pos, r, material, scale = null) {
   const m = new THREE.Mesh(new THREE.SphereGeometry(r, 22, 18), material);
   m.position.set(...pos);
@@ -175,6 +190,29 @@ function ball(group, pos, r, material, scale = null) {
   group.add(m);
   return m;
 }
+
+// Smooth lathe surface from (radius, y) control points (Catmull-Rom sampled).
+// The workhorse for the torso, garments and skirts — one flowing silhouette.
+function lathe(group, pts, material, zSquash = 0.88) {
+  const curve = new THREE.SplineCurve(pts.map(([r, y]) => new THREE.Vector2(Math.max(r, 0.001), y)));
+  const geo = new THREE.LatheGeometry(curve.getPoints(32), 28);
+  material.side = THREE.DoubleSide;  // curvy profiles stay visible from any angle
+  const m = new THREE.Mesh(geo, material);
+  m.scale.z = zSquash;        // slightly elliptical cross-section (feminine profile)
+  group.add(m);
+  return m;
+}
+
+// Horizontal hem/cuff ring (matches the lathe's elliptical squash).
+function hemRing(group, y, r, tube, material, zSquash = 0.88) {
+  const m = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 10, 26), material);
+  m.rotation.x = Math.PI / 2;
+  m.position.y = y;
+  m.scale.set(1, zSquash, 1); // torus lies flat; its local Y is world Z
+  group.add(m);
+  return m;
+}
+
 function star(group, pos, size, colorHex, rotY = 0) {
   const s = new THREE.Shape();
   for (let i = 0; i < 10; i++) {
@@ -184,259 +222,396 @@ function star(group, pos, size, colorHex, rotY = 0) {
             : s.lineTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
   }
   const m = new THREE.Mesh(new THREE.ShapeGeometry(s),
-    mat(colorHex, { emissive: colorHex, emissiveIntensity: 0.25, roughness: 0.6 }));
+    new THREE.MeshStandardMaterial({ color: colorHex, emissive: colorHex, emissiveIntensity: 0.25,
+      roughness: 0.6, side: THREE.DoubleSide }));
   m.position.set(...pos);
   m.rotation.y = rotY;
   group.add(m);
   return m;
 }
 
+// Small rounded hand: palm ellipsoid + finger mitt + thumb. `down` = fingers
+// pointing down (relaxed arm) vs. gripping up (phone hand).
+function hand(group, pos, side, material, down = true) {
+  const h = new THREE.Group();
+  h.position.set(...pos);
+  ball(h, [0, 0, 0], 0.026, material, [0.9, 1.15, 1.2]);                        // palm
+  ball(h, [0, down ? -0.045 : 0.04, down ? 0.008 : 0.012], 0.019, material, [1.05, 0.85, 1.45]); // fingers
+  ball(h, [side * -0.02, down ? -0.012 : 0.012, 0.02], 0.011, material);        // thumb
+  group.add(h);
+  return h;
+}
+
+// ---------------------------------------------------------------------------
+// Measurement sheet — fashion-doll proportions (~7.3 heads tall by default),
+// scaled by the proportion parameters from data-avatar.js.
+// ---------------------------------------------------------------------------
+function layout(P) {
+  const hipY = 0.075 + 0.98 * P.legLength;          // floor → hip crease
+  const waistY = hipY + 0.185 * P.torsoLength;
+  const chestY = waistY + 0.165 * P.torsoLength;
+  const shoulderY = chestY + 0.115 * P.torsoLength;
+  const headR = 0.115 * P.headScale;
+  const headC = shoulderY + 0.115 + headR * 0.78;   // neck length + head offset
+  return {
+    hipY, waistY, chestY, shoulderY, headR, headC,
+    kneeY: 0.075 + 0.52 * P.legLength,
+    ankleY: 0.09,
+    hipR: 0.148 * P.hipWidth,
+    waistR: 0.085 * P.waistScale,
+    shoulderX: 0.148 * P.shoulderWidth,
+    armLen: P.armLength,
+  };
+}
+
+// Body silhouette radius at height y (shared by skin + garments so clothes
+// follow the figure with a uniform offset instead of being painted on).
+function bodyProfile(M) {
+  return [
+    [0.085, M.hipY - 0.085],          // under-hip tuck (thighs nest here)
+    [M.hipR * 0.985, M.hipY + 0.005],
+    [M.hipR, M.hipY + 0.07],          // widest hip point
+    [0.117, M.waistY - 0.06],
+    [M.waistR, M.waistY],             // waist
+    [0.104, M.waistY + 0.085],        // ribcage ease
+    [0.121, M.chestY],                // bust line
+    [0.101, M.chestY + 0.07],
+    [0.058, M.shoulderY + 0.005],     // rounded off at the shoulders
+  ];
+}
+function profileRadiusAt(pts, y) {
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, y0] = pts[i], [r1, y1] = pts[i + 1];
+    if (y >= y0 && y <= y1) return r0 + (r1 - r0) * ((y - y0) / (y1 - y0));
+  }
+  return y < pts[0][1] ? pts[0][0] : pts[pts.length - 1][0];
+}
+// A garment band: the body profile between two heights, pushed out by
+// `offset` (cloth thickness) with a hem ring at the bottom edge.
+function garmentBand(g, M, yBottom, yTop, offset, material, hem = true) {
+  const pts = bodyProfile(M)
+    .filter(([, y]) => y > yBottom && y < yTop)
+    .map(([r, y]) => [r + offset, y]);
+  pts.unshift([profileRadiusAt(bodyProfile(M), yBottom) + offset, yBottom]);
+  pts.push([profileRadiusAt(bodyProfile(M), yTop) + offset, yTop]);
+  lathe(g, pts, material);
+  if (hem) hemRing(g, yBottom, pts[0][0] * 0.97, 0.013, material);
+  return pts;
+}
+
+// ---------------------------------------------------------------------------
+// Character builder
+// ---------------------------------------------------------------------------
 function buildCharacter() {
-  // Clear previous build.
+  // Clear previous build (geometries AND materials — no leaks on re-style).
   while (charGroup.children.length) {
     const c = charGroup.children.pop();
-    c.traverse?.((n) => { n.geometry?.dispose(); });
+    c.traverse?.((n) => { n.geometry?.dispose(); n.material?.dispose?.(); });
   }
   swayers = [];
 
   const look = CCS.sim.avatar.resolved();
-  const skin = mat(look.skin, { roughness: 0.5 });
-  const hair = mat(look.hairColor, { roughness: 0.82 });
+  const P = CCS.sim.avatar.proportions();
+  const M = layout(P);
+
+  const skin = () => mat(look.skin, { roughness: 0.5 });
+  const hairM = () => mat(look.hairColor, { roughness: 0.82 });
   const o = look.outfit;
-  const topMat = mat(o.top.color, { roughness: o.bottom?.sheen ? 0.35 : 0.78 });
-  const botMat = mat(o.bottom.color, {
+  const topM = () => mat(o.top.color, { roughness: o.bottom?.sheen ? 0.35 : 0.78 });
+  const botM = () => mat(o.bottom.color, {
     roughness: o.bottom.sheen ? 0.32 : 0.8,
     emissive: o.bottom.sparkle ? o.bottom.color : 0x000000,
     emissiveIntensity: o.bottom.sparkle ? 0.18 : 1,
   });
+  const gold = () => mat(0xd4af37, { metalness: 0.85, roughness: 0.25 });
+
   const g = charGroup;
   const dress = o.bottom.style === 'dress';
   const skirt = o.bottom.style === 'skirt' || dress;
 
-  // ---- legs & bottoms ----
-  const legMatL = skirt ? skin : botMat;
-  const legR = { joggers: 0.1, cargo: 0.105, flare: 0.09 }[o.bottom.style] || 0.062;
-  for (const side of [-1, 1]) {
-    const hipX = side * 0.093;
-    if (o.bottom.style === 'flare') {
-      limb(g, [hipX, 0.98, 0], [hipX, 0.5, 0.01], 0.095, botMat);
-      // flare bell
-      const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.185, 0.42, 16), botMat);
-      bell.position.set(hipX, 0.3, 0.01);
+  // --- Posture: subtle contrapposto ---------------------------------------
+  // Weight on her right leg (x<0): right leg straight under a slightly
+  // shifted pelvis, left leg relaxed with a soft knee and turned-out foot.
+  const wShift = -0.018;                       // pelvis drifts over the weight leg
+  const R = { hip: [-0.082 + wShift, M.hipY, 0], knee: [-0.088, M.kneeY, 0.008], ankle: [-0.094, M.ankleY, 0] };
+  const L = { hip: [0.086 + wShift, M.hipY + 0.012, 0], knee: [0.112, M.kneeY + 0.01, 0.035], ankle: [0.128, M.ankleY, 0.05] };
+
+  // --- Legs & bottoms -------------------------------------------------------
+  const pantLeg = ['joggers', 'cargo'].includes(o.bottom.style);
+  const cuffY = 0.185;
+  for (const [side, J] of [[-1, R], [1, L]]) {
+    if (skirt) {
+      // bare tapered legs under the skirt/dress
+      limbT(g, J.hip, J.knee, 0.066, 0.046, skin());
+      limbT(g, J.knee, J.ankle, 0.046, 0.024, skin());
+    } else if (o.bottom.style === 'flare') {
+      limbT(g, J.hip, J.knee, 0.078, 0.056, botM());
+      const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.135, M.kneeY - 0.075, 18), botM());
+      bell.position.set(J.ankle[0] * 0.9, (M.kneeY + 0.075) / 2, J.ankle[2] * 0.6);
       g.add(bell);
-    } else {
-      limb(g, [hipX, 0.98, 0], [hipX * 1.06, 0.55, 0.015], legR, legMatL);
-      limb(g, [hipX * 1.06, 0.55, 0.015], [hipX * 1.06, 0.13, 0.01], skirt ? 0.055 : legR * 0.88, legMatL);
-      if (!skirt && (o.bottom.style === 'joggers' || o.bottom.style === 'cargo')) {
-        const cuff = new THREE.Mesh(new THREE.TorusGeometry(legR * 0.86, 0.02, 8, 18), botMat);
-        cuff.rotation.x = Math.PI / 2;
-        cuff.position.set(hipX * 1.06, 0.16, 0.01);
-        g.add(cuff);
-      }
+      const bellHem = hemRing(g, 0.085, 0.132, 0.012, botM(), 1);
+      bellHem.position.x = J.ankle[0] * 0.9; bellHem.position.z = J.ankle[2] * 0.6;
+    } else if (pantLeg) {
+      const rT = o.bottom.style === 'cargo' ? 0.088 : 0.084;
+      limbT(g, J.hip, J.knee, rT, 0.06, botM());
+      limbT(g, J.knee, [J.ankle[0], cuffY, J.ankle[2]], 0.06, 0.048, botM());
+      const cuff = hemRing(g, cuffY, 0.05, 0.014, botM(), 1);
+      cuff.position.x = J.ankle[0]; cuff.position.z = J.ankle[2];
+      limbT(g, [J.ankle[0], cuffY - 0.01, J.ankle[2]], J.ankle, 0.026, 0.022, skin()); // ankle
       if (o.bottom.style === 'cargo') {
-        const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.11, 0.09), botMat);
-        pocket.position.set(side * 0.16, 0.62, 0.02);
-        g.add(pocket);
+        ball(g, [side * 0.135, 0.72, 0.03], 0.036, botM(), [0.7, 1.3, 1.1]); // soft pocket
       }
+    } else {
+      limbT(g, J.hip, J.knee, 0.066, 0.046, skin());
+      limbT(g, J.knee, J.ankle, 0.046, 0.024, skin());
     }
     // star print on the thigh (the "Pretty Girl" star vibe)
     if (o.bottom.stars && !skirt) {
-      star(g, [hipX + side * 0.02, 0.72, 0.115], 0.05, o.bottom.stars);
-      star(g, [hipX, 0.45, 0.105], 0.03, o.bottom.stars);
+      star(g, [J.hip[0] + side * 0.01, 0.78, 0.098], 0.042, o.bottom.stars);
+      star(g, [J.hip[0], 0.5, 0.082], 0.026, o.bottom.stars);
     }
+    buildFoot(g, J.ankle, side, o.shoes, skin);
   }
 
-  // hips
-  ball(g, [0, 1.0, 0], 0.142, botMat, [1.04, 0.68, 0.85]);
+  // --- Torso: one smooth lathe from hips to shoulders ----------------------
+  const torsoGroup = new THREE.Group();
+  torsoGroup.position.x = wShift;
+  torsoGroup.rotation.z = 0.022;               // gentle counter-tilt
+  g.add(torsoGroup);
 
-  // skirt / dress cone
-  if (skirt) {
-    const topY = dress ? 1.32 : 1.06, botY = dress ? 0.62 : 0.82;
-    const cone = new THREE.Mesh(
-      new THREE.CylinderGeometry(dress ? 0.17 : 0.165, dress ? 0.30 : 0.26, topY - botY, 20), botMat);
-    cone.position.y = (topY + botY) / 2;
-    g.add(cone);
-  }
+  lathe(torsoGroup, bodyProfile(M), skin());   // the figure itself
 
-  // ---- torso ----
+  // Garments as offset bands over the same profile.
   const crop = o.top.crop !== false && !dress;
-  const waistY = crop ? 1.2 : 1.05;
-  if (crop && !skirt) ball(g, [0, 1.12, 0], 0.125, skin, [1.02, 0.85, 0.82]); // midriff
-  if (!dress) {
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.132, 1.44 - waistY, 18), topMat);
-    torso.position.y = (1.44 + waistY) / 2;
-    g.add(torso);
+  const bodyR = (y) => profileRadiusAt(bodyProfile(M), y);
+  if (dress) {
+    // dress: fitted bodice (body profile + cloth offset) flowing into a flare
+    const pts = [
+      [0.30, 0.64], [0.24, 0.80],
+      [bodyR(M.hipY + 0.02) + 0.02, M.hipY + 0.02],
+      [bodyR(M.waistY) + 0.02, M.waistY],
+      [bodyR(M.chestY) + 0.016, M.chestY],
+      [bodyR(M.chestY + 0.055) + 0.016, M.chestY + 0.055],
+    ];
+    lathe(torsoGroup, pts, botM());
+    hemRing(torsoGroup, 0.64, 0.295, 0.014, botM());
+  } else if (skirt) {
+    lathe(torsoGroup, [[0.245, 0.86], [0.20, 0.95], [bodyR(M.hipY + 0.03) + 0.018, M.hipY + 0.03], [bodyR(M.waistY - 0.02) + 0.018, M.waistY - 0.02]], botM());
+    hemRing(torsoGroup, 0.86, 0.24, 0.013, botM());
+    hemRing(torsoGroup, M.waistY - 0.02, M.waistR + 0.03, 0.016, botM()); // waistband
+    garmentBand(torsoGroup, M, crop ? M.waistY + 0.05 : M.hipY + 0.02, M.shoulderY, 0.015, topM());
   } else {
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.24, 18), botMat);
-    torso.position.y = 1.34;
-    g.add(torso);
+    // pants cover the pelvis: a high-waisted band over the hips up to the
+    // waist, finished with a real waistband — no bare hips, no floating ring
+    garmentBand(torsoGroup, M, M.hipY - 0.088, M.waistY + 0.005, 0.013, botM(), false);
+    hemRing(torsoGroup, M.waistY + 0.005, bodyR(M.waistY) + 0.024, 0.014, botM());
+    // top: band from just above the waistband (crop) or full length
+    garmentBand(torsoGroup, M, crop ? M.waistY + 0.055 : M.hipY + 0.02, M.shoulderY, 0.016, topM());
   }
-  ball(g, [0, 1.42, 0], 0.15, dress ? botMat : topMat, [1.12, 0.62, 0.88]); // chest/shoulders
 
   // hoodie details
   if (o.top.hoodie) {
-    ball(g, [0, 1.44, -0.13], 0.1, topMat, [1.25, 0.75, 0.85]);          // hood bump
-    for (const side of [-1, 1]) {                                          // drawstrings
-      const str = new THREE.Mesh(new THREE.CapsuleGeometry(0.008, 0.12, 3, 6), mat(0xffffff, { roughness: 0.6 }));
-      str.position.set(side * 0.05, 1.32, 0.145);
-      g.add(str);
+    ball(torsoGroup, [0, M.shoulderY - 0.005, -0.115], 0.082, topM(), [1.35, 0.72, 0.85]); // hood
+    hemRing(torsoGroup, M.shoulderY - 0.02, 0.083, 0.018, topM());                          // collar
+    for (const side of [-1, 1]) {
+      const str = new THREE.Mesh(new THREE.CapsuleGeometry(0.007, 0.11, 3, 6), mat(0xffffff, { roughness: 0.6 }));
+      str.position.set(side * 0.038, M.chestY + 0.03, 0.128);
+      str.rotation.x = 0.08;
+      torsoGroup.add(str);
     }
   }
   if (o.top.zipper && !dress) {
-    const zip = new THREE.Mesh(new THREE.BoxGeometry(0.014, 1.44 - waistY - 0.02, 0.01),
+    const zip = new THREE.Mesh(new THREE.CapsuleGeometry(0.006, (M.shoulderY - M.waistY) * 0.8, 3, 6),
       mat(0xdddddd, { metalness: 0.7, roughness: 0.3 }));
-    zip.position.set(0, (1.44 + waistY) / 2, 0.148);
-    g.add(zip);
+    zip.position.set(0, (M.shoulderY + M.waistY) / 2, 0.121);
+    torsoGroup.add(zip);
   }
-  if (o.top.fur) { // fluffy coat bumps
+  if (o.top.fur) { // fluffy coat bumps hugging the garment
     const fur = mat(o.top.color, { roughness: 0.95, flat: true });
-    for (let i = 0; i < 26; i++) {
-      const a = (i / 26) * Math.PI * 2;
-      const y = 1.06 + (i % 4) * 0.11;
-      ball(g, [Math.cos(a) * 0.16, y, Math.sin(a) * 0.15], 0.045 + (i % 3) * 0.012, fur);
+    for (let i = 0; i < 30; i++) {
+      const a = (i / 30) * Math.PI * 2;
+      const y = M.hipY + 0.05 + (i % 5) * 0.085;
+      const r = profileRadiusAt(bodyProfile(M), y) + 0.02;
+      ball(torsoGroup, [Math.cos(a) * r, y, Math.sin(a) * r * 0.88], 0.038 + (i % 3) * 0.011, fur);
     }
   }
-
-  // ---- arms (left arm up in the selfie pose, phone in hand) ----
-  const sleeveMat = (o.top.style === 'strap' || dress) ? skin : topMat;
-  // right arm relaxed
-  limb(g, [-0.2, 1.4, 0], [-0.26, 1.12, 0.03], 0.048, sleeveMat);
-  limb(g, [-0.26, 1.12, 0.03], [-0.235, 0.88, 0.075], 0.042, skin);
-  ball(g, [-0.235, 0.86, 0.08], 0.05, skin);
-  // left arm raised with phone
-  limb(g, [0.2, 1.4, 0], [0.31, 1.22, 0.1], 0.048, sleeveMat);
-  limb(g, [0.31, 1.22, 0.1], [0.23, 1.5, 0.21], 0.042, skin);
-  ball(g, [0.225, 1.52, 0.215], 0.05, skin);
-  const phone = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.17, 0.015),
-    mat(0xf27ab8, { roughness: 0.35, metalness: 0.2 }));
-  phone.position.set(0.22, 1.6, 0.22);
-  phone.rotation.set(-0.25, 0.35, 0.12);
-  g.add(phone);
-  if (o.top.style === 'strap') { // shoulder straps
+  if (o.top.style === 'strap') {
     for (const side of [-1, 1]) {
-      const strap = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.12, 0.02), dress ? botMat : topMat);
-      strap.position.set(side * 0.1, 1.5, 0.06);
-      strap.rotation.x = -0.35;
-      g.add(strap);
+      const strap = new THREE.Mesh(new THREE.CapsuleGeometry(0.011, 0.1, 4, 8), dress ? botM() : topM());
+      strap.position.set(side * 0.075, M.chestY + 0.105, 0.045);
+      strap.rotation.x = -0.42;
+      strap.rotation.z = side * 0.12;
+      torsoGroup.add(strap);
     }
   }
 
-  // ---- shoes ----
-  for (const side of [-1, 1]) {
-    const x = side * 0.099;
-    if (o.shoes.style === 'heel') {
-      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.2), mat(o.shoes.main, { roughness: 0.3 }));
-      foot.position.set(x, 0.06, 0.05);
-      foot.rotation.x = -0.18;
-      g.add(foot);
-      const heel = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.09, 8),
-        mat(o.shoes.accent, { metalness: 0.6, roughness: 0.3 }));
-      heel.position.set(x, 0.045, -0.035);
-      g.add(heel);
-    } else {
-      const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.105, 0.085, 0.24), mat(o.shoes.main, { roughness: 0.45 }));
-      shoe.position.set(x, 0.055, 0.045);
-      g.add(shoe);
-      ball(g, [x, 0.06, 0.16], 0.05, mat(o.shoes.main, { roughness: 0.45 }), [1, 0.85, 1]);
-      const swoosh = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.028, 0.14), mat(o.shoes.accent, { roughness: 0.5 }));
-      swoosh.position.set(x, 0.075, 0.02);
-      g.add(swoosh);
-    }
-  }
+  // --- Arms: slim, tapered, elbows softly bent -----------------------------
+  const bare = o.top.style === 'strap' || dress;
+  const sleeveM = bare ? skin : topM;
+  const AL = M.armLen;
+  const shY = M.shoulderY - 0.018;
+  // rounded deltoids
+  ball(torsoGroup, [-M.shoulderX, shY, 0], 0.047, sleeveM());
+  ball(torsoGroup, [M.shoulderX, shY, 0], 0.047, sleeveM());
+  // right arm: relaxed at her side, gentle elbow bend, hand near thigh
+  const rSh = [-M.shoulderX + wShift, shY, 0];
+  const rEl = [-M.shoulderX - 0.045, shY - 0.26 * AL, 0.015];
+  const rWr = [-M.shoulderX - 0.02, shY - 0.5 * AL, 0.075];
+  limbT(g, rSh, rEl, 0.038, 0.03, sleeveM());
+  limbT(g, rEl, rWr, 0.028, 0.02, skin());
+  hand(g, rWr, -1, skin(), true);
+  // left arm: raised selfie pose
+  const lSh = [M.shoulderX + wShift, shY, 0];
+  const lEl = [M.shoulderX + 0.06, shY - 0.21 * AL, 0.10];
+  const lWr = [M.shoulderX - 0.035, shY + 0.055 * AL, 0.225];
+  limbT(g, lSh, lEl, 0.038, 0.03, sleeveM());
+  limbT(g, lEl, lWr, 0.028, 0.02, skin());
+  hand(g, lWr, 1, skin(), false);
+  const phone = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.014),
+    mat(0xf27ab8, { roughness: 0.35, metalness: 0.2 }));
+  phone.position.set(lWr[0] - 0.005, lWr[1] + 0.065, lWr[2] + 0.012);
+  phone.rotation.set(-0.25, 0.32, 0.1);
+  g.add(phone);
 
-  // ---- head & face ----
-  ball(g, [0, 1.63, 0], 0.148, skin, [1, 1.06, 1]);
-  limb(g, [0, 1.46, 0], [0, 1.54, 0], 0.045, skin);                 // neck
-  for (const side of [-1, 1]) {
-    ball(g, [side * 0.052, 1.655, 0.128], 0.026, mat(0xffffff, { roughness: 0.25 }), [1, 1.15, 0.6]); // eye
-    ball(g, [side * 0.052, 1.655, 0.147], 0.0135, mat(0x2a1a14, { roughness: 0.2 }));                 // iris
-    const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.006, 0.045, 3, 6), hair);
-    brow.position.set(side * 0.055, 1.702, 0.135);
-    brow.rotation.z = Math.PI / 2 + side * -0.18;
-    g.add(brow);
-    // hoop earrings
-    const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.005, 8, 20),
-      mat(0xd4af37, { metalness: 0.85, roughness: 0.25 }));
-    hoop.position.set(side * 0.148, 1.585, 0.005);
-    hoop.rotation.y = Math.PI / 2;
-    g.add(hoop);
-  }
-  ball(g, [0, 1.615, 0.148], 0.016, mat(look.skin, { roughness: 0.45 }), [1, 0.8, 0.7]);   // nose
-  ball(g, [0, 1.567, 0.135], 0.028, mat(0xb95a6b, { roughness: 0.4 }), [1.25, 0.6, 0.6]);  // lips
-  // necklace
-  const chain = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.006, 8, 22),
-    mat(0xd4af37, { metalness: 0.85, roughness: 0.25 }));
-  chain.position.set(0, 1.47, 0.03);
-  chain.rotation.x = Math.PI / 2 - 0.5;
+  // --- Neck (long, slender) + jewelry ---------------------------------------
+  limbT(g, [wShift, M.shoulderY - 0.03, 0.004], [wShift * 0.5, M.shoulderY + 0.118, 0.006], 0.034, 0.028, skin());
+  const chain = new THREE.Mesh(new THREE.TorusGeometry(0.062, 0.005, 8, 22), gold());
+  chain.position.set(wShift, M.shoulderY + 0.015, 0.04);
+  chain.rotation.x = Math.PI / 2 - 0.52;
   g.add(chain);
 
-  // ---- hair ----
-  buildHair(g, look.hairStyle, hair);
+  // --- Head group (face + hair attach in local space; headScale-friendly) --
+  const head = new THREE.Group();
+  head.position.set(wShift * 0.4, M.headC, 0.004);
+  head.rotation.z = 0.028;                     // soft tilt
+  head.rotation.y = -0.06;                     // slight glance
+  g.add(head);
+  buildFace(head, M, look, skin, hairM, gold);
+  buildHair(head, look.hairStyle, hairM, M);
 }
 
-function buildHair(g, style, hair) {
-  // scalp cap
-  ball(g, [0, 1.665, -0.022], 0.152, hair, [1.04, 1.02, 1.02]);
-  ball(g, [0, 1.7, 0.075], 0.09, hair, [1.35, 0.6, 0.9]);   // front swoop
+// --- Feet & shoes ------------------------------------------------------------
+function buildFoot(g, ankle, side, shoes, skin) {
+  const f = new THREE.Group();
+  f.position.set(ankle[0], 0, ankle[2]);
+  f.rotation.y = side < 0 ? -0.1 : 0.2;        // natural turnout
+  f.scale.setScalar(1.22);                     // shoes read at fashion scale
+  g.add(f);
+
+  const main = mat(shoes.main, { roughness: shoes.style === 'heel' ? 0.3 : 0.45 });
+  const accent = mat(shoes.accent, { metalness: shoes.style === 'heel' ? 0.6 : 0.1, roughness: 0.35 });
+
+  if (shoes.style === 'heel') {
+    // arched foot: ankle → instep → toe, tilted on a stiletto pin
+    limbT(f, [0, 0.115, -0.01], [0, 0.07, 0.055], 0.024, 0.02, main);
+    limbT(f, [0, 0.07, 0.055], [0, 0.028, 0.125], 0.02, 0.017, main);
+    ball(f, [0, 0.024, 0.145], 0.022, main, [1, 0.65, 1.5]);        // toe box
+    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.009, 0.105, 8), accent);
+    pin.position.set(0, 0.052, -0.038);
+    f.add(pin);
+    hemRing(f, 0.13, 0.026, 0.006, main, 1);                        // ankle strap
+  } else {
+    // sneaker: rounded sole slab + soft upper + toe cap + collar
+    const sole = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.13, 6, 12), accent);
+    sole.rotation.x = Math.PI / 2;
+    sole.position.set(0, 0.028, 0.05);
+    sole.scale.y = 0.42;
+    f.add(sole);
+    limbT(f, [0, 0.075, -0.02], [0, 0.062, 0.11], 0.043, 0.035, main);
+    ball(f, [0, 0.058, 0.125], 0.034, main, [1, 0.8, 1.2]);         // toe cap
+    hemRing(f, 0.105, 0.03, 0.011, main, 1);                        // padded collar
+  }
+}
+
+// --- Face ---------------------------------------------------------------------
+// Local space: head center = origin, radius M.headR (default 0.115).
+function buildFace(h, M, look, skin, hairM, gold) {
+  const r = M.headR;
+  ball(h, [0, 0, 0], r, skin(), [0.96, 1.1, 0.99]);                      // cranium
+  ball(h, [0, -r * 0.48, r * 0.16], r * 0.66, skin(), [0.84, 0.82, 0.88]); // tapered jaw/chin
+
+  for (const side of [-1, 1]) {
+    ball(h, [side * 0.045, 0.012, 0.089], 0.021, mat(0xffffff, { roughness: 0.25 }), [1, 1.18, 0.55]); // eye
+    ball(h, [side * 0.045, 0.012, 0.103], 0.0115, mat(0x2a1a14, { roughness: 0.2 }));                  // iris
+    const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.005, 0.04, 3, 6), hairM());
+    brow.position.set(side * 0.047, 0.052, 0.094);
+    brow.rotation.z = Math.PI / 2 + side * -0.22;
+    h.add(brow);
+    ball(h, [side * 0.098, -0.012, 0.004], 0.017, skin(), [0.45, 0.95, 0.72]);  // ear
+    const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.034, 0.0045, 8, 20), gold());
+    hoop.position.set(side * 0.102, -0.052, 0.004);
+    hoop.rotation.y = Math.PI / 2;
+    h.add(hoop);
+  }
+  ball(h, [0, -0.008, 0.108], 0.0125, skin(), [1, 0.82, 0.7]);            // nose
+  ball(h, [0, -0.052, 0.096], 0.023, mat(0xb95a6b, { roughness: 0.4 }), [1.32, 0.55, 0.6]); // lips
+}
+
+// --- Hair -----------------------------------------------------------------------
+// Local space: head center = origin. Swayers still work (local X sway).
+function buildHair(h, style, hairM, M) {
+  const r = M.headR;
+  const hair = hairM();
+  ball(h, [0, 0.012, -0.014], r * 1.05, hair, [1.02, 1.0, 0.99]);          // scalp
+  ball(h, [0, 0.052, 0.055], r * 0.64, hair, [1.32, 0.55, 0.85]);          // front swoop
 
   const chainDown = (startX, curlAmp) => {
-    let y = 1.78, z = -0.12, r = 0.075;
+    let y = 0.12, z = -0.085, rr = 0.058;
     for (let i = 0; i < 12; i++) {
       const x = startX + Math.sin(i * 1.25) * curlAmp;
-      const m = ball(g, [x, y, z], r, hair);
-      swayers.push({ m, phase: i * 0.45, amp: 0.006 + i * 0.0035, baseX: x });
-      y -= 0.078 + r * 0.16;
-      z -= i < 4 ? 0.02 : 0.004;
-      r *= 0.94;
+      const m = ball(h, [x, y, z], rr, hair);
+      swayers.push({ m, phase: i * 0.45, amp: 0.005 + i * 0.003, baseX: x });
+      y -= 0.062 + rr * 0.15;
+      z -= i < 4 ? 0.016 : 0.003;
+      rr *= 0.94;
     }
   };
 
   switch (style) {
     case 'ponytail':
-      ball(g, [0, 1.83, -0.03], 0.095, hair);                         // topknot
-      ball(g, [0, 1.8, -0.03], 0.055, mat(0xd4af37, { metalness: 0.8, roughness: 0.3 }), [1, 0.4, 1]); // gold tie
-      chainDown(0, 0.035);
+      ball(h, [0, 0.148, -0.02], 0.072, hair);                             // topknot
+      ball(h, [0, 0.125, -0.02], 0.043, mat(0xd4af37, { metalness: 0.8, roughness: 0.3 }), [1, 0.38, 1]); // tie
+      chainDown(0, 0.028);
       break;
     case 'curls': {
-      // Big rounded curls kept behind the hairline so the face stays clear.
       for (let i = 0; i < 16; i++) {
         const a = (i / 16) * Math.PI * 2;
-        const rr = 0.11 + (i % 3) * 0.022;
-        const z = -0.07 + Math.sin(a) * 0.075;               // biased backward
-        const m = ball(g, [Math.cos(a) * 0.115, 1.71 + Math.sin(i * 2.3) * 0.05, z], rr * 0.62, hair);
-        swayers.push({ m, phase: i, amp: 0.004, baseX: m.position.x });
+        const rr = 0.095 + (i % 3) * 0.02;
+        const z = -0.055 + Math.sin(a) * 0.068;
+        const m = ball(h, [Math.cos(a) * 0.102, 0.066 + Math.sin(i * 2.3) * 0.045, z], rr * 0.62, hair);
+        swayers.push({ m, phase: i, amp: 0.0035, baseX: m.position.x });
       }
-      ball(g, [0, 1.62, -0.12], 0.12, hair, [1.15, 1.2, 0.8]); // nape volume
+      ball(h, [0, -0.05, -0.09], 0.098, hair, [1.15, 1.2, 0.8]);           // nape volume
       break;
     }
     case 'braids':
-      chainDown(-0.1, 0.012);
-      chainDown(0.1, 0.012);
-      for (const side of [-1, 1]) { // front braid over shoulder
-        let y = 1.62, r = 0.045;
+      chainDown(-0.075, 0.01);
+      chainDown(0.075, 0.01);
+      for (const side of [-1, 1]) { // front braid over the shoulder
+        let y = -0.03, rr = 0.036;
         for (let i = 0; i < 8; i++) {
-          const m = ball(g, [side * 0.13, y, 0.06 + i * 0.005], r, hair);
-          swayers.push({ m, phase: i * 0.5 + side, amp: 0.005, baseX: m.position.x });
-          y -= 0.075;
-          r *= 0.96;
+          const m = ball(h, [side * 0.1, y, 0.05 + i * 0.004], rr, hair);
+          swayers.push({ m, phase: i * 0.5 + side, amp: 0.0045, baseX: m.position.x });
+          y -= 0.06;
+          rr *= 0.96;
         }
       }
       break;
     case 'bob':
       for (const side of [-1, 1]) {
-        ball(g, [side * 0.115, 1.6, -0.02], 0.095, hair, [0.8, 1.35, 1]);
-        ball(g, [side * 0.1, 1.48, 0.01], 0.07, hair, [0.85, 1.1, 1]);
+        ball(h, [side * 0.09, -0.03, -0.012], 0.075, hair, [0.78, 1.35, 1]);
+        ball(h, [side * 0.078, -0.12, 0.01], 0.055, hair, [0.85, 1.1, 1]);
       }
-      ball(g, [0, 1.62, -0.09], 0.13, hair, [1.05, 1.15, 0.9]);
+      ball(h, [0, -0.015, -0.07], 0.1, hair, [1.05, 1.15, 0.9]);
       break;
     case 'buns':
       for (const side of [-1, 1]) {
-        ball(g, [side * 0.115, 1.82, -0.02], 0.07, hair);
-        ball(g, [side * 0.115, 1.82, -0.02], 0.045, mat(0xf27ab8, { roughness: 0.6 }), [1, 0.35, 1]); // pink tie
+        ball(h, [side * 0.09, 0.145, -0.012], 0.054, hair);
+        ball(h, [side * 0.09, 0.145, -0.012], 0.035, mat(0xf27ab8, { roughness: 0.6 }), [1, 0.35, 1]); // tie
       }
       break;
     case 'short':
-      ball(g, [0, 1.7, -0.03], 0.145, hair, [1.05, 0.9, 1.02]);
+      ball(h, [0, 0.05, -0.02], r * 1.12, hair, [1.02, 0.88, 1.0]);
       break;
   }
 }
