@@ -4,6 +4,21 @@
 Studio design (the "SKIN"), with real cleared photos in every department and all commerce math
 unchanged.** This note confirms the three things the brief asked for, plus one flag.
 
+## Owner revisions since initial delivery
+- **Team bundles → round pricing** (server + frontend in lockstep): DTF base $270 + $15/extra shirt
+  (16 roster = $300); 3D-front base $420 + $30/extra; 3D-full base $630 + $45/extra. Sizes and
+  personalization included, no per-size surcharge. Bases and the 14-shirt minimum unchanged.
+- **Printed paper prices halved**: invitations 12 = **$21** / 24 = **$39**; custom cards 12 = $18;
+  toppers & wrappers 12 = $10; treat bags 12 = $16; place cards 12 = $12; favor tags & thank-you 12 =
+  $15. Digital files kept as-is ($15 invite / $10 others). `pricing.ts`, the frontend `paperProducts`,
+  and the collection-page displays all match.
+- **Portfolio "Request something similar"** opens the inquiry seeded with that piece as the
+  inspiration (image pinned on top), pre-selects the project, and skips the Project chapter to Scope.
+- **Deeper custom forms**: the shared Customize step (all custom products) now shows the running total
+  and adds Style & vibe, Wording/text, and Names & dates to the design brief. No pricing impact.
+- **More SKIN color**: sage/blush/teal pulled into the canvas washes and section bands (page headers,
+  Suites, collections), keeping Sports' chrome-and-blue.
+
 ## ✅ Commerce core preserved (one owner-directed price change)
 `netlify/functions/api.ts` is **byte-identical** to the export manifest (`f6d1c6cb…071fac`), and the
 **restyle itself changed no pricing or checkout logic**. The only pricing edit is a deliberate,
@@ -24,7 +39,7 @@ Run against the real `backend/pricing.ts` (type-stripped, executed directly):
 | Check | Result |
 |---|---|
 | Supporter 6 adult (auto 10%) | **$189** ✓ |
-| Paper invitations qty 24 | **$78** ✓ |
+| Paper invitations qty 24 | **$39** (printed prices halved per owner; was $78) ✓ |
 | 3D single adult 2XL + back | **$75** ✓ |
 | 3D approved-team adult front+back | **$55** ✓ |
 | New personalized 3D adult front+back | **$65** ✓ |
