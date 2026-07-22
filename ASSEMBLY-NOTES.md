@@ -4,20 +4,19 @@
 Studio design (the "SKIN"), with real cleared photos in every department and all commerce math
 unchanged.** This note confirms the three things the brief asked for, plus one flag.
 
-## ✅ Engine untouched (source of truth preserved)
-The audited commerce core was **not modified** — verified byte-for-byte against the export manifest:
+## ✅ Commerce core preserved (one owner-directed price change)
+`netlify/functions/api.ts` is **byte-identical** to the export manifest (`f6d1c6cb…071fac`), and the
+**restyle itself changed no pricing or checkout logic**. The only pricing edit is a deliberate,
+owner-approved change to `backend/pricing.ts` (with the matching frontend `teamEstimate` kept in
+lockstep): **DTF team bundles are now round** — base + $15 per extra shirt, sizes and personalization
+included, no per-size surcharge. `backend/pricing.ts` therefore intentionally differs from its
+original manifest hash `2781e2b5…d926f` (that hash documents the as-delivered snapshot).
 
-| File | SHA256 (matches `EXPORT-MANIFEST.txt`) |
-|---|---|
-| `backend/pricing.ts` | `2781e2b5…d926f` ✓ |
-| `netlify/functions/api.ts` | `f6d1c6cb…071fac` ✓ |
-
-Stripe checkout, tax codes (physical `txcd_99999999` vs digital `txcd_10506002`/`10505001`),
-order metadata (full config chunked into Stripe metadata), the design-intake gate (idea required +
-upload-permission checkbox), quantity rules (paper 12/24/36/48/60; bundle min 14), and the
-`3d-approved-team-shirt` product are all intact. Frontend pricing/estimate logic and the
-configuration objects sent to checkout were **not** altered — only look, layout, copy, motion, and
-brand.
+Everything else is unchanged: Stripe checkout, tax codes (physical `txcd_99999999` vs digital
+`txcd_10506002`/`10505001`), order metadata (full config chunked into Stripe metadata), the
+design-intake gate (idea required + upload-permission checkbox), quantity rules (paper
+12/24/36/48/60; bundle min 14), the `3d-approved-team-shirt` product, and the 3D bundles' +$10
+extended-size charge.
 
 ## ✅ Step 6 totals verified (math did not change)
 Run against the real `backend/pricing.ts` (type-stripped, executed directly):
@@ -30,17 +29,17 @@ Run against the real `backend/pricing.ts` (type-stripped, executed directly):
 | 3D approved-team adult front+back | **$55** ✓ |
 | New personalized 3D adult front+back | **$65** ✓ |
 | Digital custom card (no shipping step) | **$10** ✓ |
-| DTF bundle 16 roster, one 2XL, one name+number | **$302** — see flag ⚠️ |
+| DTF bundle 16 roster, one 2XL, one name+number | **$300** (owner: round DTF bundles) ✓ |
+| 3D front bundle 14 roster, one 2XL (scope guard) | **$430** — unchanged ✓ |
 
-### ⚠️ One flag: the DTF-bundle case computes **$302**, not $312
-This is **pre-existing in the engine, not caused by the restyle.** In v3.6.1, roster
-name/name+number on a **team bundle** is labeled *"included"* and priced at **$0** in both the
-frontend (`teamEstimate`) and the server (`pricing.ts`). So the case totals `270 + 2×$15 (extra
-shirts) + $2 (one 2XL) = $302`. The brief's $312 assumes name+number adds $10 on a bundle, which
-the engine does not do. Because the brief forbids touching the engine's math — and doing so could
-ship a wrong price to real customers — this was **left exactly as the engine computes it** and is
-flagged for your decision. If bundle name+number *should* add $10, that's a deliberate `pricing.ts`
-change to make and re-audit, not a restyle fix.
+### DTF bundle → even $300 (owner decision)
+The flagged case (originally $302 in the as-delivered engine; the brief expected $312) was resolved
+by the owner as **an even $300**. Reaching exactly $300 forces one mechanism: **DTF bundles no longer
+add a per-size surcharge** — they price at `base + $15 per extra shirt`, with sizes and
+personalization included (`270 + 2×$15 = $300` for a 16-shirt roster). This was applied to **DTF
+bundles only**; the 3D bundles keep their +$10 extended-size charge (verified: 14-roster 3D-front
+with one 2XL is still $430). Server and frontend were changed identically so the displayed and
+charged totals match.
 
 ## ✅ Only CLEAR / OK-OWN photos published
 27 real client mockups were sourced from the design handoff and placed in the hero collage, the home
