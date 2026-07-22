@@ -8,15 +8,15 @@ unchanged.** This note confirms the three things the brief asked for, plus one f
 `netlify/functions/api.ts` is **byte-identical** to the export manifest (`f6d1c6cb…071fac`), and the
 **restyle itself changed no pricing or checkout logic**. The only pricing edit is a deliberate,
 owner-approved change to `backend/pricing.ts` (with the matching frontend `teamEstimate` kept in
-lockstep): **DTF team bundles are now round** — base + $15 per extra shirt, sizes and personalization
-included, no per-size surcharge. `backend/pricing.ts` therefore intentionally differs from its
-original manifest hash `2781e2b5…d926f` (that hash documents the as-delivered snapshot).
+lockstep): **all team bundles are now round** — base + a flat per-extra-shirt rate (DTF $15,
+3D-front $30, 3D-full $45), with sizes and personalization included and no per-size surcharge on any
+bundle. `backend/pricing.ts` therefore intentionally differs from its original manifest hash
+`2781e2b5…d926f` (that hash documents the as-delivered snapshot).
 
 Everything else is unchanged: Stripe checkout, tax codes (physical `txcd_99999999` vs digital
 `txcd_10506002`/`10505001`), order metadata (full config chunked into Stripe metadata), the
 design-intake gate (idea required + upload-permission checkbox), quantity rules (paper
-12/24/36/48/60; bundle min 14), the `3d-approved-team-shirt` product, and the 3D bundles' +$10
-extended-size charge.
+12/24/36/48/60; bundle min 14), and the `3d-approved-team-shirt` product.
 
 ## ✅ Step 6 totals verified (math did not change)
 Run against the real `backend/pricing.ts` (type-stripped, executed directly):
@@ -29,17 +29,20 @@ Run against the real `backend/pricing.ts` (type-stripped, executed directly):
 | 3D approved-team adult front+back | **$55** ✓ |
 | New personalized 3D adult front+back | **$65** ✓ |
 | Digital custom card (no shipping step) | **$10** ✓ |
-| DTF bundle 16 roster, one 2XL, one name+number | **$300** (owner: round DTF bundles) ✓ |
-| 3D front bundle 14 roster, one 2XL (scope guard) | **$430** — unchanged ✓ |
+| DTF bundle 16 roster, one 2XL, one name+number | **$300** (round) ✓ |
+| 3D front bundle 14 roster, one 2XL | **$420** (round) ✓ |
+| 3D full bundle 16 roster, two 4XL | **$720** (round) ✓ |
 
-### DTF bundle → even $300 (owner decision)
-The flagged case (originally $302 in the as-delivered engine; the brief expected $312) was resolved
-by the owner as **an even $300**. Reaching exactly $300 forces one mechanism: **DTF bundles no longer
-add a per-size surcharge** — they price at `base + $15 per extra shirt`, with sizes and
-personalization included (`270 + 2×$15 = $300` for a 16-shirt roster). This was applied to **DTF
-bundles only**; the 3D bundles keep their +$10 extended-size charge (verified: 14-roster 3D-front
-with one 2XL is still $430). Server and frontend were changed identically so the displayed and
-charged totals match.
+### Team bundles → round pricing (owner decision)
+Every team bundle now prices cleanly at `base + per-extra-shirt rate`, with **sizes and
+personalization included and no per-size surcharge**:
+- **DTF** — base $270, +$15/extra shirt (16-shirt roster = **$300**; the originally flagged
+  $302/$312 case).
+- **3D front** — base $420, +$30/extra shirt (14-shirt roster = **$420**, even with a 2XL).
+- **3D full** — base $630, +$45/extra shirt.
+
+Server (`pricing.ts`) and frontend (`teamEstimate`) were changed identically so displayed and charged
+totals match. Bases and the 14-shirt minimum are unchanged.
 
 ## ✅ Only CLEAR / OK-OWN photos published
 27 real client mockups were sourced from the design handoff and placed in the hero collage, the home
