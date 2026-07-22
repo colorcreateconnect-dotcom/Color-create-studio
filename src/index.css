@@ -1,0 +1,125 @@
+/* Color Create Studio — design-system fonts (must precede @tailwind per CSS @import rules) */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Montserrat:wght@400;500;600;700;800&family=Dancing+Script:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Foundations: warm cream canvas, cocoa text, editorial type ---- */
+:root{font-family:'Inter','Helvetica Neue',system-ui,sans-serif;color:#3B2A24;background:#F7EFE3;font-synthesis:none}
+html{scroll-behavior:smooth}
+body{margin:0;min-width:320px;min-height:100vh;background:
+  radial-gradient(circle at 88% -4%,rgba(234,59,132,.07),transparent 34%),
+  radial-gradient(circle at 4% 3%,rgba(244,184,196,.12),transparent 30%),
+  #F7EFE3}
+button,input,select,textarea{font:inherit}
+
+/* Display serif (used app-wide via .serif) + signature script + CCC gradient clip */
+.serif{font-family:'DM Serif Display','Playfair Display',Georgia,serif}
+.script{font-family:'Dancing Script',cursive;font-weight:600;line-height:1}
+.tagline-gradient{background:linear-gradient(100deg,#EA3B84 0%,#B83FC0 48%,#9B4DD4 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.paper-grid{background-image:linear-gradient(rgba(59,42,36,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(59,42,36,.05) 1px,transparent 1px);background-size:24px 24px}
+.scrollbar-none::-webkit-scrollbar{display:none}
+
+/* Form controls — cream paper fields with a gold focus jewel */
+.input{width:100%;border:1px solid #D5C5AF;border-radius:1rem;padding:.85rem 1rem;background:#FFFCF7;outline:none;transition:.2s}
+.input:focus{border-color:#C8A24A;box-shadow:0 0 0 3px rgba(200,162,74,.20)}
+.qty{display:grid;height:2.5rem;width:2.5rem;place-items:center;border:1px solid #D5C5AF;border-radius:9999px;background:#FFFCF7}
+.table-input{width:100%;min-width:7rem;border:1px solid #D5C5AF;border-radius:.75rem;padding:.6rem .7rem;background:#fff;outline:none}
+.table-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+
+/* Primary CTA — CCC vibrant pink→purple gradient with a glossy chrome sheen + pink glow */
+.cta-metal{background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 44%),linear-gradient(100deg,#EA3B84 0%,#B83FC0 48%,#9B4DD4 100%);color:#fff;box-shadow:0 8px 22px rgba(234,59,132,.30);transition:transform .2s,box-shadow .2s,filter .2s}
+.cta-metal:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(155,77,212,.36);filter:brightness(1.02) saturate(1.03)}
+/* Sports CTA — stadium chrome-and-blue (shared treatment, scoped to Sports) */
+.cta-sport{background:linear-gradient(135deg,#dbeafe 0%,#60a5fa 48%,#e2e8f0 100%);box-shadow:0 0 24px rgba(96,165,250,.35);transition:transform .2s,box-shadow .2s}
+.cta-sport:hover{transform:translateY(-2px);box-shadow:0 0 34px rgba(96,165,250,.55)}
+.chrome-text{background:linear-gradient(180deg,#fff 0%,#bfdbfe 38%,#64748b 58%,#f8fafc 86%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.hero-paper{animation:paperDrift 18s ease-in-out infinite alternate}
+.halftone-bg{position:relative;isolation:isolate}
+.halftone-bg:before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(circle,rgba(147,197,253,.14) 1px,transparent 1.4px),linear-gradient(112deg,transparent 35%,rgba(255,255,255,.06) 48%,transparent 60%);background-size:16px 16px,100% 100%;mask-image:linear-gradient(to bottom,black,transparent 75%)}
+.halftone-bg>*{position:relative;z-index:1}
+.suite-confetti{background-image:radial-gradient(circle at 94% 8%,rgba(200,162,74,.24) 0 3px,transparent 4px),radial-gradient(circle at 88% 18%,rgba(244,184,196,.28) 0 2px,transparent 3px),radial-gradient(circle at 98% 26%,rgba(155,77,212,.16) 0 2px,transparent 3px)}
+@keyframes paperDrift{from{background-position:0 0}to{background-position:26px 16px}}
+.ticker-track{animation:tickerMarquee 24s linear infinite}
+@keyframes tickerMarquee{to{transform:translateX(-50%)}}
+
+/* ---- Cinematic story motion ---- */
+.story-panel{opacity:0;transform:translateY(30px) scale(.985);filter:saturate(.82);transition:opacity .75s ease var(--story-delay,0ms),transform .85s cubic-bezier(.2,.75,.2,1) var(--story-delay,0ms),filter .85s ease var(--story-delay,0ms)}
+.story-panel.story-visible{opacity:1;transform:none;filter:none}
+.intro-wordmark span{display:block;opacity:0;transform:translateX(-34px);animation:introBuild .7s cubic-bezier(.18,.8,.2,1) forwards}
+.intro-wordmark span:nth-child(2){animation-delay:.34s}
+.intro-wordmark span:nth-child(3){animation-delay:.68s}
+.story-intro .mt-7 span{opacity:0;animation:wordFlash .45s ease forwards}
+@keyframes introBuild{to{opacity:1;transform:none}}
+@keyframes wordFlash{to{opacity:1}}
+.story-intro:before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.09) 48%,transparent 58%);animation:introSweep 2s ease-in-out infinite}
+@keyframes introSweep{from{transform:translateX(-80%)}to{transform:translateX(80%)}}
+.chapter-wipe{background:linear-gradient(90deg,transparent,rgba(12,10,9,.88),transparent);animation:chapterCurtain 1.55s ease both}
+.chapter-card{animation:chapterCard 1.3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes chapterCurtain{0%{opacity:0;transform:translateX(-100%)}18%,78%{opacity:1;transform:none}100%{opacity:0;transform:translateX(100%)}}
+@keyframes chapterCard{0%{opacity:0;transform:scale(.86) rotate(-1deg)}24%,78%{opacity:1;transform:none}100%{opacity:0;transform:scale(1.04)}}
+.collection-world{position:relative}
+.collection-world:before{content:'CHOOSE YOUR CHAPTER';position:absolute;right:3vw;top:18px;font:400 clamp(2.2rem,7vw,7rem)/.85 'DM Serif Display',serif;letter-spacing:-.05em;color:rgba(59,42,36,.07);pointer-events:none}
+.collection-world button{isolation:isolate;border:2px solid rgba(255,255,255,.18);box-shadow:0 22px 50px rgba(45,30,13,.16)}
+.collection-world button:before{content:'';position:absolute;inset:0;z-index:-1;background-image:radial-gradient(circle at 18% 18%,rgba(255,255,255,.2) 0 2px,transparent 3px),linear-gradient(115deg,transparent 37%,rgba(255,255,255,.14) 50%,transparent 63%);background-size:23px 23px,100% 100%;mix-blend-mode:soft-light}
+.collection-world button .serif{text-transform:uppercase;letter-spacing:-.055em;text-shadow:0 3px 18px rgba(0,0,0,.25)}
+.shop-story main>div:first-child,.paper-story main>div:first-child,.suite-story main>div:first-child{position:relative;overflow:hidden}
+.shop-story main>div:first-child:after,.paper-story main>div:first-child:after,.suite-story main>div:first-child:after{content:'';position:absolute;inset:auto -5% -55% 38%;height:220px;border:24px solid rgba(200,162,74,.10);border-radius:50%;transform:rotate(-8deg)}
+.shop-story article>div:first-child{position:relative;overflow:hidden}
+.shop-story article>div:first-child:before{content:'';position:absolute;inset:0;background:linear-gradient(130deg,transparent 35%,rgba(255,255,255,.19) 48%,transparent 60%);transform:translateX(-55%);transition:transform .7s}
+.shop-story article:hover>div:first-child:before{transform:translateX(55%)}
+.paper-story{background-image:radial-gradient(circle at 8% 9%,rgba(200,162,74,.14) 0 4px,transparent 5px),radial-gradient(circle at 92% 16%,rgba(244,184,196,.16) 0 3px,transparent 4px)}
+.paper-story main>div:first-child:before{content:'✦  PAPER  ✦  PARTY  ✦  DETAILS  ✦';position:absolute;right:-1rem;bottom:1.2rem;transform:rotate(-4deg);font:800 12px/1 'Montserrat',sans-serif;letter-spacing:.18em;color:rgba(200,162,74,.42)}
+.paper-story button span.absolute{width:64px;height:64px;border-radius:0!important;display:grid;place-items:center;text-align:center;clip-path:polygon(50% 0%,61% 28%,85% 15%,72% 39%,100% 50%,72% 61%,85% 85%,61% 72%,50% 100%,39% 72%,15% 85%,28% 61%,0 50%,28% 39%,15% 15%,39% 28%);transform:rotate(8deg);line-height:1.05}
+.sports-story .halftone-bg:after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(circle at 92% 5%,rgba(37,99,235,.16) 0 4px,transparent 5px),linear-gradient(rgba(59,42,36,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(59,42,36,.045) 1px,transparent 1px);background-size:auto,28px 28px,28px 28px;mask-image:linear-gradient(to bottom,black,transparent 92%)}
+.sports-story .halftone-bg{box-shadow:0 24px 65px rgba(72,50,18,.16),inset 0 0 70px rgba(37,99,235,.055)}
+.sports-creator-world{background:radial-gradient(circle at 92% 2%,rgba(37,99,235,.13),transparent 28%),linear-gradient(145deg,#F7EFE3,#EFE4D3);color:#3B2A24}
+.sports-creator-world .chrome-text{background:none;color:#181514;-webkit-text-fill-color:#181514}
+.sports-creator-world .text-white{color:#181514!important}
+.sports-creator-world .text-slate-300{color:#57534e!important}
+.sports-creator-world .text-slate-400{color:#78716c!important}
+.sports-creator-world .text-blue-300{color:#1d4ed8!important}
+.sports-creator-world .text-blue-200,.sports-creator-world .text-blue-100{color:#1e3a8a!important}
+.sports-creator-world [class*="bg-white/5"]{background:rgba(255,255,255,.82)!important}
+.sports-creator-world [class*="bg-black/"],.sports-creator-world [class*="bg-slate-950/"],.sports-creator-world [class~="bg-slate-900"]{background:#FFFDF8!important}
+.sports-creator-world [class*="border-blue-300/"],.sports-creator-world [class*="border-white/"]{border-color:rgba(120,113,108,.3)!important}
+.sports-creator-world input,.sports-creator-world select,.sports-creator-world textarea{background:#fff!important;color:#181514!important;border-color:#D5C5AF!important}
+.sports-creator-world option{color:#181514}
+.sports-creator-world .cta-sport{background:linear-gradient(135deg,#171717 0%,#8b6a32 48%,#1c1917 100%);color:#fff!important;box-shadow:0 10px 24px rgba(72,50,18,.22)}
+.sports-creator-world .cta-sport:hover{box-shadow:0 14px 30px rgba(72,50,18,.3)}
+.sports-creator-world table{box-shadow:0 10px 28px rgba(72,50,18,.09)}
+.quote-world{position:relative;overflow:hidden}
+.quote-world:after{content:'STORY INTAKE';position:absolute;right:-2vw;bottom:-.15em;font:400 clamp(4rem,12vw,11rem)/.78 'DM Serif Display',serif;letter-spacing:-.07em;color:rgba(255,255,255,.05);pointer-events:none}
+.quote-chapter-head{position:relative;overflow:hidden}
+.quote-chapter-head:after{content:'';position:absolute;right:-50px;top:-70px;width:220px;height:220px;border:28px solid rgba(200,162,74,.12);border-radius:50%}
+.story-spine-line{overflow:hidden}
+.occasion-poster:before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 80% 15%,rgba(255,255,255,.2) 0 2px,transparent 3px),linear-gradient(120deg,transparent 35%,rgba(255,255,255,.12) 48%,transparent 62%);background-size:18px 18px,100% 100%;mix-blend-mode:soft-light}
+.occasion-poster>*{position:relative;z-index:1}
+.upload-world{background-image:linear-gradient(45deg,rgba(110,82,18,.04) 25%,transparent 25%),linear-gradient(-45deg,rgba(110,82,18,.04) 25%,transparent 25%);background-size:22px 22px}
+.quote-story .input{background:#fffcf7}
+.quote-story .input:focus{background:#fff}
+.quote-surface{position:relative;background-image:radial-gradient(circle at 92% 4%,rgba(200,162,74,.20) 0 3px,transparent 4px),linear-gradient(rgba(59,42,36,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(59,42,36,.045) 1px,transparent 1px);background-size:auto,28px 28px,28px 28px}
+.quote-surface:before,.story-success:before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,transparent 38%,rgba(255,255,255,.55) 49%,transparent 60%);opacity:.38}
+.quote-surface>*{position:relative;z-index:1}
+.story-success{position:relative;overflow:hidden;background-image:radial-gradient(circle at 10% 12%,rgba(200,162,74,.20) 0 4px,transparent 5px),linear-gradient(rgba(59,42,36,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,42,36,.04) 1px,transparent 1px);background-size:auto,28px 28px,28px 28px}
+.story-success>*{position:relative;z-index:1}
+.story-dot-active{box-shadow:0 0 0 7px rgba(234,59,132,.14),0 0 25px rgba(200,162,74,.45)}
+.quote-chapter{animation:quotePage .48s cubic-bezier(.2,.75,.2,1)}
+.quote-chapter-head>*{animation:quoteHeading .58s cubic-bezier(.2,.75,.2,1) both}
+.quote-chapter-head h2{animation-delay:.06s}
+.quote-chapter-head p{animation-delay:.12s}
+@keyframes quotePage{from{opacity:0;transform:translateX(22px) rotateY(-2deg)}to{opacity:1;transform:none}}
+@keyframes quoteHeading{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---- Reduced-motion: degrade all motion gracefully ---- */
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .hero-paper,.ticker-track,.story-intro:before,.intro-wordmark span,.story-intro .mt-7 span,.chapter-wipe,.chapter-card,.quote-chapter,.quote-chapter-head>*{animation:none!important}
+  .story-panel{opacity:1;transform:none;filter:none;transition:none}
+  .cta-metal,.cta-sport{transition:none}
+  .cta-metal:hover,.cta-sport:hover,.collection-world button,.occasion-poster{transform:none!important}
+  .story-intro{display:none}
+}

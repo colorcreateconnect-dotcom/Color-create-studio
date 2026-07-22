@@ -1,0 +1,8 @@
+Current AppDeploy live site:
+https://9f2d6fbb6002be49be.v2.appdeploy.ai/
+
+Source snapshot represented by this package:
+AppDeploy v16 / snapshot 1784682471022
+
+Netlify deployment instructions:
+NETLIFY-SETUP.md

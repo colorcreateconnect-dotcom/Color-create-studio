@@ -1,0 +1,33 @@
+# Tests
+## Test 1 - Sports carries the Creator Studio visual system [sanity]
+Viewport: desktop
+Description: Verifies the homepage Sports door opens the full Sports page directly while preserving the warm layered Creator Studio design language.
+Steps:
+1. Open the app and locate the SHOW UP LOUD Sports collection door
+2. Tap the SHOW UP LOUD Sports collection door
+3. Confirm it opens Sports Social Studio immediately, without showing the intermediate Sports collection hub, and uses cream layered surfaces, white product cards, poster-serif headings, warm borders, and metallic studio buttons
+Expected: The main-page Sports door opens the Sports page in one tap, and all Sports products, packages, prices, and checkout actions remain available.
+## Test 2 - Approved team shirts use graphic-code checkout
+Viewport: mobile
+Description: Verifies approved DTF and sublimation shirts are paid checkout orders, require a team graphic code, and do not enter the quote or new-design flow.
+Steps:
+1. Open Sports on mobile
+2. Choose DTF and Use an approved team graphic, enter the team name, keep Front only selected, and confirm player name and number are optional
+3. Confirm the action says Add to Cart, open it, verify Team graphic code is required, then enter a code and add the shirt to the cart
+Expected: Approved shirts bypass the creative brief and quote, require the team graphic code before entering the cart, and only require player details when the matching back personalization is selected.
+## Test 3 - Collection suite entry keeps the correct collection selected
+Viewport: desktop
+Description: Verifies a customer entering the builder from a collection hub begins inside that collection and keeps the two-item minimum.
+Steps:
+1. Open SWEET BEGINNINGS from the homepage and tap Build this collection
+2. Confirm Sweet Beginnings is selected and the guide says one item shops individually while two item types create the $85 Starter Suite
+3. Add two different item types and confirm Starter Suite, 2 item types, and starting at $85
+Expected: The correct collection remains active, one item stays a direct order, and two distinct item types activate the Starter Suite.
+## Test 4 - Every collection has a preselected project inquiry
+Viewport: desktop
+Description: Verifies a collection-specific project button opens the quote journey with the category and service already selected.
+Steps:
+1. Open BRIDAL BLISS from the homepage
+2. Tap Start Bridal Bliss project
+3. Confirm the hero says Start a Bridal Bliss Project and the form begins with Bridal Bliss and Celebration Suite selected
+Expected: The customer enters a collection-specific quote page without having to choose the collection again.
