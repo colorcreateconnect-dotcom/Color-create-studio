@@ -10,7 +10,13 @@
 </section>
 
 {%- assign preselect_occasion = section.settings.occasion -%}
-{%- if preselect_occasion == blank and collection != blank -%}{%- assign preselect_occasion = collection.title -%}{%- endif -%}
+{%- if preselect_occasion == blank and collection != blank -%}
+  {%- case collection.handle -%}
+    {%- when 'birthday' -%}{%- assign preselect_occasion = 'Birthday' -%}
+    {%- when 'the-function' -%}{%- assign preselect_occasion = 'Group Gatherings' -%}
+    {%- else -%}{%- assign preselect_occasion = collection.title -%}
+  {%- endcase -%}
+{%- endif -%}
 <script>
 (function(){
   var occ = document.getElementById('ccOccasion'), svc = document.getElementById('ccService');
