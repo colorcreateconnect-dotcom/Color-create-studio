@@ -10,13 +10,13 @@
       {%- for block in section.blocks -%}
         {%- liquid
           case block.settings.style
-            when 'grad'   assign bg = 'linear-gradient(135deg,#181514,#3B2A24 45%,#574010)' assign fg = '#ffffff'
-            when 'sweet'  assign bg = 'linear-gradient(135deg,#fff8e9,#f4e7d2 45%,#d8b98d)' assign fg = '#3B2A24'
-            when 'bridal' assign bg = 'linear-gradient(135deg,#ffffff,#f6eee5 45%,#c9a66f)' assign fg = '#3B2A24'
-            when 'wish'   assign bg = 'linear-gradient(135deg,#3d271d,#8b5b38 45%,#e5b768)' assign fg = '#ffffff'
-            when 'func'   assign bg = 'linear-gradient(135deg,#eee5d7,#d9c5a8 45%,#8c6c47)' assign fg = '#181514'
-            when 'sport'  assign bg = 'linear-gradient(135deg,#fffaf0,#eee5d7 45%,#b9c9e8)' assign fg = '#181514'
-            else          assign bg = 'linear-gradient(135deg,#181514,#3B2A24 45%,#574010)' assign fg = '#ffffff'
+            when 'grad'   assign bg = 'linear-gradient(135deg,#2A6FDB,#7C4DD4 55%,#9B4DD4)' assign fg = '#ffffff'
+            when 'sweet'  assign bg = 'linear-gradient(135deg,#FFF3F0,#FAD9DF 45%,#8FD6D2)' assign fg = '#175752'
+            when 'bridal' assign bg = 'linear-gradient(135deg,#ffffff,#FAD9DF 48%,#F4B8C4)' assign fg = '#8C2F4D'
+            when 'wish'   assign bg = 'linear-gradient(135deg,#EA3B84,#B83FC0 48%,#9B4DD4)' assign fg = '#ffffff'
+            when 'func'   assign bg = 'linear-gradient(135deg,#E9EFE3,#C7D2BF 45%,#7E9270)' assign fg = '#2E3A26'
+            when 'sport'  assign bg = 'linear-gradient(135deg,#F4F8FF,#B9C9E8 55%,#2A6FDB)' assign fg = '#14306B'
+            else          assign bg = 'linear-gradient(135deg,#EA3B84,#B83FC0 48%,#9B4DD4)' assign fg = '#ffffff'
           endcase
         -%}
         <a href="{{ block.settings.link | default: '/collections/all' }}" class="door" style="background:{{ bg }};color:{{ fg }}" {{ block.shopify_attributes }}>
@@ -53,12 +53,12 @@
       { "type": "text", "id": "price", "label": "Price line", "default": "Single items + suites from $85" },
       { "type": "url", "id": "link", "label": "Link" },
       { "type": "select", "id": "style", "label": "Gradient", "default": "grad", "options": [
-        { "value": "grad", "label": "Graduation (dark → gold)" },
-        { "value": "sweet", "label": "Sweet Beginnings (cream → tan)" },
-        { "value": "bridal", "label": "Bridal (white → gold)" },
-        { "value": "wish", "label": "Birthday (brown → gold)" },
-        { "value": "func", "label": "The Function (tan → brown)" },
-        { "value": "sport", "label": "Sports (cream → blue)" }
+        { "value": "grad", "label": "Graduation (blue → purple)" },
+        { "value": "sweet", "label": "Sweet Beginnings (blush → teal)" },
+        { "value": "bridal", "label": "Bridal (white → blush pink)" },
+        { "value": "wish", "label": "Birthday (pink → purple)" },
+        { "value": "func", "label": "The Function (sage greens)" },
+        { "value": "sport", "label": "Sports (ice → vivid blue)" }
       ]}
     ]}
   ],

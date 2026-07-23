@@ -210,8 +210,8 @@ h1,h2,h3,h4{margin:0;line-height:1.05}
 .rounded{border-radius:var(--radius)}
 .hidden{display:none}
 
-/* ---- Orientation ticker (marquee) ---- */
-.ticker{overflow:hidden;background:var(--cocoa-deep);color:var(--gold-soft);border-bottom:1px solid var(--line-strong);padding:.5rem 0}
+/* ---- Orientation ticker (marquee) — CCC pink→purple gradient ---- */
+.ticker{overflow:hidden;background:linear-gradient(100deg,#EA3B84 0%,#B83FC0 48%,#9B4DD4 100%);color:#fff;padding:.5rem 0}
 .ticker .track{display:flex;width:max-content;gap:3rem;white-space:nowrap;animation:tickerMarquee 26s linear infinite;
   font-family:var(--font-label);font-size:.66rem;font-weight:800;letter-spacing:.22em;text-transform:uppercase}
 @keyframes tickerMarquee{to{transform:translateX(-50%)}}
@@ -251,14 +251,15 @@ h1,h2,h3,h4{margin:0;line-height:1.05}
 .door .price{font-weight:700;margin-top:0}
 .door .enter{margin-top:.9rem;display:inline-flex;align-items:center;gap:.4rem;font-family:var(--font-label);font-weight:800;font-size:.82rem}
 
-/* ---- Trust strip ---- */
-.trust{background:#25211f;color:#fff;border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+/* ---- Trust strip — cream with colorful numbers ---- */
+.trust{background:var(--cream-paper);color:var(--cocoa);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .trust .row{display:grid;grid-template-columns:1fr}
 @media(min-width:640px){.trust .row{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1024px){.trust .row{grid-template-columns:repeat(5,1fr)}}
-.trust .cell{padding:1.25rem;border-top:1px solid rgba(255,255,255,.1)}
-@media(min-width:1024px){.trust .cell{border-top:none;border-left:1px solid rgba(255,255,255,.1)}.trust .cell:first-child{border-left:none}}
-.trust .n{font-family:var(--font-label);font-weight:800;font-size:.72rem;letter-spacing:.18em;color:var(--gold-soft)}
+.trust .cell{padding:1.25rem;border-top:1px solid var(--line)}
+@media(min-width:1024px){.trust .cell{border-top:none;border-left:1px solid var(--line)}.trust .cell:first-child{border-left:none}}
+.trust .n{font-family:var(--font-label);font-weight:800;font-size:.72rem;letter-spacing:.18em;
+  background:linear-gradient(100deg,#EA3B84 0%,#B83FC0 48%,#9B4DD4 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .trust .l{margin-top:.5rem;font-weight:700}
 
 /* ---- Proof wall (grid) ---- */
@@ -280,11 +281,11 @@ h1,h2,h3,h4{margin:0;line-height:1.05}
 .step .n{font-family:var(--font-label);font-weight:800;font-size:.72rem;letter-spacing:.16em;color:var(--gold)}
 .step .l{margin-top:.75rem;font-weight:700}
 
-/* ---- Manifesto ---- */
-.manifesto{background:#24211f;color:#fff}
+/* ---- Manifesto — cream, no brown ---- */
+.manifesto{background:var(--cream-soft);color:var(--cocoa);border-top:1px solid var(--line)}
 .manifesto .grid2{display:grid;gap:2.5rem}
 @media(min-width:1024px){.manifesto .grid2{grid-template-columns:repeat(2,1fr)}}
-.manifesto p{color:#cdbfb2}
+.manifesto p{color:var(--cocoa-soft)}
 
 /* ---- Reduced motion ---- */
 @media(prefers-reduced-motion:reduce){
