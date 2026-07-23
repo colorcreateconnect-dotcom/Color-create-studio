@@ -30,6 +30,9 @@
             when 'sport'
               assign bg = 'linear-gradient(135deg,#F4F8FF,#B9C9E8 55%,#2A6FDB)'
               assign fg = '#14306B'
+            when 'biz'
+              assign bg = 'linear-gradient(135deg,#FFFBEF,#F3E0A9 45%,#D9A82E)'
+              assign fg = '#5A431A'
           endcase
         -%}
         <a href="{{ block.settings.link | default: '/collections/all' }}" class="door" style="background:{{ bg }};color:{{ fg }}" {{ block.shopify_attributes }}>
@@ -71,7 +74,8 @@
         { "value": "bridal", "label": "Bridal (white → blush pink)" },
         { "value": "wish", "label": "Birthday (pink → purple)" },
         { "value": "func", "label": "The Function (sage greens)" },
-        { "value": "sport", "label": "Sports (ice → vivid blue)" }
+        { "value": "sport", "label": "Sports (ice → vivid blue)" },
+        { "value": "biz", "label": "Business (cream → gold)" }
       ]}
     ]}
   ],

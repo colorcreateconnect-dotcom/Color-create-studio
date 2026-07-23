@@ -1,6 +1,54 @@
 {
   "current": {
-    "accent_color": "#EA3B84"
+    "favicon": "shopify://shop_images/465DC862-B5D0-4279-A059-EA23B46A0CF8_11fbee15-62c3-4566-94d8-2a9882701fc4.png",
+    "accent_color": "#EA3B84",
+    "sections": {
+      "announcement": {
+        "type": "announcement",
+        "settings": {
+          "text": "Custom Orders Welcome. Firm-Price Products. Shipping and Local Pickup. Atlanta, Georgia."
+        }
+      },
+      "header": {
+        "type": "header",
+        "settings": {
+          "menu": "main-menu",
+          "quote_page": "",
+          "quote_label": "Start a Project"
+        }
+      },
+      "footer": {
+        "type": "footer",
+        "settings": {
+          "about": "Made by hand. Built from stories. Designed with care. Original custom design from a blank canvas in Atlanta, Georgia.",
+          "menu": "main-menu",
+          "email": "colorcreateconnect@gmail.com",
+          "social": "@colorcreateconnect",
+          "location": "Atlanta, Georgia",
+          "promise": "Every design is original and made around your story. Photos of real people are only ever published with permission. Our Photo Integrity Promise."
+        }
+      }
+    },
+    "content_for_index": [],
+    "blocks": {
+      "14060646107696862457": {
+        "type": "shopify://apps/judge-me-reviews/blocks/judgeme_core/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8",
+        "disabled": false,
+        "settings": {}
+      },
+      "15179280101827346836": {
+        "type": "shopify://apps/mintt-tiktok-feed/blocks/head-block/fa514c33-5475-4484-b270-5f1e7eb87a9a",
+        "disabled": false,
+        "settings": {}
+      },
+      "13047258039897440615": {
+        "type": "shopify://apps/judge-me-reviews/blocks/cart_drawer_widget/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8",
+        "disabled": false,
+        "settings": {
+          "widget_type": "review-widget"
+        }
+      }
+    }
   },
   "presets": {
     "Color Create Studio": {
