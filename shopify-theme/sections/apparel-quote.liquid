@@ -15,14 +15,14 @@
   <span class="eyebrow">Choose a path</span>
   <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Start with what you already know.</h2>
   <div class="grid grid-4 mt-3">
-    {%- assign paths = 'Adult Custom Shirt|From $35|One personalized adult shirt with an original custom front graphic.;Youth Custom Shirt|From $30|A custom shirt sized for the little person carrying the moment.;3D Full-Front Shirt|From $40|Sublimated color and depth on light polyester or high-poly apparel.;Group Apparel Package|From $175|Six adult shirts and one shared original design direction.' | split: ';' -%}
+    {%- assign paths = 'Adult Custom Shirt|From $35|One personalized adult shirt with an original custom front graphic.|35;Youth Custom Shirt|From $30|A custom shirt sized for the little person carrying the moment.|30;3D Full-Front Shirt|From $40|Sublimated color and depth on light polyester or high-poly apparel.|40;Group Apparel Package|From $175|Six adult shirts and one shared original design direction.|175' | split: ';' -%}
     {%- for p in paths -%}
       {%- assign f = p | split: '|' -%}
       <div class="card" style="padding:1.25rem">
         <div class="label" style="font-size:.62rem;color:var(--pink)">{{ f[1] }}</div>
         <h3 class="serif" style="font-size:1.4rem;margin-top:.5rem">{{ f[0] }}</h3>
         <p class="muted" style="font-size:.88rem;margin-top:.5rem;line-height:1.6">{{ f[2] }}</p>
-        <button type="button" class="btn btn-ghost mt-2" onclick="ccPick('{{ f[0] }} ({{ f[1] }})','Custom Apparel')">Select this path</button>
+        <button type="button" class="btn btn-ghost mt-2" onclick="ccPick('{{ f[0] }} ({{ f[1] }})','Custom Apparel',{{ f[3] }})">Select this path</button>
       </div>
     {%- endfor -%}
   </div>
@@ -33,7 +33,7 @@
     <h3 class="serif mt-1" style="font-size:1.7rem">Six shirts start the crew.</h3>
     <p class="muted mt-1" style="max-width:38rem">$175 includes one shared design direction plus the first six adult shirts. Add adults or youth in the same coordinated order.</p>
     <p class="mt-1" style="font-size:.9rem;background:var(--cream);border-radius:1rem;padding:.8rem 1rem"><strong>10-15 business days.</strong> Additional adults are $25 each for 1-5 added, then $20 each at 6+. Youth are $20 each, then $15 each at 6+.</p>
-    <button type="button" class="btn btn-cta mt-2" onclick="ccPick('Group Apparel Package, $175 (6 adult shirts + one design; list additional adult/youth shirts)','Custom Apparel')">Build my group order</button>
+    <button type="button" class="btn btn-cta mt-2" onclick="ccPick('Group Apparel Package, $175 (6 adult shirts + one design; list additional adult/youth shirts)','Custom Apparel',175)">Build my group order</button>
   </div>
 
   <div class="grid grid-4 mt-3">
@@ -63,11 +63,12 @@
   var svc = document.getElementById('ccService');
   if(svc) svc.value = 'Custom Apparel';
 })();
-function ccPick(text, service){
+function ccPick(text, service, price){
   var t = document.querySelector('[name="properties[Requested pieces]"]');
   if(t){ t.value = (t.value ? t.value + '\n' : '') + 'Selected: ' + text; }
   var svc = document.getElementById('ccService');
   if(svc && service) svc.value = service;
+  if(price && window.ccSetDeposit) window.ccSetDeposit(price);
   var q = document.getElementById('apparelQuote');
   if(q) q.scrollIntoView({behavior:'smooth'});
 }

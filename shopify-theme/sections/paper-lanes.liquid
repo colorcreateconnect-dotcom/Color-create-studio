@@ -28,7 +28,7 @@
         <div class="muted" style="font-size:.82rem">Additional 12, ${{ f[2] }} &middot; Digital file, ${{ f[3] }}</div>
         <div class="muted" style="margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem;font-size:.8rem;line-height:1.5">{{ f[5] }}</div>
         <div class="muted" style="font-size:.78rem;margin-top:.3rem"><em>{{ f[4] }}</em></div>
-        <button type="button" class="btn btn-ghost mt-2" onclick="ccPick('{{ f[0] }} — set of 12, ${{ f[1] }} printed (extra dozen ${{ f[2] }}) or ${{ f[3] }} digital','Paper Lane')">Start this set</button>
+        <button type="button" class="btn btn-ghost mt-2" onclick="ccPick('{{ f[0] }} — set of 12, ${{ f[1] }} printed (extra dozen ${{ f[2] }}) or ${{ f[3] }} digital','Paper Lane',{{ f[1] }})">Start this set</button>
       </div>
     {%- endfor -%}
   </div>
@@ -51,11 +51,12 @@
   var svc = document.getElementById('ccService');
   if(svc) svc.value = 'Paper Lane';
 })();
-function ccPick(text, service){
+function ccPick(text, service, price){
   var t = document.querySelector('[name="properties[Requested pieces]"]');
   if(t){ t.value = (t.value ? t.value + '\n' : '') + 'Selected: ' + text; }
   var svc = document.getElementById('ccService');
   if(svc && service) svc.value = service;
+  if(price && window.ccSetDeposit) window.ccSetDeposit(price);
   var q = document.getElementById('paperQuote');
   if(q) q.scrollIntoView({behavior:'smooth'});
 }

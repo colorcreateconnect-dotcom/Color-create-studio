@@ -1,8 +1,11 @@
-{%- comment -%} Deep project intake as a $0 product form with file uploads.
-Expects: variant_id. Submits to cart then straight to checkout (free). {%- endcomment -%}
+{%- comment -%} Deep project intake as a product form with file uploads.
+Expects: variant_id (a $1 deposit-unit variant). The hidden quantity field is
+the deposit in dollars: 50% of a selected total, or the $25 project minimum,
+credited to the final invoice. Submits to cart then straight to checkout. {%- endcomment -%}
 <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data" id="inquiryForm">
   <input type="hidden" name="id" value="{{ variant_id }}">
   <input type="hidden" name="return_to" value="/checkout">
+  <input type="hidden" name="quantity" id="ccDepositQty" value="25">
   <input type="hidden" name="properties[Inspiration piece]" id="ccInspPiece" value="">
 
   <h2 class="serif" style="font-size:1.5rem">Who am I designing for?</h2>
@@ -55,8 +58,12 @@ Expects: variant_id. Submits to cart then straight to checkout (free). {%- endco
     <label class="f-check"><input type="checkbox" required name="properties[Photo Integrity acknowledgment]" value="Acknowledged"> I understand and acknowledge the Photo Integrity Promise. People in submitted photos will stay recognizable.</label>
   </div>
 
-  <button type="submit" class="btn btn-cta btn-block mt-3">Send My Project to the Studio</button>
-  <p class="muted mt-2" style="font-size:.82rem">Sending your project is <strong>free</strong> &mdash; no payment is taken. You&rsquo;ll confirm your contact details on the next screen, and the studio responds within 1&ndash;2 business days with a recommendation and a clear quote.</p>
+  <div class="card mt-3" style="padding:1rem 1.25rem;background:#FBF6E9;border-color:var(--gold-soft)">
+    <strong>Deposit due at checkout: <span id="ccDepositLabel">$25</span></strong>
+    <p class="muted" id="ccDepositNote" style="font-size:.85rem;margin-top:.3rem">$25 project deposit &mdash; credited in full toward your final invoice. Design work begins once your deposit and details are in.</p>
+  </div>
+  <button type="submit" class="btn btn-cta btn-block mt-3">Send My Project + Pay Deposit</button>
+  <p class="muted mt-2" style="font-size:.82rem">Your deposit is <strong>credited in full</strong> to your project total &mdash; it is not an extra fee. If the studio cannot take your project, the deposit is refunded in full. You&rsquo;ll receive your complete quote within 1&ndash;2 business days.</p>
 </form>
 
 <script>
@@ -76,5 +83,14 @@ Expects: variant_id. Submits to cart then straight to checkout (free). {%- endco
       alert('Please confirm you have permission to use the uploaded files.');
     }
   });
+  window.ccSetDeposit = function(fullPrice){
+    var d = Math.max(1, Math.ceil(Number(fullPrice) / 2));
+    var q = document.getElementById('ccDepositQty');
+    var l = document.getElementById('ccDepositLabel');
+    var n = document.getElementById('ccDepositNote');
+    if(q) q.value = d;
+    if(l) l.textContent = '$' + d;
+    if(n) n.textContent = '50% of your selected total ($' + fullPrice + ') \u2014 credited in full toward your final invoice. Design work begins once your deposit and details are in.';
+  };
 })();
 </script>

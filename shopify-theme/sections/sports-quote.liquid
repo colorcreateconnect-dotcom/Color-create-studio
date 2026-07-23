@@ -81,7 +81,7 @@
             {%- for it in items -%}<li>{{ it }}</li>{%- endfor -%}
           </ul>
           <p style="margin-top:.9rem;border-top:1px solid rgba(255,255,255,.12);padding-top:.75rem;font-size:.75rem;color:#93C5FD;font-weight:700">Two design rounds &middot; {{ f[2] }}</p>
-          <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }}, ${{ f[1] }}','Player Pride')">Start with this pack</button>
+          <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }}, ${{ f[1] }}','Player Pride',{{ f[1] }})">Start with this pack</button>
         </div>
       {%- endfor -%}
     </div>
@@ -121,7 +121,7 @@
           {%- for it in items -%}<li>{{ it }}</li>{%- endfor -%}
         </ul>
         <p class="muted" style="margin-top:.9rem;border-top:1px solid var(--line);padding-top:.75rem;font-size:.78rem;font-weight:700">Two design rounds &middot; {{ f[2] }}</p>
-        <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }}, ${{ f[1] }}','Team Identity')">Start with this package</button>
+        <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }}, ${{ f[1] }}','Team Identity',{{ f[1] }})">Start with this package</button>
       </div>
     {%- endfor -%}
   </div>
@@ -147,7 +147,7 @@
           <h3 style="font-size:1.1rem">{{ f[0] }}</h3>
           <div class="serif" style="font-size:2rem;margin-top:.5rem">${{ f[1] }}</div>
           <p style="color:#B9C9E8;font-size:.85rem;margin-top:.5rem">+ ${{ f[2] }} per shirt beyond 14 &middot; sizes &amp; personalization included</p>
-          <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }} bundle, ${{ f[1] }} + ${{ f[2] }}/extra shirt (send roster: names, numbers, sizes)','Full Team Takeover')">Start this bundle</button>
+          <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }} bundle, ${{ f[1] }} + ${{ f[2] }}/extra shirt (send roster: names, numbers, sizes)','Full Team Takeover',{{ f[1] }})">Start this bundle</button>
         </div>
       {%- endfor -%}
     </div>
@@ -212,15 +212,16 @@
       ' — ' + (source === 'approved' ? 'already-approved team design' : 'new custom design') +
       ' — size ' + el('sbSize').value + ' × ' + qty + ' — firm total $' + (per() * qty) +
       '\n' + (source === 'approved' ? 'Graphic reference: ' : 'Design idea: ') + ref;
-    ccPick(desc, 'Player Pride');
+    ccPick(desc, 'Player Pride', per() * qty);
   };
   sync();
 })();
-function ccPick(text, service){
+function ccPick(text, service, price){
   var t = document.querySelector('[name="properties[Requested pieces]"]');
   if(t){ t.value = (t.value ? t.value + '\n' : '') + 'Selected: ' + text; }
   var svc = document.getElementById('ccService');
   if(svc && service) svc.value = service;
+  if(price && window.ccSetDeposit) window.ccSetDeposit(price);
   var q = document.getElementById('sportsQuote') || document.getElementById('deptQuote');
   if(q) q.scrollIntoView({behavior:'smooth'});
 }
