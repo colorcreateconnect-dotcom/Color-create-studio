@@ -9,10 +9,12 @@
   {%- endif -%}
 </section>
 
+{%- assign preselect_occasion = section.settings.occasion -%}
+{%- if preselect_occasion == blank and collection != blank -%}{%- assign preselect_occasion = collection.title -%}{%- endif -%}
 <script>
 (function(){
   var occ = document.getElementById('ccOccasion'), svc = document.getElementById('ccService');
-  {% if section.settings.occasion != blank %}if(occ) occ.value = {{ section.settings.occasion | json }};{% endif %}
+  {% if preselect_occasion != blank %}if(occ) occ.value = {{ preselect_occasion | json }};{% endif %}
   {% if section.settings.service != blank %}if(svc) svc.value = {{ section.settings.service | json }};{% endif %}
 })();
 window.ccPick = function(text, service, price){
@@ -32,7 +34,7 @@ window.ccPick = function(text, service, price){
   "settings": [
     { "type": "text", "id": "heading", "label": "Heading", "default": "Start your project." },
     { "type": "textarea", "id": "intro", "label": "Intro text" },
-    { "type": "text", "id": "occasion", "label": "Preselect moment", "info": "Must exactly match a Moment option, e.g. Sports Social Studio" },
+    { "type": "text", "id": "occasion", "label": "Preselect moment", "info": "Must exactly match a Moment option, e.g. Sports Social Studio. Leave blank on a collection page to use that collection's name." },
     { "type": "text", "id": "service", "label": "Preselect service", "info": "Must exactly match a Service option, e.g. Player Pride" }
   ],
   "presets": [{ "name": "Quote intake" }]
