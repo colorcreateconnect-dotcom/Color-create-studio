@@ -24,6 +24,28 @@
   </div>
 </section>
 
+{%- assign shop_col = collections['sports'] -%}
+{%- if shop_col != blank and shop_col.products.size > 0 -%}
+<section class="wrap section">
+  <span class="eyebrow">Shop game-day gear</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Ready-to-order <span class="tagline-gradient">sports pieces.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">Every tile is a real product &mdash; open it, pick your size and shirt color, and check out at full price. Building a whole look? Use the shirt builder and packs below.</p>
+  <div class="grid grid-4 mt-3">
+    {%- for product in shop_col.products limit: 8 -%}
+      {%- render 'product-card', product: product -%}
+    {%- endfor -%}
+  </div>
+  <div class="mt-3"><a href="{{ shop_col.url }}" class="btn btn-ghost">Shop all {{ shop_col.products_count }} sports pieces</a></div>
+</section>
+{%- else -%}
+<section class="wrap" style="padding-top:0">
+  <div class="card" style="padding:1.1rem 1.25rem;border-color:var(--gold-soft);background:#FBF6E9">
+    <strong>The sports shop is being stocked.</strong>
+    <span class="muted" style="font-size:.9rem"> New ready-to-order drops land here soon &mdash; meanwhile, build your shirt below at a firm price or start a project.</span>
+  </div>
+</section>
+{%- endif -%}
+
 <section class="wrap section" id="shirtBuilder">
   <span class="eyebrow">Build your shirt</span>
   <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">DTF or 3D. <span class="tagline-gradient">New design or approved team graphic.</span></h2>

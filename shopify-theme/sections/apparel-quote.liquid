@@ -11,6 +11,21 @@
   </div>
 </section>
 
+{%- assign shop_col = collections['customs'] -%}
+{%- if shop_col != blank and shop_col.products.size > 0 -%}
+<section class="wrap section">
+  <span class="eyebrow">Shop the shirt wall</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Ready-to-order <span class="tagline-gradient">custom pieces.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">Every tile is a real product &mdash; open it, pick your size and shirt color, and check out at full price. Need something that isn&rsquo;t on the wall? Start a quote below.</p>
+  <div class="grid grid-4 mt-3">
+    {%- for product in shop_col.products limit: 8 -%}
+      {%- render 'product-card', product: product -%}
+    {%- endfor -%}
+  </div>
+  <div class="mt-3"><a href="{{ shop_col.url }}" class="btn btn-ghost">Shop all {{ shop_col.products_count }} custom pieces</a></div>
+</section>
+{%- endif -%}
+
 <section class="wrap section">
   <span class="eyebrow">Choose a path</span>
   <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Start with what you already know.</h2>

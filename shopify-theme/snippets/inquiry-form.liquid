@@ -1,7 +1,8 @@
 {%- comment -%} Deep project intake as a product form with file uploads.
 Expects: variant_id (a $1 deposit-unit variant). The hidden quantity field is
-the deposit in dollars: 50% of a selected total, or the $25 project minimum,
-credited to the final invoice. Submits to cart then straight to checkout. {%- endcomment -%}
+the amount due in dollars: selections under $150 are paid in full, larger
+totals take a 50% deposit, open requests take the $25 project minimum —
+all credited to the final invoice. Submits to cart then straight to checkout. {%- endcomment -%}
 <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data" id="inquiryForm">
   <input type="hidden" name="id" value="{{ variant_id }}">
   <input type="hidden" name="return_to" value="/checkout">
@@ -59,11 +60,11 @@ credited to the final invoice. Submits to cart then straight to checkout. {%- en
   </div>
 
   <div class="card mt-3" style="padding:1rem 1.25rem;background:#FBF6E9;border-color:var(--gold-soft)">
-    <strong>Deposit due at checkout: <span id="ccDepositLabel">$25</span></strong>
+    <strong><span id="ccDepositWord">Deposit</span> due at checkout: <span id="ccDepositLabel">$25</span></strong>
     <p class="muted" id="ccDepositNote" style="font-size:.85rem;margin-top:.3rem">$25 project deposit &mdash; credited in full toward your final invoice. Design work begins once your deposit and details are in.</p>
   </div>
-  <button type="submit" class="btn btn-cta btn-block mt-3">Send My Project + Pay Deposit</button>
-  <p class="muted mt-2" style="font-size:.82rem">Your deposit is <strong>credited in full</strong> to your project total &mdash; it is not an extra fee. If the studio cannot take your project, the deposit is refunded in full. You&rsquo;ll receive your complete quote within 1&ndash;2 business days.</p>
+  <button type="submit" class="btn btn-cta btn-block mt-3" id="ccPayBtn">Send My Project + Pay Deposit</button>
+  <p class="muted mt-2" style="font-size:.82rem">Whatever you pay today is <strong>credited in full</strong> to your project total &mdash; it is not an extra fee. If the studio cannot take your project, it is refunded in full. You&rsquo;ll receive your complete quote within 1&ndash;2 business days.</p>
 </form>
 
 <script>
@@ -84,13 +85,21 @@ credited to the final invoice. Submits to cart then straight to checkout. {%- en
     }
   });
   window.ccSetDeposit = function(fullPrice){
-    var d = Math.max(1, Math.ceil(Number(fullPrice) / 2));
+    var p = Math.max(1, Math.ceil(Number(fullPrice)));
+    var full = p < 150;
+    var d = full ? p : Math.ceil(p / 2);
     var q = document.getElementById('ccDepositQty');
     var l = document.getElementById('ccDepositLabel');
     var n = document.getElementById('ccDepositNote');
+    var w = document.getElementById('ccDepositWord');
+    var b = document.getElementById('ccPayBtn');
     if(q) q.value = d;
     if(l) l.textContent = '$' + d;
-    if(n) n.textContent = '50% of your selected total ($' + fullPrice + ') \u2014 credited in full toward your final invoice. Design work begins once your deposit and details are in.';
+    if(w) w.textContent = full ? 'Full payment' : 'Deposit';
+    if(b) b.textContent = full ? 'Send My Project + Pay in Full' : 'Send My Project + Pay Deposit';
+    if(n) n.textContent = full
+      ? 'Selections under $150 are paid in full \u2014 your $' + d + ' covers this selection completely. If the studio cannot take your project, it is refunded in full.'
+      : '50% of your selected total ($' + p + ') \u2014 credited in full toward your final invoice. Design work begins once your deposit and details are in.';
   };
 })();
 </script>

@@ -21,23 +21,38 @@
       <h1 class="mt-1">{{ product.title }}</h1>
       <div class="price" id="pprice">{{ product.selected_or_first_available_variant.price | money }}</div>
 
+      {%- assign tlower = product.title | downcase -%}
+      {%- assign typelower = product.type | downcase -%}
+      {%- assign is_shirt = false -%}
+      {%- if tlower contains 'shirt' or tlower contains 'tee' or tlower contains 'hoodie' or tlower contains 'apparel' or typelower contains 'shirt' or typelower contains 'apparel' -%}
+        {%- assign is_shirt = true -%}
+      {%- endif -%}
+
       {%- form 'product', product, id: 'product-form' -%}
         {%- unless product.has_only_default_variant -%}
-          <div class="variant-select">
-            <label for="variant-id">Options</label>
-            <select name="id" id="variant-id" onchange="ccUpdatePrice(this)">
-              {%- for variant in product.variants -%}
-                <option value="{{ variant.id }}" data-price="{{ variant.price | money }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %} {% unless variant.available %}disabled{% endunless %}>
-                  {{ variant.title }} &middot; {{ variant.price | money }}{% unless variant.available %} (sold out){% endunless %}
-                </option>
-              {%- endfor -%}
-            </select>
-          </div>
-        {%- else -%}
-          <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+          {%- for option in product.options_with_values -%}
+            <div class="mt-2">
+              <span class="f-label" style="margin-top:0">{{ option.name }}</span>
+              <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.4rem">
+                {%- for value in option.values -%}
+                  <button type="button" class="chip cc-opt{% if option.selected_value == value %} chip-active{% endif %}" data-opt="{{ forloop.parentloop.index0 }}" data-val="{{ value | escape }}">{{ value }}</button>
+                {%- endfor -%}
+              </div>
+            </div>
+          {%- endfor -%}
         {%- endunless -%}
+        <input type="hidden" name="id" id="variant-id" value="{{ product.selected_or_first_available_variant.id }}">
 
-        <button type="submit" name="add" class="btn btn-cta btn-block mt-2" {% unless product.available %}disabled{% endunless %}>
+        {%- if is_shirt -%}
+          <div class="f-grid mt-2">
+            <label class="f-label">Shirt size<select class="f-in" name="properties[Shirt size]" id="ccShirtSize"><option value="">Select a size</option><option>Youth S</option><option>Youth M</option><option>Youth L</option><option>Adult S</option><option>Adult M</option><option>Adult L</option><option>Adult XL</option><option>2XL</option><option>3XL</option><option>4XL</option></select></label>
+            <label class="f-label">Shirt color<select class="f-in" name="properties[Shirt color]" id="ccShirtColor"><option value="">Select a color</option><option>White</option><option>Black</option><option>Sand / Natural</option><option>Sport Grey</option><option>Navy</option><option>Royal Blue</option><option>Light Blue</option><option>Red</option><option>Pink</option><option>Purple</option><option>Green</option><option>Yellow</option><option>Orange</option><option>Maroon</option><option>Let the studio match my theme</option></select></label>
+          </div>
+          <label class="f-label">Personalization &mdash; names, dates, wording<input class="f-in" name="properties[Personalization]" placeholder="Exactly as it should appear on the piece"></label>
+          <p class="muted mt-1" style="font-size:.8rem">Adult size adjustments: 2XL +$2, 3XL +$3, 4XL +$4 &mdash; confirmed with your proof.</p>
+        {%- endif -%}
+
+        <button type="submit" name="add" id="ccAddBtn" class="btn btn-cta btn-block mt-2" {% unless product.available %}disabled{% endunless %}>
           {% if product.available %}Add to bag{% else %}Sold out{% endif %}
         </button>
       {%- endform -%}
@@ -52,11 +67,76 @@
 </div>
 
 <script>
-  function ccUpdatePrice(sel){
-    var o = sel.options[sel.selectedIndex];
-    var p = o.getAttribute('data-price');
-    if(p){ document.getElementById('pprice').textContent = p; }
+(function(){
+  var ccVariants = [
+    {%- for v in product.variants -%}
+    { id: {{ v.id }}, o: {{ v.options | json }}, price: {{ v.price | money | json }}, avail: {% if v.available %}true{% else %}false{% endif %}, img: {% if v.featured_image %}{{ v.featured_image | image_url: width: 1000 | json }}{% else %}''{% endif %} }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  ];
+  var ccSel = {{ product.selected_or_first_available_variant.options | json }};
+  var idIn = document.getElementById('variant-id');
+  var priceEl = document.getElementById('pprice');
+  var addBtn = document.getElementById('ccAddBtn');
+  var chips = document.querySelectorAll('.cc-opt');
+
+  function ccMatch(){
+    for(var i = 0; i < ccVariants.length; i++){
+      var v = ccVariants[i], hit = true;
+      for(var j = 0; j < ccSel.length; j++){
+        if(v.o[j] !== ccSel[j]){ hit = false; break; }
+      }
+      if(hit) return v;
+    }
+    return null;
   }
+  function ccApply(){
+    var v = ccMatch();
+    if(!v){
+      if(addBtn){ addBtn.disabled = true; addBtn.textContent = 'Unavailable'; }
+      return;
+    }
+    if(idIn) idIn.value = v.id;
+    if(priceEl) priceEl.textContent = v.price;
+    if(addBtn){
+      addBtn.disabled = !v.avail;
+      addBtn.textContent = v.avail ? 'Add to bag' : 'Sold out';
+    }
+    if(v.img){
+      var main = document.getElementById('pmain');
+      if(main) main.src = v.img;
+    }
+  }
+  for(var c = 0; c < chips.length; c++){
+    chips[c].addEventListener('click', function(){
+      var opt = parseInt(this.getAttribute('data-opt'), 10);
+      ccSel[opt] = this.getAttribute('data-val');
+      var group = document.querySelectorAll('.cc-opt[data-opt="' + opt + '"]');
+      for(var g = 0; g < group.length; g++) group[g].classList.remove('chip-active');
+      this.classList.add('chip-active');
+      ccApply();
+    });
+  }
+  if(chips.length) ccApply();
+
+  var form = document.getElementById('product-form');
+  var sizeSel = document.getElementById('ccShirtSize');
+  var colorSel = document.getElementById('ccShirtColor');
+  if(form && sizeSel){
+    form.addEventListener('submit', function(e){
+      var v = ccMatch();
+      var chosen = v ? v.o.join(' ') : '';
+      var digitalOnly = chosen.indexOf('Design File') !== -1 || chosen.indexOf('Digital') !== -1;
+      if(digitalOnly) return;
+      if(!sizeSel.value || (colorSel && !colorSel.value)){
+        e.preventDefault();
+        var missing = !sizeSel.value ? sizeSel : colorSel;
+        missing.focus();
+        missing.style.borderColor = '#D98A9B';
+        alert('Pick a shirt size and color so we print on the right blank.');
+      }
+    });
+  }
+})();
 </script>
 
 {% schema %}
