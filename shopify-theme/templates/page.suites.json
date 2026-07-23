@@ -27,6 +27,13 @@
     },
     "picker": {
       "type": "suite-picker",
+      "blocks": {
+        "t1": { "type": "tier", "settings": { "name": "Starter Suite", "price": "$85", "min_types": 2, "max_types": 2 } },
+        "t2": { "type": "tier", "settings": { "name": "Signature Suite", "price": "$185", "min_types": 3, "max_types": 5 } },
+        "t3": { "type": "tier", "settings": { "name": "Full Moment Suite", "price": "$325", "min_types": 6, "max_types": 10 } },
+        "t4": { "type": "tier", "settings": { "name": "Custom-scoped moment", "price": "Custom quote", "min_types": 11, "max_types": 0 } }
+      },
+      "block_order": ["t1", "t2", "t3", "t4"],
       "settings": {
         "eyebrow": "Build your collection",
         "heading": "Put the pieces",

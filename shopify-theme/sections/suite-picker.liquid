@@ -5,6 +5,24 @@
   {%- endif -%}
   {%- if section.settings.intro != blank -%}<p class="muted mt-1" style="max-width:40rem">{{ section.settings.intro }}</p>{%- endif -%}
 
+  {%- comment -%} Tier ladder mirrors the engine suite builder: pieces picked = item types, and the count detects the suite tier. {%- endcomment -%}
+  <div class="mt-3" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem">
+    <div class="card" style="padding:.9rem 1rem">
+      <span class="label" style="font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:var(--cocoa-deep);opacity:.6">1 item type</span>
+      <strong class="serif" style="display:block;font-size:1.15rem;margin-top:.35rem">{{ section.settings.single_name | default: 'Shop individually' }}</strong>
+      <span class="muted" style="font-size:.85rem">{{ section.settings.single_price | default: 'Checkout' }}</span>
+    </div>
+    {%- for block in section.blocks -%}
+      {%- assign minv = block.settings.min_types -%}
+      {%- assign maxv = block.settings.max_types -%}
+      <div class="card" data-tier="{{ forloop.index0 }}" style="padding:.9rem 1rem" {{ block.shopify_attributes }}>
+        <span class="label" style="font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:var(--cocoa-deep);opacity:.6">{% if maxv == 0 %}{{ minv }}+ item types{% elsif minv == maxv %}{{ minv }} item types{% else %}{{ minv }}-{{ maxv }} item types{% endif %}</span>
+        <strong class="serif" style="display:block;font-size:1.15rem;margin-top:.35rem">{{ block.settings.name }}</strong>
+        <span class="muted" style="font-size:.85rem">{{ block.settings.price }}</span>
+      </div>
+    {%- endfor -%}
+  </div>
+
   <div class="mt-3" id="suitePicker" style="display:flex;flex-wrap:wrap;gap:.6rem">
     {%- assign pieces = section.settings.pieces | split: ',' -%}
     {%- for p in pieces -%}
@@ -15,7 +33,9 @@
 
   <div class="card mt-3" style="padding:1.1rem 1.25rem">
     <span class="label" style="font-size:.6rem;color:var(--pink)">Your suite so far</span>
+    <div id="suiteTierLine" style="margin-top:.4rem;font-weight:700;display:none"></div>
     <div id="suiteList" class="muted" style="margin-top:.4rem;font-size:.95rem">Nothing selected yet &mdash; tap the pieces above.</div>
+    <div id="suiteDepositNote" class="muted" style="margin-top:.5rem;font-size:.8rem;display:none">{{ section.settings.deposit_note | default: 'Starting price shown so you can plan — your exact total is confirmed in your quote. Today is just the project deposit.' }}</div>
   </div>
 
   <div class="grid grid-3 mt-3">
@@ -30,11 +50,48 @@
   var picker = document.getElementById('suitePicker');
   var list = document.getElementById('suiteList');
   if(!picker || !list) return;
+  var tierLine = document.getElementById('suiteTierLine');
+  var depositNote = document.getElementById('suiteDepositNote');
+  var tiers = [
+    {%- for block in section.blocks -%}
+    { min: {{ block.settings.min_types }}, max: {{ block.settings.max_types }}, name: {{ block.settings.name | json }}, price: {{ block.settings.price | json }} }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  ];
   var selected = [];
+  function tierFor(n){
+    if(n < 2) return null;
+    for(var i = 0; i < tiers.length; i++){
+      var t = tiers[i];
+      if(n >= t.min && (t.max === 0 || n <= t.max)) return { i: i, t: t };
+    }
+    return null;
+  }
   function sync(){
+    var n = selected.length;
+    var match = tierFor(n);
+    var cards = document.querySelectorAll('[data-tier]');
+    for(var i = 0; i < cards.length; i++){
+      cards[i].style.borderColor = '';
+      cards[i].style.boxShadow = '';
+    }
+    var text = '';
+    if(match){
+      var card = cards[match.i];
+      if(card){ card.style.borderColor = 'var(--pink)'; card.style.boxShadow = '0 0 0 1px var(--pink)'; }
+      var priceText = match.t.price ? (match.t.price.indexOf('$') === 0 ? 'from ' + match.t.price : match.t.price) : '';
+      text = match.t.name + (priceText ? ' · ' + priceText : '');
+    } else if(n === 1){
+      text = 'One item shops directly — add a second item type to start a suite.';
+    }
+    if(tierLine){ tierLine.textContent = text; tierLine.style.display = text ? '' : 'none'; }
+    if(depositNote){ depositNote.style.display = match ? '' : 'none'; }
     list.textContent = selected.length ? selected.join(' · ') : 'Nothing selected yet — tap the pieces above.';
     var t = document.querySelector('[name="properties[Requested pieces]"]');
-    if(t) t.value = selected.length ? 'Celebration Suite pieces: ' + selected.join(', ') : '';
+    if(t){
+      var v = selected.length ? 'Celebration Suite pieces: ' + selected.join(', ') : '';
+      if(match) v += '\nDetected tier: ' + match.t.name + (match.t.price ? ', starting at ' + match.t.price : '') + ' (' + n + ' item types).';
+      t.value = v;
+    }
   }
   picker.addEventListener('click', function(e){
     var b = e.target.closest('button[data-piece]');
@@ -57,10 +114,27 @@
     { "type": "text", "id": "heading_accent", "label": "Heading accent (gradient)", "default": "on the table." },
     { "type": "textarea", "id": "intro", "label": "Intro text" },
     { "type": "textarea", "id": "pieces", "label": "Pieces (comma-separated)", "default": "Welcome sign, Invitations, Custom shirt, Cupcake toppers, Cake topper, Water bottle labels, Treat bags, Chip bags, Favor tags, Thank-you cards, Place cards, Banner, Yard sign, Napkins, Candy wraps, Photo keepsake" },
+    { "type": "text", "id": "single_name", "label": "1-item card title", "default": "Shop individually" },
+    { "type": "text", "id": "single_price", "label": "1-item card price text", "default": "Checkout" },
+    { "type": "textarea", "id": "deposit_note", "label": "Note under detected tier", "default": "Starting price shown so you can plan — your exact total is confirmed in your quote. Today is just the project deposit." },
     { "type": "text", "id": "step1", "label": "Step 1", "default": "Choose the pieces your moment needs." },
     { "type": "text", "id": "step2", "label": "Step 2", "default": "Send the suite to the studio with your theme and dates." },
     { "type": "text", "id": "step3", "label": "Step 3", "default": "Get one clear quote — approve the proof, then we produce." }
   ],
-  "presets": [{ "name": "Suite picker" }]
+  "blocks": [
+    { "type": "tier", "name": "Suite tier", "settings": [
+      { "type": "text", "id": "name", "label": "Tier name", "default": "Starter Suite" },
+      { "type": "text", "id": "price", "label": "Starting price (e.g. $85, or Custom quote)", "default": "$85" },
+      { "type": "number", "id": "min_types", "label": "Minimum item types", "default": 2 },
+      { "type": "number", "id": "max_types", "label": "Maximum item types (0 = no limit)", "default": 2 }
+    ]}
+  ],
+  "max_blocks": 6,
+  "presets": [{ "name": "Suite picker", "blocks": [
+    { "type": "tier", "settings": { "name": "Starter Suite", "price": "$85", "min_types": 2, "max_types": 2 } },
+    { "type": "tier", "settings": { "name": "Signature Suite", "price": "$185", "min_types": 3, "max_types": 5 } },
+    { "type": "tier", "settings": { "name": "Full Moment Suite", "price": "$325", "min_types": 6, "max_types": 10 } },
+    { "type": "tier", "settings": { "name": "Custom-scoped moment", "price": "Custom quote", "min_types": 11, "max_types": 0 } }
+  ] }]
 }
 {% endschema %}
