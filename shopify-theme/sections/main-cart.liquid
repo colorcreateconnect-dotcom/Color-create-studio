@@ -10,7 +10,7 @@
       dollar amount. Those lines hide the $1-each price and the quantity stepper, and
       show the real ordered quantity (from the Shirts property, else 1) plus the total.
     {%- endcomment -%}
-    {%- assign order_unit_handles = 'custom-shirt-order,paper-lane-set-order,sports-pack-order,custom-project-inquiry,request-something-similar' | split: ',' -%}
+    {%- assign order_unit_handles = 'custom-shirt-order,paper-lane-set-order,paper-lane-digital-set-order,sports-pack-order,business-promo-order,business-design-order,custom-project-inquiry,request-something-similar' | split: ',' -%}
     {%- form 'cart', cart -%}
       <div class="mt-3">
         {%- for item in cart.items -%}
@@ -30,7 +30,7 @@
                 {%- assign detail_bits = '' | split: ',' -%}
                 {%- for p in item.properties -%}
                   {%- assign k = p.first -%}
-                  {%- if k == 'Size' or k == 'Shirt color' or k == 'Print type' or k == 'Back graphic' or k == 'Pack' -%}
+                  {%- if k == 'Size' or k == 'Shirt color' or k == 'Print type' or k == 'Back graphic' or k == 'Pack' or k == 'Order' -%}
                     {%- assign v = p.last -%}
                     {%- if v != blank and v != 'None' -%}
                       {%- assign bit = v | append: '' | split: '|||' -%}

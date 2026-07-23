@@ -11,11 +11,19 @@
           <img src="{{ block.settings.image | image_url: width: 800 }}" alt="{{ block.settings.caption | escape }}" loading="lazy">
         {%- elsif block.settings.asset != blank -%}
           <img src="{{ block.settings.asset | asset_url }}" alt="{{ block.settings.caption | escape }}" loading="lazy">
+        {%- else -%}
+          <div style="position:absolute;inset:0;display:grid;place-items:center;border:2px dashed var(--line-strong);border-radius:inherit;background:repeating-linear-gradient(45deg,transparent,transparent 14px,rgba(0,0,0,.025) 14px,rgba(0,0,0,.025) 28px)"><span class="label" style="font-size:.6rem;color:var(--cocoa-deep);opacity:.5">{{ block.settings.tag | default: 'Coming soon' }}</span></div>
         {%- endif -%}
         <div class="cap"><div class="t" style="color:var(--teal)">{{ block.settings.tag }}</div><div class="n">{{ block.settings.caption }}</div></div>
       </div>
     {%- endfor -%}
   </div>
+  {%- if section.settings.button_label != blank -%}
+    <div class="mt-3" style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <a href="{{ section.settings.button_url | default: '/pages/portfolio' }}" class="btn btn-ghost">{{ section.settings.button_label }}</a>
+      {%- if section.settings.button2_label != blank -%}<a href="{{ section.settings.button2_url | default: '#deptQuote' }}" class="btn btn-ghost">{{ section.settings.button2_label }}</a>{%- endif -%}
+    </div>
+  {%- endif -%}
 </section>
 
 {% schema %}
@@ -25,7 +33,11 @@
     { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
     { "type": "text", "id": "heading", "label": "Heading" },
     { "type": "text", "id": "heading_accent", "label": "Heading accent (gradient)" },
-    { "type": "textarea", "id": "intro", "label": "Intro text" }
+    { "type": "textarea", "id": "intro", "label": "Intro text" },
+    { "type": "text", "id": "button_label", "label": "Button label (optional)" },
+    { "type": "url", "id": "button_url", "label": "Button link" },
+    { "type": "text", "id": "button2_label", "label": "Second button label (optional)" },
+    { "type": "url", "id": "button2_url", "label": "Second button link" }
   ],
   "blocks": [
     { "type": "photo", "name": "Photo", "settings": [

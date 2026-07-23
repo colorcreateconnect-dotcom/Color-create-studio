@@ -30,7 +30,7 @@
       {%- assign cc_bag_count = 0 -%}
       {%- for item in cart.items -%}
         {%- case item.product.handle -%}
-          {%- when 'custom-shirt-order', 'paper-lane-set-order', 'sports-pack-order', 'custom-project-inquiry', 'request-something-similar' -%}
+          {%- when 'custom-shirt-order', 'paper-lane-set-order', 'paper-lane-digital-set-order', 'sports-pack-order', 'business-promo-order', 'business-design-order', 'custom-project-inquiry', 'request-something-similar' -%}
             {%- assign cc_line = 1 -%}
             {%- for p in item.properties -%}{%- if p.first == 'Shirts' -%}{%- assign cc_line = p.last | times: 1 -%}{%- endif -%}{%- endfor -%}
             {%- if cc_line < 1 -%}{%- assign cc_line = 1 -%}{%- endif -%}

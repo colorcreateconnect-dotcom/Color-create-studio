@@ -1,0 +1,337 @@
+{%- assign promo_product = all_products['business-promo-order'] -%}
+{%- assign design_product = all_products['business-design-order'] -%}
+<section class="wrap section" id="bizBuilder">
+  {%- if section.settings.eyebrow != blank -%}<span class="eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+  {%- if section.settings.heading != blank -%}
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">{{ section.settings.heading }}{% if section.settings.heading_accent != blank %} <span class="tagline-gradient">{{ section.settings.heading_accent }}</span>{% endif %}</h2>
+  {%- endif -%}
+  {%- if section.settings.intro != blank -%}<p class="muted mt-1" style="max-width:44rem">{{ section.settings.intro }}</p>{%- endif -%}
+
+  <form method="post" action="{{ routes.cart_add_url }}" enctype="multipart/form-data" id="bbForm" class="card mt-3" style="padding:1.5rem">
+    <input type="hidden" name="id" id="bbVariant" value="">
+    <input type="hidden" name="quantity" id="bbPayQty" value="0">
+    <input type="hidden" name="return_to" value="/checkout">
+    <input type="hidden" name="properties[Order]" id="bbPOrder" value="">
+    <input type="hidden" name="properties[Order total]" id="bbPTotal" value="">
+    <input type="hidden" name="properties[Turnaround]" id="bbPTurn" value="">
+    <input type="hidden" name="properties[Add-ons]" id="bbPAddons" value="None">
+
+    <span class="label" style="font-size:.62rem;color:var(--pink)">Step 1 &middot; What do you need?</span>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
+      <button type="button" class="chip chip-active" id="bbModeKit">A kit &mdash; coordinated package, best value</button>
+      <button type="button" class="chip" id="bbModeItem">A single item &mdash; just one piece</button>
+    </div>
+
+    <div id="bbKitWrap" class="mt-3">
+      <span class="label" style="font-size:.62rem;color:var(--pink)">Step 2 &middot; Choose your kit</span>
+      <div class="grid grid-3 mt-1" id="bbKits">
+        {%- assign ki = 0 -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'kit' -%}
+          <div class="card" data-kit="{{ ki }}" style="padding:1.1rem 1.2rem;cursor:pointer;position:relative" {{ block.shopify_attributes }}>
+            {%- if block.settings.badge != blank -%}<span style="position:absolute;right:.8rem;top:.8rem;background:var(--gold-soft);color:var(--cocoa-deep);border-radius:9999px;padding:.2rem .6rem;font-family:var(--font-label);font-size:.55rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase">{{ block.settings.badge }}</span>{%- endif -%}
+            <h3 style="font-size:1rem;font-weight:700;max-width:75%">{{ block.settings.title }}</h3>
+            <div class="serif" style="font-size:1.8rem;margin-top:.3rem">${{ block.settings.price }}</div>
+            {%- if block.settings.blurb != blank -%}<p class="muted" style="font-size:.8rem;margin-top:.3rem">{{ block.settings.blurb }}</p>{%- endif -%}
+            {%- assign feats = block.settings.features | newline_to_br | split: '<br />' -%}
+            <ul style="margin-top:.6rem;padding-left:1rem;font-size:.82rem;line-height:1.6" class="muted">
+              {%- for f in feats -%}{%- assign fs = f | strip -%}{%- if fs != blank -%}<li>{{ fs }}</li>{%- endif -%}{%- endfor -%}
+            </ul>
+          </div>
+          {%- assign ki = ki | plus: 1 -%}
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+      {%- if section.settings.kit_note != blank -%}<p class="muted mt-1" style="font-size:.78rem">{{ section.settings.kit_note }}</p>{%- endif -%}
+    </div>
+
+    <div id="bbItemWrap" class="mt-3" style="display:none">
+      <span class="label" style="font-size:.62rem;color:var(--pink)">Step 2 &middot; Choose your item</span>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem" id="bbItems">
+        {%- assign ii = 0 -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'item' -%}
+            {%- if block.settings.route_url != blank -%}
+              <a class="chip" href="{{ block.settings.route_url }}" {{ block.shopify_attributes }}>{{ block.settings.name }} &rarr;</a>
+            {%- else -%}
+              <button type="button" class="chip" data-item="{{ ii }}" {{ block.shopify_attributes }}>{{ block.settings.name }}{% if block.settings.price > 0 %} &middot; ${{ block.settings.price }}{% endif %}</button>
+            {%- endif -%}
+            {%- assign ii = ii | plus: 1 -%}
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+      <p class="muted" id="bbItemNote" style="font-size:.78rem;margin-top:.5rem;display:none"></p>
+      <div class="mt-2" id="bbTierWrap" style="display:none;max-width:22rem">
+        <span class="label" style="font-size:.62rem;color:var(--pink)">Step 3 &middot; Quantity</span>
+        <select class="f-in" id="bbTier" style="margin-top:.4rem"></select>
+        <p class="muted" style="font-size:.78rem;margin-top:.35rem">Need more than the top tier? <a href="#deptQuote" style="text-decoration:underline">Request a quote.</a></p>
+      </div>
+      <div class="mt-2" id="bbModWrap" style="display:none">
+        <label class="f-check" id="bbMod1Row" style="display:none"><input type="checkbox" id="bbMod1"> <span id="bbMod1Label"></span></label>
+        <label class="f-check" id="bbMod2Row" style="display:none"><input type="checkbox" id="bbMod2"> <span id="bbMod2Label"></span></label>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <span class="label" style="font-size:.62rem;color:var(--pink)">Business details &mdash; required before checkout</span>
+      <div class="f-grid mt-1">
+        <label class="f-label">Business name *<input class="f-in" id="bbBizName" name="properties[Business name]"></label>
+        <label class="f-label">What your business does *<input class="f-in" id="bbBizWhat" name="properties[What the business does]"></label>
+      </div>
+      <label class="f-label">What should this say and feel like? *<textarea class="f-in" rows="2" id="bbDetails" name="properties[Design details]" placeholder="Wording, offers, vibe &mdash; the studio may follow up to get it exactly right."></textarea></label>
+      <label class="f-label" id="bbServicesRow">Services or items to list, with prices if applicable<textarea class="f-in" rows="2" name="properties[Services and prices]"></textarea></label>
+      <div class="f-grid">
+        <label class="f-label">Your colors, or write &ldquo;CCC&rsquo;s choice&rdquo;<input class="f-in" name="properties[Colors]"></label>
+        <label class="f-label">Where should the QR code point?<input class="f-in" name="properties[QR code target]" placeholder="URL, or write: no QR code"></label>
+      </div>
+      <p class="muted" style="font-size:.75rem;margin-top:.2rem">A QR code is included free on cards, flyers, and table tents.</p>
+      <label class="f-label">What should be avoided?<input class="f-in" name="properties[Avoid]"></label>
+      <div class="f-grid mt-1">
+        <label class="f-label">Logo / photo 1<input class="f-in" type="file" name="properties[Business file 1]" accept="image/*,.pdf,.heic,.heif,.svg"></label>
+        <label class="f-label">Logo / photo 2<input class="f-in" type="file" name="properties[Business file 2]" accept="image/*,.pdf,.heic,.heif,.svg"></label>
+        <label class="f-label">Logo / photo 3<input class="f-in" type="file" name="properties[Business file 3]" accept="image/*,.pdf,.heic,.heif,.svg"></label>
+        <label class="f-label">Logo / photo 4<input class="f-in" type="file" name="properties[Business file 4]" accept="image/*,.pdf,.heic,.heif,.svg"></label>
+        <label class="f-label">Logo / photo 5<input class="f-in" type="file" name="properties[Business file 5]" accept="image/*,.pdf,.heic,.heif,.svg"></label>
+      </div>
+      <label class="f-check" id="bbPermRow"><input type="checkbox" id="bbPerm" name="properties[Upload permission]" value="Confirmed: permission to use every uploaded photo, logo, name, and artwork"> I have permission to use every photo, logo, name, and artwork I am uploading.</label>
+    </div>
+
+    <div class="mt-3">
+      <span class="label" style="font-size:.62rem;color:var(--pink)">Add-ons &mdash; optional</span>
+      <label class="f-check"><input type="checkbox" id="bbRush"> Rush service &mdash; +25%, $25 minimum. Confirmed in writing before production begins.</label>
+      <label class="f-check"><input type="checkbox" id="bbRevision"> Extra revision round beyond the two included &mdash; +$15</label>
+    </div>
+
+    <div class="card mt-3" style="padding:1rem 1.25rem;background:#FBF6E9;border-color:var(--gold-soft)">
+      <span class="label" style="font-size:.6rem;color:var(--pink)">Your order</span>
+      <div id="bbSummary" class="muted" style="margin-top:.4rem;font-size:.92rem">Choose a kit or an item to begin.</div>
+      <div style="display:flex;align-items:baseline;gap:.5rem;margin-top:.5rem">
+        <span class="muted" style="font-size:.8rem">Firm total, paid now</span>
+        <strong class="serif" id="bbTotal" style="font-size:2.2rem">$0</strong>
+      </div>
+      <div class="muted" id="bbTurnLine" style="font-size:.78rem"></div>
+    </div>
+
+    {%- if promo_product != blank and promo_product.available and design_product != blank and design_product.available -%}
+      <button type="submit" class="btn btn-cta btn-block mt-3" id="bbSubmit">Add to Bag + Checkout</button>
+    {%- else -%}
+      <a href="#deptQuote" class="btn btn-cta btn-block mt-3">Send as a project instead</a>
+    {%- endif -%}
+    <p class="muted mt-2" style="font-size:.8rem">{{ section.settings.footnote | default: 'Two design rounds are included on every kit and every design service. Your details, files, and selections travel with the order.' }}</p>
+  </form>
+</section>
+
+<script>
+(function(){
+  var form = document.getElementById('bbForm');
+  if(!form) return;
+  var el = function(id){ return document.getElementById(id); };
+  {%- if promo_product != blank and promo_product.available -%}
+  var promoVariant = {{ promo_product.selected_or_first_available_variant.id }};
+  {%- else -%}
+  var promoVariant = null;
+  {%- endif -%}
+  {%- if design_product != blank and design_product.available -%}
+  var designVariant = {{ design_product.selected_or_first_available_variant.id }};
+  {%- else -%}
+  var designVariant = null;
+  {%- endif -%}
+  var kits = [
+    {%- assign first = true -%}
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'kit' -%}
+      {%- unless first -%},{%- endunless -%}
+      { name: {{ block.settings.title | json }}, price: {{ block.settings.price | default: 0 }}, ships: {% if block.settings.ships %}true{% else %}false{% endif %}, turn: {{ block.settings.turnaround | json }} }
+      {%- assign first = false -%}
+      {%- endif -%}
+    {%- endfor -%}
+  ];
+  var items = [
+    {%- assign first = true -%}
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'item' and block.settings.route_url == blank -%}
+      {%- unless first -%},{%- endunless -%}
+      { name: {{ block.settings.name | json }}, price: {{ block.settings.price | default: 0 }}, tiers: {{ block.settings.tiers | default: '' | json }}, ships: {% if block.settings.ships %}true{% else %}false{% endif %}, turn: {{ block.settings.turnaround | json }}, note: {{ block.settings.note | default: '' | json }}, mod1l: {{ block.settings.mod1_label | default: '' | json }}, mod1a: {{ block.settings.mod1_amount | default: 0 }}, mod2l: {{ block.settings.mod2_label | default: '' | json }}, mod2a: {{ block.settings.mod2_amount | default: 0 }} }
+      {%- assign first = false -%}
+      {%- endif -%}
+    {%- endfor -%}
+  ];
+  var mode = 'kit', kitIdx = -1, itemIdx = -1;
+  function parseTiers(s){
+    if(!s) return [];
+    return s.split('|').map(function(part){
+      var bits = part.split('=');
+      if(bits.length < 2) return null;
+      return { label: bits[0].trim(), price: Math.ceil(Number(bits[1].replace(/[^0-9.]/g, ''))) };
+    }).filter(Boolean);
+  }
+  function currentItem(){ return itemIdx >= 0 ? items[itemIdx] : null; }
+  function base(){
+    if(mode === 'kit') return kitIdx >= 0 ? kits[kitIdx].price : 0;
+    var it = currentItem();
+    if(!it) return 0;
+    var p = 0;
+    var tiers = parseTiers(it.tiers);
+    if(tiers.length){
+      var t = tiers[el('bbTier').selectedIndex];
+      if(t) p += t.price;
+    } else {
+      p += it.price;
+    }
+    if(it.mod1l && el('bbMod1').checked) p += it.mod1a;
+    if(it.mod2l && el('bbMod2').checked) p += it.mod2a;
+    return p;
+  }
+  function total(){
+    var p = base();
+    if(!p) return 0;
+    if(el('bbRevision').checked) p += 15;
+    if(el('bbRush').checked) p += Math.max(25, Math.ceil(p * 0.25));
+    return p;
+  }
+  function selName(){
+    if(mode === 'kit') return kitIdx >= 0 ? kits[kitIdx].name : '';
+    var it = currentItem();
+    return it ? it.name : '';
+  }
+  function sync(){
+    el('bbModeKit').classList.toggle('chip-active', mode === 'kit');
+    el('bbModeItem').classList.toggle('chip-active', mode === 'item');
+    el('bbKitWrap').style.display = mode === 'kit' ? '' : 'none';
+    el('bbItemWrap').style.display = mode === 'item' ? '' : 'none';
+    var cards = document.querySelectorAll('#bbKits [data-kit]');
+    for(var i = 0; i < cards.length; i++){
+      var on = mode === 'kit' && i === kitIdx;
+      cards[i].style.borderColor = on ? 'var(--pink)' : '';
+      cards[i].style.boxShadow = on ? '0 0 0 1px var(--pink)' : '';
+    }
+    var chips = document.querySelectorAll('#bbItems [data-item]');
+    for(var j = 0; j < chips.length; j++){
+      chips[j].classList.toggle('chip-active', mode === 'item' && j === itemIdx);
+    }
+    var it = mode === 'item' ? currentItem() : null;
+    var tiers = it ? parseTiers(it.tiers) : [];
+    el('bbTierWrap').style.display = tiers.length ? '' : 'none';
+    el('bbItemNote').style.display = it && it.note ? '' : 'none';
+    if(it && it.note) el('bbItemNote').textContent = it.note;
+    var hasMods = it && (it.mod1l || it.mod2l);
+    el('bbModWrap').style.display = hasMods ? '' : 'none';
+    el('bbMod1Row').style.display = it && it.mod1l ? '' : 'none';
+    el('bbMod2Row').style.display = it && it.mod2l ? '' : 'none';
+    if(it && it.mod1l) el('bbMod1Label').textContent = it.mod1l + ' (' + (it.mod1a >= 0 ? '+$' + it.mod1a : '−$' + Math.abs(it.mod1a)) + ')';
+    if(it && it.mod2l) el('bbMod2Label').textContent = it.mod2l + ' (' + (it.mod2a >= 0 ? '+$' + it.mod2a : '−$' + Math.abs(it.mod2a)) + ')';
+    var p = total();
+    var name = selName();
+    var bits = [];
+    if(name) bits.push(name);
+    if(tiers.length){
+      var t = tiers[el('bbTier').selectedIndex];
+      if(t) bits.push(t.label + ' pieces');
+    }
+    var addons = [];
+    if(it && it.mod1l && el('bbMod1').checked) addons.push(it.mod1l);
+    if(it && it.mod2l && el('bbMod2').checked) addons.push(it.mod2l);
+    if(el('bbRevision').checked) addons.push('Extra revision round');
+    if(el('bbRush').checked) addons.push('Rush service');
+    var biz = el('bbBizName').value.trim();
+    var summary = bits.join(' · ');
+    if(addons.length) summary += ' · Add-ons: ' + addons.join(', ');
+    if(biz) summary += ' — for ' + biz;
+    el('bbSummary').textContent = summary || 'Choose a kit or an item to begin.';
+    el('bbTotal').textContent = '$' + p;
+    var turn = mode === 'kit' ? (kitIdx >= 0 ? kits[kitIdx].turn : '') : (it ? it.turn : '');
+    el('bbTurnLine').textContent = turn ? 'Turnaround: ' + turn + ' after payment and complete details.' : '';
+    el('bbPayQty').value = p;
+    el('bbPOrder').value = summary;
+    el('bbPTotal').value = '$' + p;
+    el('bbPTurn').value = turn || '';
+    el('bbPAddons').value = addons.length ? addons.join(', ') : 'None';
+    var ships = mode === 'kit' ? (kitIdx >= 0 && kits[kitIdx].ships) : (it ? it.ships : false);
+    var v = ships ? promoVariant : designVariant;
+    el('bbVariant').value = v || '';
+  }
+  function fillTiers(){
+    var it = currentItem();
+    var sel = el('bbTier');
+    sel.innerHTML = '';
+    if(!it) return;
+    parseTiers(it.tiers).forEach(function(t){
+      var o = document.createElement('option');
+      o.textContent = t.label + ' — $' + t.price;
+      sel.appendChild(o);
+    });
+  }
+  el('bbModeKit').addEventListener('click', function(){ mode = 'kit'; sync(); });
+  el('bbModeItem').addEventListener('click', function(){ mode = 'item'; sync(); });
+  document.querySelectorAll('#bbKits [data-kit]').forEach(function(card, i){
+    card.addEventListener('click', function(){ mode = 'kit'; kitIdx = i; sync(); });
+  });
+  document.querySelectorAll('#bbItems [data-item]').forEach(function(chip, i){
+    chip.addEventListener('click', function(){ mode = 'item'; itemIdx = i; el('bbMod1').checked = false; el('bbMod2').checked = false; fillTiers(); sync(); });
+  });
+  ['bbTier','bbMod1','bbMod2','bbRush','bbRevision'].forEach(function(id){ el(id).addEventListener('change', sync); });
+  el('bbBizName').addEventListener('input', sync);
+  window.bbSelectKit = function(i){
+    mode = 'kit'; kitIdx = i; sync();
+    var b = document.getElementById('bizBuilder');
+    if(b) b.scrollIntoView({behavior:'smooth'});
+  };
+  form.addEventListener('submit', function(e){
+    var problems = [];
+    if(total() < 1) problems.push('Choose a kit or an item.');
+    if(!el('bbBizName').value.trim()) problems.push('Business name is required.');
+    if(!el('bbBizWhat').value.trim()) problems.push('Tell us what your business does.');
+    if(!el('bbDetails').value.trim()) problems.push('Tell us what this should say and feel like.');
+    var hasFile = ['1','2','3','4','5'].some(function(n){
+      var f = form.querySelector('[name="properties[Business file ' + n + ']"]');
+      return f && f.files && f.files.length > 0;
+    });
+    if(hasFile && !el('bbPerm').checked) problems.push('Please confirm you have permission to use the uploaded files.');
+    if(!el('bbVariant').value) problems.push('This order type is not available right now — send it as a project below.');
+    if(problems.length){
+      e.preventDefault();
+      alert(problems.join('\n'));
+    }
+  });
+  sync();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Business order builder",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Build my order" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "A kit or a single piece." },
+    { "type": "text", "id": "heading_accent", "label": "Heading accent (gradient)", "default": "A firm price either way." },
+    { "type": "textarea", "id": "intro", "label": "Intro text" },
+    { "type": "textarea", "id": "kit_note", "label": "Note under kits" },
+    { "type": "textarea", "id": "footnote", "label": "Footnote under button" }
+  ],
+  "blocks": [
+    { "type": "kit", "name": "Kit", "settings": [
+      { "type": "text", "id": "title", "label": "Kit name", "default": "Business Basics Kit" },
+      { "type": "number", "id": "price", "label": "Price (dollars)", "default": 95 },
+      { "type": "text", "id": "badge", "label": "Corner badge (e.g. Most Popular)" },
+      { "type": "text", "id": "blurb", "label": "Who it is for" },
+      { "type": "textarea", "id": "features", "label": "What's included (one per line)" },
+      { "type": "checkbox", "id": "ships", "label": "Includes printed/physical pieces (collect shipping)", "default": false },
+      { "type": "text", "id": "turnaround", "label": "Turnaround", "default": "5-7 business days" }
+    ]},
+    { "type": "item", "name": "Single item", "settings": [
+      { "type": "text", "id": "name", "label": "Item name" },
+      { "type": "number", "id": "price", "label": "Flat price (dollars, ignored when tiers are set)", "default": 0 },
+      { "type": "text", "id": "tiers", "label": "Print tiers", "info": "quantity = price, separated by |. Example: 100 = 45 | 250 = 60 | 500 = 90" },
+      { "type": "text", "id": "mod1_label", "label": "Option 1 label (e.g. Custom contour cut)" },
+      { "type": "number", "id": "mod1_amount", "label": "Option 1 amount (+/-)", "default": 0 },
+      { "type": "text", "id": "mod2_label", "label": "Option 2 label" },
+      { "type": "number", "id": "mod2_amount", "label": "Option 2 amount (+/-)", "default": 0 },
+      { "type": "checkbox", "id": "ships", "label": "Physical item (collect shipping)", "default": false },
+      { "type": "text", "id": "turnaround", "label": "Turnaround", "default": "5-7 business days" },
+      { "type": "text", "id": "note", "label": "Note shown when selected" },
+      { "type": "url", "id": "route_url", "label": "Route to another page instead (e.g. branded shirts)" }
+    ]}
+  ],
+  "presets": [{ "name": "Business order builder" }]
+}
+{% endschema %}
