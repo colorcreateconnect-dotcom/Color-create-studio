@@ -24,6 +24,43 @@
   </div>
 </section>
 
+<section class="wrap section" id="shirtBuilder">
+  <span class="eyebrow">Build your shirt</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">DTF or 3D. <span class="tagline-gradient">New design or approved team graphic.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">Choose the print, the design source, and the details &mdash; your firm price updates as you go. Then send it to the studio with your reference.</p>
+
+  <div class="card mt-3" style="padding:1.5rem">
+    <div class="f-grid">
+      <div>
+        <span class="f-label" style="margin-top:0">Print type</span>
+        <div style="display:flex;gap:.5rem;margin-top:.4rem">
+          <button type="button" class="chip chip-active" id="sbDtf">DTF full-color</button>
+          <button type="button" class="chip" id="sb3d">3D sublimation</button>
+        </div>
+        <p class="muted" id="sbTurn" style="font-size:.78rem;margin-top:.4rem">Turnaround: 5-7 business days after approval.</p>
+      </div>
+      <div>
+        <span class="f-label" style="margin-top:0">Design source</span>
+        <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+          <button type="button" class="chip chip-active" id="sbApproved">Already-approved team design</button>
+          <button type="button" class="chip" id="sbNew">New custom design</button>
+        </div>
+      </div>
+      <label class="f-label">Size<select class="f-in" id="sbSize"><option>Youth S</option><option>Youth M</option><option>Youth L</option><option>Adult S</option><option selected>Adult M</option><option>Adult L</option><option>Adult XL</option><option>2XL</option><option>3XL</option><option>4XL</option></select></label>
+      <label class="f-label">Quantity<input class="f-in" id="sbQty" type="number" min="1" value="1"></label>
+    </div>
+    <label class="f-check" id="sbBackRow" style="display:none"><input type="checkbox" id="sbBack"> Add back design (+$15) &mdash; carry the story around the whole shirt.</label>
+    <label class="f-label" id="sbRefLabel">Team or approved graphic reference *<textarea class="f-in" rows="2" id="sbRef" placeholder="Team name, season, and which approved graphic this shirt uses."></textarea></label>
+    <div style="display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:1.25rem;padding-top:1.25rem">
+      <div>
+        <div class="label" style="font-size:.6rem;color:var(--cocoa-soft)">Firm total</div>
+        <div class="serif" id="sbTotal" style="font-size:2.4rem">$25</div>
+      </div>
+      <button type="button" class="btn btn-cta" id="sbSend">Send this shirt to the studio</button>
+    </div>
+  </div>
+</section>
+
 <section class="band-stadium section">
   <div class="wrap">
     <span class="eyebrow">Player Pride &amp; Fan Support</span>
@@ -132,6 +169,52 @@
   var occ = document.getElementById('ccOccasion'), svc = document.getElementById('ccService');
   if(occ) occ.value = 'Sports Social Studio';
   if(svc) svc.value = 'Player Pride';
+
+  // Shirt builder — pricing mirrors the audited engine exactly.
+  var type = 'dtf', source = 'approved';
+  var el = function(id){ return document.getElementById(id); };
+  var dtfB = el('sbDtf'), tdB = el('sb3d'), apB = el('sbApproved'), nwB = el('sbNew');
+  if(!dtfB) return;
+  function per(){
+    var size = el('sbSize').value;
+    var youth = size.indexOf('Youth') === 0;
+    var big2 = size === '2XL', big3 = size === '3XL', big4 = size === '4XL';
+    var p;
+    if(type === 'dtf' && source === 'approved') p = youth ? 20 : big2 ? 27 : big3 ? 28 : big4 ? 29 : 25;
+    else if(type === 'dtf') p = youth ? 30 : big2 ? 37 : big3 ? 38 : big4 ? 39 : 35;
+    else if(source === 'approved') p = youth ? 30 : (big2 || big3 || big4) ? 50 : 40;
+    else p = youth ? 40 : (big2 || big3 || big4) ? 60 : 50;
+    if(type === '3d' && el('sbBack').checked) p += 15;
+    return p;
+  }
+  function sync(){
+    dtfB.classList.toggle('chip-active', type === 'dtf');
+    tdB.classList.toggle('chip-active', type === '3d');
+    apB.classList.toggle('chip-active', source === 'approved');
+    nwB.classList.toggle('chip-active', source === 'new');
+    el('sbBackRow').style.display = type === '3d' ? 'flex' : 'none';
+    el('sbTurn').textContent = 'Turnaround: ' + (type === '3d' ? '7-10' : '5-7') + ' business days after approval.';
+    el('sbRefLabel').childNodes[0].textContent = source === 'approved' ? 'Team or approved graphic reference *' : 'Your design idea *';
+    el('sbRef').placeholder = source === 'approved' ? 'Team name, season, and which approved graphic this shirt uses.' : 'Describe the design: names, numbers, colors, theme, and the feeling it should carry.';
+    var qty = Math.max(1, parseInt(el('sbQty').value || '1', 10));
+    el('sbTotal').textContent = '$' + (per() * qty);
+  }
+  dtfB.onclick = function(){ type = 'dtf'; sync(); };
+  tdB.onclick = function(){ type = '3d'; sync(); };
+  apB.onclick = function(){ source = 'approved'; sync(); };
+  nwB.onclick = function(){ source = 'new'; sync(); };
+  el('sbSize').onchange = sync; el('sbQty').oninput = sync; el('sbBack').onchange = sync;
+  el('sbSend').onclick = function(){
+    var ref = el('sbRef').value.trim();
+    if(!ref){ el('sbRef').focus(); el('sbRef').style.borderColor = '#D98A9B'; return; }
+    var qty = Math.max(1, parseInt(el('sbQty').value || '1', 10));
+    var desc = (type === 'dtf' ? 'DTF full-color shirt' : '3D sublimation shirt' + (el('sbBack').checked ? ' with back design' : '')) +
+      ' — ' + (source === 'approved' ? 'already-approved team design' : 'new custom design') +
+      ' — size ' + el('sbSize').value + ' × ' + qty + ' — firm total $' + (per() * qty) +
+      '\n' + (source === 'approved' ? 'Graphic reference: ' : 'Design idea: ') + ref;
+    ccPick(desc, 'Player Pride');
+  };
+  sync();
 })();
 function ccPick(text, service){
   var t = document.querySelector('[name="properties[Requested pieces]"]');
