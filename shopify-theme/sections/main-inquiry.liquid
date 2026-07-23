@@ -1,0 +1,55 @@
+<section class="collection-head band-blush">
+  <div class="wrap">
+    <span class="eyebrow" id="inqEyebrow">Custom work, clearly scoped</span>
+    <h1 class="serif mt-1" style="font-size:clamp(2.2rem,5vw,3.4rem)" id="inqHeading">Tell me the moment. <span class="tagline-gradient">I&rsquo;ll help shape the right build.</span></h1>
+    <p class="muted mt-2" style="max-width:42rem">Submitting does not charge you or confirm an order. It gives the studio enough detail to recommend the right path and price. You&rsquo;ll receive a response within 1&ndash;2 business days.</p>
+  </div>
+</section>
+
+<section class="wrap section" style="max-width:52rem">
+  <div id="inspPin" style="display:none;margin-bottom:1.5rem" class="card">
+    <div style="display:flex;gap:1rem;align-items:center;padding:1rem">
+      <img id="inspImg" alt="Inspiration piece" style="width:6.5rem;height:6.5rem;object-fit:cover;border-radius:1rem;flex-shrink:0">
+      <div>
+        <div class="label" style="color:var(--pink);font-size:.6rem">Your inspiration</div>
+        <div class="serif" id="inspTitle" style="font-size:1.4rem;margin-top:.2rem"></div>
+        <p class="muted" style="font-size:.85rem;margin-top:.2rem">I&rsquo;ll design something new in this spirit &mdash; just tell me the scope and details below.</p>
+      </div>
+    </div>
+  </div>
+
+  {%- render 'inquiry-form', variant_id: product.selected_or_first_available_variant.id -%}
+</section>
+
+<script>
+(function(){
+  var q = new URLSearchParams(location.search);
+  var piece = q.get('piece'), img = q.get('img'), cat = q.get('cat');
+  if(piece){
+    var pin = document.getElementById('inspPin');
+    document.getElementById('inspTitle').textContent = piece;
+    if(img){
+      var base = {{ 'logo.jpg' | asset_url | json }};
+      document.getElementById('inspImg').src = base.replace('logo.jpg', img);
+    } else {
+      document.getElementById('inspImg').style.display = 'none';
+    }
+    pin.style.display = 'block';
+    var eyebrow = document.getElementById('inqEyebrow');
+    if(eyebrow) eyebrow.textContent = 'Portfolio-inspired project';
+    var hidden = document.getElementById('ccInspPiece');
+    if(hidden) hidden.value = piece;
+    var insp = document.getElementById('ccInspiration');
+    if(insp && !insp.value) insp.value = 'In the spirit of the "' + piece + '" piece from the portfolio.';
+    var occMap = { 'Graduation':'Graduation', 'Sports':'Sports Social Studio', 'Birthday':'Birthday', 'Reveal':'Sweet Beginnings', 'Party':'Birthday', 'Apparel':'Something Else', 'Keepsake':'Something Else' };
+    var svcMap = { 'Graduation':'Celebration Suite', 'Sports':'Player Pride', 'Birthday':'Celebration Suite', 'Reveal':'Celebration Suite', 'Party':'Celebration Suite', 'Apparel':'Custom Apparel', 'Keepsake':'Celebration Suite' };
+    var occ = document.getElementById('ccOccasion'), svc = document.getElementById('ccService');
+    if(cat && occ && occMap[cat]) occ.value = occMap[cat];
+    if(cat && svc && svcMap[cat]) svc.value = svcMap[cat];
+  }
+})();
+</script>
+
+{% schema %}
+{ "name": "Project inquiry", "settings": [] }
+{% endschema %}

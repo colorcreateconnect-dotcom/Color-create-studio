@@ -42,7 +42,7 @@
               </div>
             </div>
           {%- endif -%}
-          <a class="req-sim" href="/pages/start-a-project?piece={{ block.settings.title | url_encode }}">Request something similar &rarr;</a>
+          <a class="req-sim" href="/products/request-something-similar?piece={{ block.settings.title | url_encode }}{% if block.settings.asset != blank %}&img={{ block.settings.asset | url_encode }}{% endif %}&cat={{ block.settings.cat | url_encode }}">Request something similar &rarr;</a>
         </div>
       </article>
     {%- endfor -%}
