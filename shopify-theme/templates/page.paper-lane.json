@@ -28,16 +28,111 @@
     "lanes": {
       "type": "paper-lanes",
       "blocks": {
-        "l1": { "type": "lane", "settings": { "name": "Printed Party Invitations", "base": 21, "extra": 18, "digital": 15, "specs": "5 x 7 flat, 110 lb smooth matte cardstock, single-sided, blank envelopes included", "note": "Blank envelopes included" } },
-        "l2": { "type": "lane", "settings": { "name": "Printed Custom Cards", "base": 18, "extra": 15, "digital": 10, "specs": "5 x 7 flat, 110 lb cardstock, blank envelopes included", "note": "Blank envelopes included" } },
-        "l3": { "type": "lane", "settings": { "name": "Cupcake Toppers", "base": 10, "extra": 8, "digital": 10, "specs": "2 inch rounds, up to 2 cardstock layers, assembled on food-safe picks", "note": "Assembled with food-safe picks" } },
-        "l4": { "type": "lane", "settings": { "name": "Personalized Treat Bags", "base": 16, "extra": 13, "digital": 10, "specs": "5 x 7.5 inch decorated kraft bags, delivered empty", "note": "Decorated empty bags, candy not included" } },
-        "l5": { "type": "lane", "settings": { "name": "Drink Wrappers / Water Bottle Labels", "base": 10, "extra": 8, "digital": 10, "specs": "8.062 x 2.125 inch waterproof labels, fits standard 16.9 oz bottles", "note": "Labels only" } },
-        "l6": { "type": "lane", "settings": { "name": "Personalized Place Cards", "base": 12, "extra": 9, "digital": 10, "specs": "2 x 3.5 inch tent-folded, guest names printed", "note": "Guest names included" } },
-        "l7": { "type": "lane", "settings": { "name": "Favor Tags", "base": 15, "extra": 12, "digital": 10, "specs": "2 x 3.5 inch, hole punched, bakers twine included", "note": "Hole punch and twine included" } },
-        "l8": { "type": "lane", "settings": { "name": "Thank-You Cards", "base": 15, "extra": 12, "digital": 10, "specs": "4.25 x 5.5 folded, 110 lb cardstock, blank envelopes included", "note": "Blank envelopes included" } }
+        "l1": {
+          "type": "lane",
+          "settings": {
+            "name": "Printed Party Invitations",
+            "base": 21,
+            "extra": 18,
+            "digital": 15,
+            "specs": "5 x 7 flat, 110 lb smooth matte cardstock, single-sided, blank envelopes included",
+            "note": "Blank envelopes included",
+            "product": "custom-invitation-design"
+          }
+        },
+        "l2": {
+          "type": "lane",
+          "settings": {
+            "name": "Printed Custom Cards",
+            "base": 18,
+            "extra": 15,
+            "digital": 10,
+            "specs": "5 x 7 flat, 110 lb cardstock, blank envelopes included",
+            "note": "Blank envelopes included"
+          }
+        },
+        "l3": {
+          "type": "lane",
+          "settings": {
+            "name": "Cupcake Toppers",
+            "base": 10,
+            "extra": 8,
+            "digital": 10,
+            "specs": "2 inch rounds, up to 2 cardstock layers, assembled on food-safe picks",
+            "note": "Assembled with food-safe picks",
+            "product": "custom-cupcake-topper"
+          }
+        },
+        "l4": {
+          "type": "lane",
+          "settings": {
+            "name": "Personalized Treat Bags",
+            "base": 16,
+            "extra": 13,
+            "digital": 10,
+            "specs": "5 x 7.5 inch decorated kraft bags, delivered empty",
+            "note": "Decorated empty bags, candy not included",
+            "product": "custom-treat-bag-topper"
+          }
+        },
+        "l5": {
+          "type": "lane",
+          "settings": {
+            "name": "Drink Wrappers / Water Bottle Labels",
+            "base": 10,
+            "extra": 8,
+            "digital": 10,
+            "specs": "8.062 x 2.125 inch waterproof labels, fits standard 16.9 oz bottles",
+            "note": "Labels only",
+            "product": "custom-water-bottle-label"
+          }
+        },
+        "l6": {
+          "type": "lane",
+          "settings": {
+            "name": "Personalized Place Cards",
+            "base": 12,
+            "extra": 9,
+            "digital": 10,
+            "specs": "2 x 3.5 inch tent-folded, guest names printed",
+            "note": "Guest names included"
+          }
+        },
+        "l7": {
+          "type": "lane",
+          "settings": {
+            "name": "Favor Tags",
+            "base": 15,
+            "extra": 12,
+            "digital": 10,
+            "specs": "2 x 3.5 inch, hole punched, bakers twine included",
+            "note": "Hole punch and twine included",
+            "product": "custom-favor-tag"
+          }
+        },
+        "l8": {
+          "type": "lane",
+          "settings": {
+            "name": "Thank-You Cards",
+            "base": 15,
+            "extra": 12,
+            "digital": 10,
+            "specs": "4.25 x 5.5 folded, 110 lb cardstock, blank envelopes included",
+            "note": "Blank envelopes included",
+            "product": "custom-thank-you-card-event"
+          }
+        }
       },
-      "block_order": ["l1", "l2", "l3", "l4", "l5", "l6", "l7", "l8"],
+      "block_order": [
+        "l1",
+        "l2",
+        "l3",
+        "l4",
+        "l5",
+        "l6",
+        "l7",
+        "l8"
+      ],
       "settings": {
         "badge_label": "Set of 12",
         "banner_strong": "Smooth matte cardstock is our included standard.",
@@ -54,5 +149,10 @@
       }
     }
   },
-  "order": ["hero", "shop", "lanes", "quote"]
+  "order": [
+    "hero",
+    "shop",
+    "lanes",
+    "quote"
+  ]
 }
