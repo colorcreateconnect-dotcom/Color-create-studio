@@ -1,11 +1,12 @@
 {%- assign inquiry_product = all_products['custom-project-inquiry'] -%}
+{%- assign shirt_product = all_products['custom-shirt-order'] -%}
 <section class="collection-head band-mix">
   <div class="wrap">
     <span class="eyebrow">Creator Studio / Custom Apparel</span>
     <h1 class="serif mt-1" style="font-size:clamp(2.4rem,5.5vw,4rem);line-height:.98">Custom shirts built <span class="tagline-gradient">around your idea.</span></h1>
     <p class="muted mt-2" style="max-width:42rem;font-size:1.05rem">A blank page becomes the shirt, keepsake, or coordinated order that makes the thought feel real.</p>
     <div class="mt-3" style="display:flex;gap:.75rem;flex-wrap:wrap">
-      <a href="#apparelQuote" class="btn btn-cta">Ready to wear the idea?</a>
+      <a href="#shirtBuilder" class="btn btn-cta">Build your shirt now</a>
       <a href="/collections/customs" class="btn btn-ghost">Shop ready-to-order</a>
     </div>
   </div>
@@ -16,7 +17,7 @@
 <section class="wrap section">
   <span class="eyebrow">Shop the shirt wall</span>
   <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Ready-to-order <span class="tagline-gradient">custom pieces.</span></h2>
-  <p class="muted mt-1" style="max-width:40rem">Every tile is a real product &mdash; open it, pick your size and shirt color, and check out at full price. Need something that isn&rsquo;t on the wall? Start a quote below.</p>
+  <p class="muted mt-1" style="max-width:40rem">Every tile is a real product &mdash; open it, pick your size and shirt color, and check out at full price. Need something that isn&rsquo;t on the wall? Build it below.</p>
   <div class="grid grid-4 mt-3">
     {%- for product in shop_col.products limit: 8 -%}
       {%- render 'product-card', product: product -%}
@@ -26,24 +27,70 @@
 </section>
 {%- endif -%}
 
-<section class="wrap section">
-  <span class="eyebrow">Choose a path</span>
-  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Start with what you already know.</h2>
-  <div class="grid grid-4 mt-3">
-    {%- assign paths = 'Adult Custom Shirt|From $35|One personalized adult shirt with an original custom front graphic.|35;Youth Custom Shirt|From $30|A custom shirt sized for the little person carrying the moment.|30;3D Full-Front Shirt|From $40|Sublimated color and depth on light polyester or high-poly apparel.|40;Group Apparel Package|From $175|Six adult shirts and one shared original design direction.|175' | split: ';' -%}
-    {%- for p in paths -%}
-      {%- assign f = p | split: '|' -%}
-      <div class="card" style="padding:1.25rem">
-        <div class="label" style="font-size:.62rem;color:var(--pink)">{{ f[1] }}</div>
-        <h3 class="serif" style="font-size:1.4rem;margin-top:.5rem">{{ f[0] }}</h3>
-        <p class="muted" style="font-size:.88rem;margin-top:.5rem;line-height:1.6">{{ f[2] }}</p>
-        <button type="button" class="btn btn-ghost mt-2" onclick="ccPick('{{ f[0] }} ({{ f[1] }})','Custom Apparel',{{ f[3] }})">Select this path</button>
-      </div>
-    {%- endfor -%}
-  </div>
-  <p class="muted mt-2" style="font-size:.85rem">Adult size adjustments: 2XL +$2, 3XL +$3, 4XL +$4. Specialty garments, extra placements, hoodies, performance wear, and oversized blanks may cost more and route to a quote.</p>
+<section class="wrap section" id="shirtBuilder">
+  <span class="eyebrow">Build your shirt</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">DTF or 3D. <span class="tagline-gradient">Your idea, a firm price.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">Choose the print, size, and back &mdash; your firm price updates as you go. All shirt orders are <strong>paid in full at checkout</strong>.</p>
 
+  {%- if shirt_product != blank and shirt_product.available -%}
+  <form method="post" action="{{ routes.cart_add_url }}" id="abForm" class="card mt-3" style="padding:1.5rem">
+    <input type="hidden" name="id" value="{{ shirt_product.selected_or_first_available_variant.id }}">
+    <input type="hidden" name="quantity" id="abPayQty" value="35">
+    <input type="hidden" name="return_to" value="/checkout">
+    <input type="hidden" name="properties[Print type]" id="abPType" value="DTF full-color">
+    <input type="hidden" name="properties[Design source]" value="New custom design">
+    <input type="hidden" name="properties[Back graphic]" id="abPBack" value="None">
+    <input type="hidden" name="properties[Order total]" id="abPTotal" value="$35">
+    <div class="f-grid">
+      <div>
+        <span class="f-label" style="margin-top:0">Print type</span>
+        <div style="display:flex;gap:.5rem;margin-top:.4rem">
+          <button type="button" class="chip chip-active" id="abDtf">DTF full-color</button>
+          <button type="button" class="chip" id="ab3d">3D sublimation</button>
+        </div>
+        <p class="muted" id="abTurn" style="font-size:.78rem;margin-top:.4rem">Turnaround: 5-7 business days after approval.</p>
+      </div>
+      <div>
+        <span class="f-label" style="margin-top:0">Size</span>
+        <select class="f-in" id="abSize" name="properties[Size]" style="margin-top:.4rem"><option>Youth S</option><option>Youth M</option><option>Youth L</option><option>Adult S</option><option selected>Adult M</option><option>Adult L</option><option>Adult XL</option><option>2XL</option><option>3XL</option><option>4XL</option></select>
+      </div>
+      <label class="f-label">How many shirts<input class="f-in" id="abQty" name="properties[Shirts]" type="number" min="1" value="1"></label>
+      <label class="f-label">Shirt color<select class="f-in" name="properties[Shirt color]"><option>White</option><option>Black</option><option>Sand / Natural</option><option>Sport Grey</option><option>Navy</option><option>Royal Blue</option><option>Light Blue</option><option>Red</option><option>Pink</option><option>Purple</option><option>Green</option><option>Yellow</option><option>Orange</option><option>Maroon</option><option>Let the studio match my theme</option></select></label>
+    </div>
+
+    <label class="f-label">Your design idea *<textarea class="f-in" rows="2" id="abRef" name="properties[Design idea]" placeholder="Describe the front design: names, dates, colors, theme, and the feeling it should carry."></textarea></label>
+
+    <span class="f-label">Back graphic</span>
+    <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+      <button type="button" class="chip chip-active" id="abBackNone">No back</button>
+      <button type="button" class="chip" id="abBackNN">Name &amp; number</button>
+      <button type="button" class="chip" id="abBackFull">Full custom back</button>
+    </div>
+    <p class="muted" id="abBackCost" style="font-size:.78rem;margin-top:.4rem">Back graphic is free with DTF.</p>
+    <div class="f-grid" id="abNNRow" style="display:none">
+      <label class="f-label">Name for the back *<input class="f-in" id="abPlayerName" name="properties[Back name]"></label>
+      <label class="f-label">Number *<input class="f-in" id="abPlayerNum" name="properties[Back number]"></label>
+    </div>
+    <label class="f-label" id="abBackDescRow" style="display:none">What goes on the back? *<textarea class="f-in" rows="2" id="abBackDesc" name="properties[Back design notes]" placeholder="Theme, wording, images &mdash; the studio may follow up to get it exactly right."></textarea></label>
+
+    <div style="display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:1.25rem;padding-top:1.25rem">
+      <div>
+        <div class="label" style="font-size:.6rem;color:var(--cocoa-soft)">Firm total &mdash; pay now to order</div>
+        <div class="serif" id="abTotal" style="font-size:2.4rem">$35</div>
+      </div>
+      <button type="submit" class="btn btn-cta" id="abSend"><span id="abSendLabel">Add to cart &amp; check out &mdash; $35</span></button>
+    </div>
+  </form>
+  {%- else -%}
   <div class="card mt-3" style="padding:1.5rem">
+    <p class="muted">Shirt ordering is being set up &mdash; <a href="/pages/start-a-project" style="color:var(--pink)">start a project</a> and the studio will price it for you.</p>
+  </div>
+  {%- endif -%}
+  <p class="muted mt-2" style="font-size:.85rem">Bigger idea than one shirt &mdash; extra placements, hoodies, performance wear, coordinated keepsakes? That&rsquo;s a project: <a href="#apparelQuote" style="color:var(--pink)">start the quote below</a>.</p>
+</section>
+
+<section class="wrap section" style="padding-top:0">
+  <div class="card" style="padding:1.5rem">
     <span class="eyebrow">Group Apparel Package</span>
     <h3 class="serif mt-1" style="font-size:1.7rem">Six shirts start the crew.</h3>
     <p class="muted mt-1" style="max-width:38rem">$175 includes one shared design direction plus the first six adult shirts. Add adults or youth in the same coordinated order.</p>
@@ -65,7 +112,7 @@
 
 <section class="wrap section" style="max-width:52rem" id="apparelQuote">
   <h2 class="serif" style="font-size:clamp(1.9rem,4vw,2.6rem)">Start your apparel project.</h2>
-  <p class="muted mt-1">Your selected path is already in the form. Add sizes, wording, and reference photos.</p>
+  <p class="muted mt-1">For group orders and bigger custom builds &mdash; add sizes, wording, and reference photos.</p>
   {%- if inquiry_product != blank and inquiry_product.available -%}
     {%- render 'inquiry-form', variant_id: inquiry_product.selected_or_first_available_variant.id -%}
   {%- else -%}
@@ -77,6 +124,63 @@
 (function(){
   var svc = document.getElementById('ccService');
   if(svc) svc.value = 'Custom Apparel';
+
+  // Apparel shirt builder — new-design engine pricing. Pay in full at checkout.
+  var el = function(id){ return document.getElementById(id); };
+  var abForm = el('abForm');
+  if(!abForm) return;
+  var type = 'dtf', back = 'none';
+  var dtfB = el('abDtf'), tdB = el('ab3d');
+  var bkN = el('abBackNone'), bkNN = el('abBackNN'), bkF = el('abBackFull');
+  function per(){
+    var size = el('abSize').value;
+    var youth = size.indexOf('Youth') === 0;
+    var big2 = size === '2XL', big3 = size === '3XL', big4 = size === '4XL';
+    var p;
+    if(type === 'dtf') p = youth ? 30 : big2 ? 37 : big3 ? 38 : big4 ? 39 : 35;
+    else p = youth ? 40 : (big2 || big3 || big4) ? 60 : 50;
+    if(type === '3d' && back !== 'none') p += 15;
+    return p;
+  }
+  function qty(){ return Math.max(1, parseInt(el('abQty').value || '1', 10)); }
+  function total(){ return per() * qty(); }
+  function sync(){
+    dtfB.classList.toggle('chip-active', type === 'dtf');
+    tdB.classList.toggle('chip-active', type === '3d');
+    bkN.classList.toggle('chip-active', back === 'none');
+    bkNN.classList.toggle('chip-active', back === 'nn');
+    bkF.classList.toggle('chip-active', back === 'full');
+    el('abTurn').textContent = 'Turnaround: ' + (type === '3d' ? '7-10' : '5-7') + ' business days after approval.';
+    el('abBackCost').textContent = type === '3d' ? 'Back graphic adds $15 with 3D sublimation.' : 'Back graphic is free with DTF.';
+    el('abNNRow').style.display = back === 'nn' ? 'grid' : 'none';
+    el('abBackDescRow').style.display = back === 'full' ? 'block' : 'none';
+    el('abPlayerName').disabled = back !== 'nn';
+    el('abPlayerNum').disabled = back !== 'nn';
+    el('abBackDesc').disabled = back !== 'full';
+    el('abTotal').textContent = '$' + total();
+    el('abSendLabel').textContent = 'Add to cart & check out — $' + total();
+  }
+  dtfB.onclick = function(){ type = 'dtf'; sync(); };
+  tdB.onclick = function(){ type = '3d'; sync(); };
+  bkN.onclick = function(){ back = 'none'; sync(); };
+  bkNN.onclick = function(){ back = 'nn'; sync(); };
+  bkF.onclick = function(){ back = 'full'; sync(); };
+  el('abSize').onchange = sync; el('abQty').oninput = sync;
+  abForm.addEventListener('submit', function(e){
+    var bad = null;
+    if(!el('abRef').value.trim()) bad = el('abRef');
+    else if(back === 'nn' && !el('abPlayerName').value.trim()) bad = el('abPlayerName');
+    else if(back === 'nn' && !el('abPlayerNum').value.trim()) bad = el('abPlayerNum');
+    else if(back === 'full' && !el('abBackDesc').value.trim()) bad = el('abBackDesc');
+    if(bad){ e.preventDefault(); bad.focus(); bad.style.borderColor = '#D98A9B'; return; }
+    el('abPayQty').value = total();
+    el('abPType').value = type === 'dtf' ? 'DTF full-color' : '3D sublimation';
+    var backLabel = back === 'none' ? 'None' : (back === 'nn' ? 'Name & number' : 'Full custom back');
+    if(back !== 'none') backLabel += type === '3d' ? ' (+$15)' : ' (free with DTF)';
+    el('abPBack').value = backLabel;
+    el('abPTotal').value = '$' + total() + ' (' + qty() + ' x $' + per() + ')';
+  });
+  sync();
 })();
 function ccPick(text, service, price){
   var t = document.querySelector('[name="properties[Requested pieces]"]');

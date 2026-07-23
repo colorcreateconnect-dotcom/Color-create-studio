@@ -1,8 +1,10 @@
 {%- comment -%} Deep project intake as a product form with file uploads.
-Expects: variant_id (a $1 deposit-unit variant). The hidden quantity field is
-the amount due in dollars: selections under $150 are paid in full, larger
-totals take a 50% deposit, open requests take the $25 project minimum —
-all credited to the final invoice. Submits to cart then straight to checkout. {%- endcomment -%}
+Expects: variant_id (a $1 order-unit variant). The hidden quantity field is
+the amount due in dollars. Deposits apply ONLY to brand-new projects and
+Celebration Suites (under $150 pays in full, $150+ takes a 50% deposit, open
+requests take the $25 minimum — all credited to the final invoice).
+Pay-now orders (paper sets etc.) charge the full price via ccSetPayNow.
+Submits to cart then straight to checkout. {%- endcomment -%}
 <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data" id="inquiryForm">
   <input type="hidden" name="id" value="{{ variant_id }}">
   <input type="hidden" name="return_to" value="/checkout">
@@ -100,6 +102,19 @@ all credited to the final invoice. Submits to cart then straight to checkout. {%
     if(n) n.textContent = full
       ? 'Selections under $150 are paid in full \u2014 your $' + d + ' covers this selection completely. If the studio cannot take your project, it is refunded in full.'
       : '50% of your selected total ($' + p + ') \u2014 credited in full toward your final invoice. Design work begins once your deposit and details are in.';
+  };
+  window.ccSetPayNow = function(fullPrice){
+    var p = Math.max(1, Math.ceil(Number(fullPrice)));
+    var q = document.getElementById('ccDepositQty');
+    var l = document.getElementById('ccDepositLabel');
+    var n = document.getElementById('ccDepositNote');
+    var w = document.getElementById('ccDepositWord');
+    var b = document.getElementById('ccPayBtn');
+    if(q) q.value = p;
+    if(l) l.textContent = '$' + p;
+    if(w) w.textContent = 'Full payment';
+    if(b) b.textContent = 'Submit My Order + Pay Now';
+    if(n) n.textContent = 'Pay now to order \u2014 $' + p + ' is your full price, not a deposit. Production begins after your proof is approved.';
   };
 })();
 </script>
