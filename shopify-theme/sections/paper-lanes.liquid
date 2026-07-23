@@ -1,56 +1,28 @@
-{%- assign inquiry_product = all_products['custom-project-inquiry'] -%}
 {%- assign paper_product = all_products['paper-lane-set-order'] -%}
-<section class="collection-head band-blush">
-  <div class="wrap">
-    <span class="eyebrow">Party details with a point of view</span>
-    <h1 class="serif mt-1" style="font-size:clamp(2.4rem,5.5vw,4rem);line-height:.98">Paper <span class="tagline-gradient">Lane.</span></h1>
-    <p class="muted mt-2" style="max-width:42rem;font-size:1.05rem">One original design can travel across invitations, cards, decor, and table details without losing the thread. Sets of 12, printed or digital &mdash; <strong>pay now to order</strong>.</p>
-    <div class="mt-3" style="display:flex;gap:.75rem;flex-wrap:wrap">
-      <a href="#paperQuote" class="btn btn-cta">Start a custom set</a>
-      <a href="/collections/paper-lane" class="btn btn-ghost">Shop ready-to-order paper</a>
-    </div>
-  </div>
-</section>
-
-{%- assign shop_col = collections['paper-lane'] -%}
-{%- if shop_col != blank and shop_col.products.size > 0 -%}
-<section class="wrap section">
-  <span class="eyebrow">Shop Paper Lane</span>
-  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Ready-to-order <span class="tagline-gradient">paper goods.</span></h2>
-  <p class="muted mt-1" style="max-width:40rem">Every tile is a real product &mdash; pick your set, personalize it, and check out at full price. Want a set designed from scratch? Start below.</p>
-  <div class="grid grid-4 mt-3">
-    {%- for product in shop_col.products limit: 8 -%}
-      {%- render 'product-card', product: product -%}
-    {%- endfor -%}
-  </div>
-  <div class="mt-3"><a href="{{ shop_col.url }}" class="btn btn-ghost">Shop all {{ shop_col.products_count }} paper pieces</a></div>
-</section>
-{%- endif -%}
-
-<section class="wrap section">
+<section class="wrap section" id="paperSets">
+  {%- if section.settings.banner_strong != blank -%}
   <div class="card" style="padding:1.1rem 1.25rem;margin-bottom:1.5rem;border-color:var(--gold-soft);background:#FBF6E9">
-    <strong>Smooth matte cardstock is our included standard.</strong>
-    <span class="muted" style="font-size:.9rem"> Glitter, lamination, layered builds, and specialty papers add $25 per dozen. True metallic foil is quoted.</span>
+    <strong>{{ section.settings.banner_strong }}</strong>
+    <span class="muted" style="font-size:.9rem"> {{ section.settings.banner_note }}</span>
   </div>
+  {%- endif -%}
 
   <div class="grid grid-2">
-    {%- assign lanes = 'Printed Party Invitations|21|18|15|Blank envelopes included|5 x 7 flat, 110 lb smooth matte cardstock, single-sided, blank envelopes included;Printed Custom Cards|18|15|10|Blank envelopes included|5 x 7 flat, 110 lb cardstock, blank envelopes included;Cupcake Toppers|10|8|10|Assembled with food-safe picks|2 inch rounds, up to 2 cardstock layers, assembled on food-safe picks;Personalized Treat Bags|16|13|10|Decorated empty bags, candy not included|5 x 7.5 inch decorated kraft bags, delivered empty;Drink Wrappers / Water Bottle Labels|10|8|10|Labels only|8.062 x 2.125 inch waterproof labels, fits standard 16.9 oz bottles;Personalized Place Cards|12|9|10|Guest names included|2 x 3.5 inch tent-folded, guest names printed;Favor Tags|15|12|10|Hole punch and twine included|2 x 3.5 inch, hole punched, bakers twine included;Thank-You Cards|15|12|10|Blank envelopes included|4.25 x 5.5 folded, 110 lb cardstock, blank envelopes included' | split: ';' -%}
-    {%- for lane in lanes -%}
-      {%- assign f = lane | split: '|' -%}
+    {%- for block in section.blocks -%}
       {%- assign i = forloop.index -%}
-      <div class="card" style="padding:1.25rem;position:relative">
-        <span style="position:absolute;right:.9rem;top:.9rem;transform:rotate(3deg);background:var(--gold-soft);color:var(--cocoa-deep);border-radius:9999px;padding:.25rem .7rem;font-family:var(--font-label);font-size:.6rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase">Set of 12</span>
-        <h3 style="max-width:70%;font-size:1.05rem;font-weight:700">{{ f[0] }}</h3>
-        <div class="serif" style="font-size:1.9rem;margin-top:.6rem">${{ f[1] }}</div>
-        <div class="muted" style="font-size:.82rem">Additional 12, ${{ f[2] }} &middot; Digital file, ${{ f[3] }}</div>
-        <div class="muted" style="margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem;font-size:.8rem;line-height:1.5">{{ f[5] }}</div>
-        <div class="muted" style="font-size:.78rem;margin-top:.3rem"><em>{{ f[4] }}</em></div>
+      <div class="card" style="padding:1.25rem;position:relative" {{ block.shopify_attributes }}>
+        <span style="position:absolute;right:.9rem;top:.9rem;transform:rotate(3deg);background:var(--gold-soft);color:var(--cocoa-deep);border-radius:9999px;padding:.25rem .7rem;font-family:var(--font-label);font-size:.6rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase">{{ section.settings.badge_label | default: 'Set of 12' }}</span>
+        <h3 style="max-width:70%;font-size:1.05rem;font-weight:700">{{ block.settings.name }}</h3>
+        <div class="serif" style="font-size:1.9rem;margin-top:.6rem">${{ block.settings.base }}</div>
+        <div class="muted" style="font-size:.82rem">Additional 12, ${{ block.settings.extra }} &middot; Digital file, ${{ block.settings.digital }}</div>
+        {%- if block.settings.specs != blank -%}<div class="muted" style="margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem;font-size:.8rem;line-height:1.5">{{ block.settings.specs }}</div>{%- endif -%}
+        {%- if block.settings.note != blank -%}<div class="muted" style="font-size:.78rem;margin-top:.3rem"><em>{{ block.settings.note }}</em></div>{%- endif -%}
         <div style="display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap">
-          <select class="f-in" id="plFmt{{ i }}" style="flex:1;min-width:8rem" onchange="plSync({{ i }},{{ f[1] }},{{ f[2] }},{{ f[3] }})">
+          <select class="f-in" id="plFmt{{ i }}" style="flex:1;min-width:8rem" onchange="plSync({{ i }},{{ block.settings.base }},{{ block.settings.extra }},{{ block.settings.digital }})">
             <option value="printed">Printed</option>
             <option value="digital">Digital file</option>
           </select>
-          <select class="f-in" id="plQty{{ i }}" style="flex:1;min-width:7rem" onchange="plSync({{ i }},{{ f[1] }},{{ f[2] }},{{ f[3] }})">
+          <select class="f-in" id="plQty{{ i }}" style="flex:1;min-width:7rem" onchange="plSync({{ i }},{{ block.settings.base }},{{ block.settings.extra }},{{ block.settings.digital }})">
             <option value="12">12 pieces</option>
             <option value="24">24 pieces</option>
             <option value="36">36 pieces</option>
@@ -59,34 +31,20 @@
           </select>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.7rem">
-          <div><span class="muted" style="font-size:.75rem">Your price</span> <strong id="plPrice{{ i }}" style="font-size:1.15rem;color:var(--pink)">${{ f[1] }}</strong></div>
-          <button type="button" class="btn btn-cta" onclick="plOrder({{ i }},'{{ f[0] }}',{{ f[1] }},{{ f[2] }},{{ f[3] }})">Order &mdash; pay now</button>
+          <div><span class="muted" style="font-size:.75rem">Your price</span> <strong id="plPrice{{ i }}" style="font-size:1.15rem;color:var(--pink)">${{ block.settings.base }}</strong></div>
+          <button type="button" class="btn btn-cta" onclick="plOrder({{ i }},'{{ block.settings.name | escape }}',{{ block.settings.base }},{{ block.settings.extra }},{{ block.settings.digital }})">Order &mdash; pay now</button>
         </div>
       </div>
     {%- endfor -%}
   </div>
 
-  <p class="muted mt-3" style="font-size:.9rem">Printed sets: 5-7 business days. Digital files: 3-5 business days, delivered by email after proof approval, personal use only. Need more than 60, foil, or something not listed? That routes to a project quote below.</p>
-</section>
-
-<section class="wrap section" style="max-width:52rem" id="paperQuote">
-  <h2 class="serif" style="font-size:clamp(1.9rem,4vw,2.6rem)">Finish your paper order.</h2>
-  <p class="muted mt-1">Picked a set above? Your details travel with the order and the <strong>full set price is paid now</strong> &mdash; not a deposit. Describing something brand new instead? That starts as a project with the $25 deposit.</p>
-  {%- if inquiry_product != blank and inquiry_product.available -%}
-    {%- render 'inquiry-form', variant_id: inquiry_product.selected_or_first_available_variant.id -%}
-  {%- else -%}
-    <a href="/pages/start-a-project" class="btn btn-cta mt-2">Start a Project</a>
-  {%- endif -%}
+  {%- if section.settings.footnote != blank -%}<p class="muted mt-3" style="font-size:.9rem">{{ section.settings.footnote }}</p>{%- endif -%}
 </section>
 
 <script>
 {%- if paper_product != blank and paper_product.available -%}
 window.ccOrderVariant = {{ paper_product.selected_or_first_available_variant.id }};
 {%- endif -%}
-(function(){
-  var svc = document.getElementById('ccService');
-  if(svc) svc.value = 'Paper Lane';
-})();
 function plCalc(i, base, extra, digital){
   var fmt = document.getElementById('plFmt' + i).value;
   if(fmt === 'digital') return digital;
@@ -105,16 +63,34 @@ function plOrder(i, name, base, extra, digital){
   var desc = name + ' — ' + (fmt === 'digital' ? 'digital file' : qty + ' pieces, printed') + ', $' + price;
   var t = document.querySelector('[name="properties[Requested pieces]"]');
   if(t){ t.value = (t.value ? t.value + '\n' : '') + 'Order: ' + desc; }
-  var svc = document.getElementById('ccService');
-  if(svc) svc.value = 'Paper Lane';
   var idIn = document.querySelector('#inquiryForm [name="id"]');
   if(idIn && window.ccOrderVariant) idIn.value = window.ccOrderVariant;
   if(window.ccSetPayNow) window.ccSetPayNow(price);
-  var q = document.getElementById('paperQuote');
+  var q = document.getElementById('deptQuote');
   if(q) q.scrollIntoView({behavior:'smooth'});
 }
 </script>
 
 {% schema %}
-{ "name": "Paper Lane quote page", "settings": [] }
+{
+  "name": "Paper Lane sets",
+  "settings": [
+    { "type": "text", "id": "badge_label", "label": "Corner badge", "default": "Set of 12" },
+    { "type": "text", "id": "banner_strong", "label": "Banner (bold part)", "default": "Smooth matte cardstock is our included standard." },
+    { "type": "textarea", "id": "banner_note", "label": "Banner note" },
+    { "type": "textarea", "id": "footnote", "label": "Footnote" }
+  ],
+  "blocks": [
+    { "type": "lane", "name": "Paper set", "settings": [
+      { "type": "text", "id": "name", "label": "Set name" },
+      { "type": "number", "id": "base", "label": "Printed set of 12 price", "default": 21 },
+      { "type": "number", "id": "extra", "label": "Each additional 12", "default": 18 },
+      { "type": "number", "id": "digital", "label": "Digital file price", "default": 15 },
+      { "type": "textarea", "id": "specs", "label": "Specs" },
+      { "type": "text", "id": "note", "label": "Italic note" }
+    ]}
+  ],
+  "max_blocks": 12,
+  "presets": [{ "name": "Paper Lane sets" }]
+}
 {% endschema %}

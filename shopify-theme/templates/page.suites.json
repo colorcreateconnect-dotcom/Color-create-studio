@@ -1,6 +1,51 @@
 {
   "sections": {
-    "main": { "type": "suites-quote" }
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Celebration Suites",
+        "heading": "Two or more pieces",
+        "heading_accent": "build a moment.",
+        "accent_style": "gradient",
+        "subheading": "One item shops directly. A suite begins with two distinct coordinated item types — apparel, paper and keepsakes designed as one story around your celebration.",
+        "band": "band-sage",
+        "button_label": "Build your suite",
+        "button_url": "#suitePicker"
+      }
+    },
+    "shop": {
+      "type": "shop-grid",
+      "settings": {
+        "collection": "bundles",
+        "eyebrow": "Shop ready-made bundles",
+        "heading": "Suites already",
+        "heading_accent": "on the shelf.",
+        "intro": "Every tile is a real bundle — open it, personalize it, and check out at full price. Want yours built piece by piece? Keep scrolling.",
+        "limit": 8,
+        "button_label": "Shop all bundles"
+      }
+    },
+    "picker": {
+      "type": "suite-picker",
+      "settings": {
+        "eyebrow": "Build your collection",
+        "heading": "Put the pieces",
+        "heading_accent": "on the table.",
+        "intro": "Tap every piece your moment needs — your selections travel straight into the project form below. Choose at least two item types to make it a suite.",
+        "pieces": "Welcome sign, Invitations, Custom shirt, Cupcake toppers, Cake topper, Water bottle labels, Treat bags, Chip bags, Favor tags, Thank-you cards, Place cards, Banner, Yard sign, Napkins, Candy wraps, Photo keepsake",
+        "step1": "Choose the pieces your moment needs.",
+        "step2": "Send the suite to the studio with your theme and dates.",
+        "step3": "Get one clear quote — approve the proof, then we produce."
+      }
+    },
+    "quote": {
+      "type": "quote-intake",
+      "settings": {
+        "heading": "Send your suite to the studio.",
+        "intro": "Your selected pieces are already in the form. Add the who, the theme, and the feeling. Suites are deposit projects — under $150 pays in full, larger totals take a 50% deposit, credited in full.",
+        "service": "Celebration Suite"
+      }
+    }
   },
-  "order": ["main"]
+  "order": ["hero", "shop", "picker", "quote"]
 }

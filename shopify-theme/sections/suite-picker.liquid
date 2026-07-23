@@ -1,0 +1,66 @@
+<section class="wrap section">
+  {%- if section.settings.eyebrow != blank -%}<span class="eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+  {%- if section.settings.heading != blank -%}
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">{{ section.settings.heading }}{% if section.settings.heading_accent != blank %} <span class="tagline-gradient">{{ section.settings.heading_accent }}</span>{% endif %}</h2>
+  {%- endif -%}
+  {%- if section.settings.intro != blank -%}<p class="muted mt-1" style="max-width:40rem">{{ section.settings.intro }}</p>{%- endif -%}
+
+  <div class="mt-3" id="suitePicker" style="display:flex;flex-wrap:wrap;gap:.6rem">
+    {%- assign pieces = section.settings.pieces | split: ',' -%}
+    {%- for p in pieces -%}
+      {%- assign piece = p | strip -%}
+      {%- if piece != blank -%}<button type="button" class="chip" data-piece="{{ piece | escape }}">{{ piece }}</button>{%- endif -%}
+    {%- endfor -%}
+  </div>
+
+  <div class="card mt-3" style="padding:1.1rem 1.25rem">
+    <span class="label" style="font-size:.6rem;color:var(--pink)">Your suite so far</span>
+    <div id="suiteList" class="muted" style="margin-top:.4rem;font-size:.95rem">Nothing selected yet &mdash; tap the pieces above.</div>
+  </div>
+
+  <div class="grid grid-3 mt-3">
+    {%- if section.settings.step1 != blank -%}<div class="step"><div class="n">01</div><div class="l">{{ section.settings.step1 }}</div></div>{%- endif -%}
+    {%- if section.settings.step2 != blank -%}<div class="step"><div class="n">02</div><div class="l">{{ section.settings.step2 }}</div></div>{%- endif -%}
+    {%- if section.settings.step3 != blank -%}<div class="step"><div class="n">03</div><div class="l">{{ section.settings.step3 }}</div></div>{%- endif -%}
+  </div>
+</section>
+
+<script>
+(function(){
+  var picker = document.getElementById('suitePicker');
+  var list = document.getElementById('suiteList');
+  if(!picker || !list) return;
+  var selected = [];
+  function sync(){
+    list.textContent = selected.length ? selected.join(' · ') : 'Nothing selected yet — tap the pieces above.';
+    var t = document.querySelector('[name="properties[Requested pieces]"]');
+    if(t) t.value = selected.length ? 'Celebration Suite pieces: ' + selected.join(', ') : '';
+  }
+  picker.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-piece]');
+    if(!b) return;
+    var p = b.getAttribute('data-piece');
+    var i = selected.indexOf(p);
+    if(i === -1){ selected.push(p); b.classList.add('chip-active'); }
+    else { selected.splice(i,1); b.classList.remove('chip-active'); }
+    sync();
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Suite picker",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Build your collection" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Put the pieces" },
+    { "type": "text", "id": "heading_accent", "label": "Heading accent (gradient)", "default": "on the table." },
+    { "type": "textarea", "id": "intro", "label": "Intro text" },
+    { "type": "textarea", "id": "pieces", "label": "Pieces (comma-separated)", "default": "Welcome sign, Invitations, Custom shirt, Cupcake toppers, Cake topper, Water bottle labels, Treat bags, Chip bags, Favor tags, Thank-you cards, Place cards, Banner, Yard sign, Napkins, Candy wraps, Photo keepsake" },
+    { "type": "text", "id": "step1", "label": "Step 1", "default": "Choose the pieces your moment needs." },
+    { "type": "text", "id": "step2", "label": "Step 2", "default": "Send the suite to the studio with your theme and dates." },
+    { "type": "text", "id": "step3", "label": "Step 3", "default": "Get one clear quote — approve the proof, then we produce." }
+  ],
+  "presets": [{ "name": "Suite picker" }]
+}
+{% endschema %}

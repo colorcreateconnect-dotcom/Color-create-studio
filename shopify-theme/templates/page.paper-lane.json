@@ -1,6 +1,58 @@
 {
   "sections": {
-    "main": { "type": "paper-lanes" }
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Party details with a point of view",
+        "heading": "Paper",
+        "heading_accent": "Lane.",
+        "accent_style": "gradient",
+        "subheading": "One original design can travel across invitations, cards, decor, and table details without losing the thread. Sets of 12, printed or digital — pay now to order.",
+        "band": "band-blush",
+        "button_label": "Order a set — pay now",
+        "button_url": "#paperSets"
+      }
+    },
+    "shop": {
+      "type": "shop-grid",
+      "settings": {
+        "collection": "paper-lane",
+        "eyebrow": "Shop Paper Lane",
+        "heading": "Ready-to-order",
+        "heading_accent": "paper goods.",
+        "intro": "Every tile is a real product — pick your set, personalize it, and check out at full price. Want a set designed from scratch? Start below.",
+        "limit": 8,
+        "button_label": "Shop all paper pieces"
+      }
+    },
+    "lanes": {
+      "type": "paper-lanes",
+      "blocks": {
+        "l1": { "type": "lane", "settings": { "name": "Printed Party Invitations", "base": 21, "extra": 18, "digital": 15, "specs": "5 x 7 flat, 110 lb smooth matte cardstock, single-sided, blank envelopes included", "note": "Blank envelopes included" } },
+        "l2": { "type": "lane", "settings": { "name": "Printed Custom Cards", "base": 18, "extra": 15, "digital": 10, "specs": "5 x 7 flat, 110 lb cardstock, blank envelopes included", "note": "Blank envelopes included" } },
+        "l3": { "type": "lane", "settings": { "name": "Cupcake Toppers", "base": 10, "extra": 8, "digital": 10, "specs": "2 inch rounds, up to 2 cardstock layers, assembled on food-safe picks", "note": "Assembled with food-safe picks" } },
+        "l4": { "type": "lane", "settings": { "name": "Personalized Treat Bags", "base": 16, "extra": 13, "digital": 10, "specs": "5 x 7.5 inch decorated kraft bags, delivered empty", "note": "Decorated empty bags, candy not included" } },
+        "l5": { "type": "lane", "settings": { "name": "Drink Wrappers / Water Bottle Labels", "base": 10, "extra": 8, "digital": 10, "specs": "8.062 x 2.125 inch waterproof labels, fits standard 16.9 oz bottles", "note": "Labels only" } },
+        "l6": { "type": "lane", "settings": { "name": "Personalized Place Cards", "base": 12, "extra": 9, "digital": 10, "specs": "2 x 3.5 inch tent-folded, guest names printed", "note": "Guest names included" } },
+        "l7": { "type": "lane", "settings": { "name": "Favor Tags", "base": 15, "extra": 12, "digital": 10, "specs": "2 x 3.5 inch, hole punched, bakers twine included", "note": "Hole punch and twine included" } },
+        "l8": { "type": "lane", "settings": { "name": "Thank-You Cards", "base": 15, "extra": 12, "digital": 10, "specs": "4.25 x 5.5 folded, 110 lb cardstock, blank envelopes included", "note": "Blank envelopes included" } }
+      },
+      "block_order": ["l1", "l2", "l3", "l4", "l5", "l6", "l7", "l8"],
+      "settings": {
+        "badge_label": "Set of 12",
+        "banner_strong": "Smooth matte cardstock is our included standard.",
+        "banner_note": "Glitter, lamination, layered builds, and specialty papers add $25 per dozen. True metallic foil is quoted.",
+        "footnote": "Printed sets: 5-7 business days. Digital files: 3-5 business days, delivered by email after proof approval, personal use only. Need more than 60, foil, or something not listed? That routes to a project quote below."
+      }
+    },
+    "quote": {
+      "type": "quote-intake",
+      "settings": {
+        "heading": "Finish your paper order.",
+        "intro": "Picked a set above? Your details travel with the order and the full set price is paid now — not a deposit. Describing something brand new instead? That starts as a project with the $25 deposit.",
+        "service": "Paper Lane"
+      }
+    }
   },
-  "order": ["main"]
+  "order": ["hero", "shop", "lanes", "quote"]
 }
