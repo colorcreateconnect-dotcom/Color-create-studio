@@ -1,0 +1,37 @@
+<section class="collection-head band-mix">
+  <div class="wrap">
+    <span class="eyebrow">{{ section.settings.eyebrow }}</span>
+    <h1 class="serif mt-1" style="font-size:clamp(2.4rem,5vw,3.6rem)">{{ section.settings.heading }}</h1>
+    <p class="muted mt-2" style="max-width:42rem">{{ section.settings.intro }}</p>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="grid grid-2">
+    {%- for block in section.blocks -%}
+      <div class="card" style="padding:1.5rem" {{ block.shopify_attributes }}>
+        <h3 class="serif" style="font-size:1.5rem">{{ block.settings.title }}</h3>
+        <p class="muted mt-1" style="font-size:.92rem;line-height:1.7">{{ block.settings.text }}</p>
+      </div>
+    {%- endfor -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Policies",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Clear boundaries make room for better creativity" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Studio Policies" },
+    { "type": "textarea", "id": "intro", "label": "Intro", "default": "These summaries govern the storefront. Full legal pages will be connected before the final production launch." }
+  ],
+  "blocks": [
+    { "type": "policy", "name": "Policy", "settings": [
+      { "type": "text", "id": "title", "label": "Title" },
+      { "type": "textarea", "id": "text", "label": "Text" }
+    ]}
+  ],
+  "max_blocks": 12,
+  "presets": [{ "name": "Policies" }]
+}
+{% endschema %}

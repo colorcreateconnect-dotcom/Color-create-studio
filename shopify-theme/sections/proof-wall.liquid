@@ -6,7 +6,7 @@
         <h2 class="serif mt-2" style="font-size:clamp(2rem,4.5vw,3rem)">{{ section.settings.heading }} <span class="tagline-gradient">{{ section.settings.heading_accent }}</span></h2>
       </div>
       {%- if section.settings.link_label != blank -%}
-        <a href="{{ section.settings.link_url | default: '/collections/all' }}" class="btn btn-ghost">{{ section.settings.link_label }} &rarr;</a>
+        <a href="{{ section.settings.link_url | default: '/pages/portfolio' }}" class="btn btn-ghost">{{ section.settings.link_label }} &rarr;</a>
       {%- endif -%}
     </div>
 

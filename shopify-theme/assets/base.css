@@ -287,6 +287,28 @@ h1,h2,h3,h4{margin:0;line-height:1.05}
 @media(min-width:1024px){.manifesto .grid2{grid-template-columns:repeat(2,1fr)}}
 .manifesto p{color:var(--cocoa-soft)}
 
+/* ---- Stadium band (Sports dept — chrome-and-blue) ---- */
+.band-stadium{background:radial-gradient(circle at 85% 0%,rgba(96,165,250,.28),transparent 40%),linear-gradient(145deg,#0B1B33,#12325B 55%,#1E4FA0);color:#fff}
+.band-stadium .eyebrow{color:#93C5FD}
+.band-stadium .eyebrow::before{background:#60A5FA}
+.band-stadium .muted{color:#B9C9E8}
+.chrome-text{background:linear-gradient(180deg,#fff 0%,#bfdbfe 38%,#64748b 58%,#f8fafc 86%);-webkit-background-clip:text;background-clip:text;color:transparent;font-style:normal}
+
+/* ---- Portfolio ---- */
+.pf-story{margin-top:.5rem;font-size:.9rem;line-height:1.55;color:var(--cocoa-soft)}
+.badge-example{position:absolute;right:.75rem;top:.75rem;z-index:2;background:rgba(59,42,36,.9);color:var(--cream);border-radius:9999px;padding:.28rem .7rem;font-family:var(--font-label);font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.req-sim{margin-top:1rem;display:inline-flex;align-items:center;gap:.4rem;font-family:var(--font-label);font-weight:700;font-size:.85rem;color:var(--pink)}
+.pf-hidden{display:none!important}
+
+/* ---- Intake form ---- */
+.f-label{display:block;margin-top:1rem;font-weight:700;font-size:.9rem}
+.f-in{width:100%;margin-top:.4rem;border:1px solid var(--line-strong);border-radius:1rem;padding:.8rem 1rem;background:var(--cream-paper);font:inherit;color:inherit}
+.f-in:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,162,74,.2)}
+.f-grid{display:grid;gap:0 1.25rem;grid-template-columns:1fr}
+@media(min-width:640px){.f-grid{grid-template-columns:1fr 1fr}}
+.f-check{display:flex;gap:.7rem;align-items:flex-start;border:1px solid var(--line);border-radius:1rem;padding:.9rem 1rem;margin-top:.75rem;font-size:.9rem;background:var(--cream-paper)}
+.f-check input{width:1.15rem;height:1.15rem;margin-top:.15rem;flex-shrink:0}
+
 /* ---- Reduced motion ---- */
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}

@@ -1,0 +1,292 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-portfolio",
+      "blocks": {
+        "p1": {
+          "type": "piece",
+          "settings": {
+            "asset": "grad-jayvon-suite.jpg",
+            "type": "Graduation",
+            "cat": "Graduation",
+            "title": "Jayvon Jackson · Full Ride",
+            "story": "The studio’s showpiece graduation suite — Class of 2026, Track & Field. Banner, welcome sign, apparel, stole, cap, labels, favors and keepsakes, all one story.",
+            "deliv": "Apparel, Stole, Cap, Sign, Keepsakes"
+          }
+        },
+        "p2": {
+          "type": "piece",
+          "settings": {
+            "asset": "grad-jayvon-apparel.jpg",
+            "type": "Graduation",
+            "cat": "Graduation",
+            "title": "Full Ride · Wearables",
+            "story": "The apparel drop from the Full Ride suite — photo-real tee, matching stole and bedazzled grad cap, built around the athlete.",
+            "deliv": "Tee, Stole, Grad cap"
+          }
+        },
+        "p3": {
+          "type": "piece",
+          "settings": {
+            "asset": "grad-mekhi-graduate.jpg",
+            "type": "Graduation",
+            "cat": "Graduation",
+            "title": "Graduate Spotlight",
+            "story": "A bold grad announcement built around the moment — framed to keep.",
+            "deliv": "Announcement, Print + digital"
+          }
+        },
+        "p4": {
+          "type": "piece",
+          "settings": {
+            "asset": "grad-mekhi-airforce.jpg",
+            "type": "Graduation",
+            "cat": "Graduation",
+            "title": "Next Chapter · Service",
+            "story": "A milestone design honoring the leap from cap and gown to service — proud, clean, personal.",
+            "deliv": "Keepsake, Announcement"
+          }
+        },
+        "p5": {
+          "type": "piece",
+          "settings": {
+            "asset": "sports-jaylen-card.jpg",
+            "type": "Sports",
+            "cat": "Sports",
+            "title": "Jaylen #24 · Meet the Team",
+            "story": "Magazine-style spotlight card for the Atlanta Spartans Hit Squad — metallic type, stadium lights, big-hits energy.",
+            "deliv": "Player card, Team look"
+          }
+        },
+        "p6": {
+          "type": "piece",
+          "settings": {
+            "asset": "sports-jaylen-yardsign.jpg",
+            "type": "Sports",
+            "cat": "Sports",
+            "title": "Spartans Yard Sign",
+            "story": "Weatherproof front-yard bragging rights — the same Hit Squad look, staked and game-ready.",
+            "deliv": "Yard sign, Weatherproof"
+          }
+        },
+        "p7": {
+          "type": "piece",
+          "settings": {
+            "asset": "sports-family-tees.jpg",
+            "type": "Sports",
+            "cat": "Sports",
+            "title": "Hit Squad Group Tees",
+            "story": "Matching Atlanta Spartans supporter tees for the whole cheering section — one crest, the entire family loud.",
+            "deliv": "Group tees, Crest"
+          }
+        },
+        "p8": {
+          "type": "piece",
+          "settings": {
+            "asset": "sports-magnet-badge.jpg",
+            "type": "Sports",
+            "cat": "Sports",
+            "title": "Spartans Keepsakes",
+            "story": "Fridge magnets, contour cut-outs and game-day face fans — the little keepsakes that make the season last.",
+            "deliv": "Magnet, Fan, Keepsake"
+          }
+        },
+        "p9": {
+          "type": "piece",
+          "settings": {
+            "asset": "birthday-brianna-brunch.jpg",
+            "type": "Birthday",
+            "cat": "Birthday",
+            "title": "Birthday Brunch · 33",
+            "story": "Blush-and-burgundy vintage suite — welcome sign, invitation, toppers, labels, favor tags and napkins, all one look.",
+            "deliv": "Sign, Invite, Toppers, Labels, Favors"
+          }
+        },
+        "p10": {
+          "type": "piece",
+          "settings": {
+            "asset": "birthday-sweet16.jpg",
+            "type": "Milestone",
+            "cat": "Birthday",
+            "title": "Sweet 16",
+            "story": "A glowing sweet-sixteen invitation suite designed to feel like the night itself.",
+            "deliv": "Invitation, Signage"
+          }
+        },
+        "p11": {
+          "type": "piece",
+          "settings": {
+            "asset": "reveal-babybee-invite.jpg",
+            "type": "Sweet Beginnings",
+            "cat": "Reveal",
+            "title": "What Will Baby Bee?",
+            "story": "Honey-and-daisy gender reveal — warm, sweet and buzzing with charm across the whole set.",
+            "deliv": "Reveal invite, Favors, Labels"
+          }
+        },
+        "p12": {
+          "type": "piece",
+          "settings": {
+            "asset": "reveal-babybee-suite.jpg",
+            "type": "Sweet Beginnings",
+            "cat": "Reveal",
+            "title": "Baby Bee · Full Suite",
+            "story": "The coordinated honey-and-daisy paper suite — welcome sign, invitation, water labels, chip bags, toppers, honey-jar favors and candy wraps.",
+            "deliv": "Sign, Invite, Wraps, Toppers, Favors"
+          }
+        },
+        "p13": {
+          "type": "piece",
+          "settings": {
+            "asset": "party-dukes-boots.jpg",
+            "type": "Theme Party",
+            "cat": "Party",
+            "title": "Dukes & Boots Hoedown",
+            "story": "A playful wild-west theme carried from invitation to chip bags, candy bars, toppers and favor wraps.",
+            "deliv": "Invite, Wraps, Toppers"
+          }
+        },
+        "p14": {
+          "type": "piece",
+          "settings": {
+            "asset": "party-lailah-garden.jpg",
+            "type": "Theme Party",
+            "cat": "Party",
+            "title": "Garden Party · Lailah",
+            "story": "A soft wildflower theme — invitation and envelope set, thank-you cards, tags and coordinated decor.",
+            "deliv": "Invite, Cards, Tags"
+          }
+        },
+        "p15": {
+          "type": "piece",
+          "settings": {
+            "asset": "party-nineties-toppers.jpg",
+            "type": "Party Decor",
+            "cat": "Party",
+            "title": "Ninety’s Baby Decor",
+            "story": "Black-and-gold balloon theme — cupcake toppers, bottle labels and coordinated party decor.",
+            "deliv": "Toppers, Labels"
+          }
+        },
+        "p16": {
+          "type": "piece",
+          "settings": {
+            "asset": "example-pawty.jpg",
+            "type": "Theme Party",
+            "cat": "Party",
+            "title": "Slippery Paw-ty · Turning 4",
+            "story": "A splash-day 4th birthday suite — invitation, welcome sign, cake topper, labels, plates, napkins and favors. Custom work shown as a portfolio example only.",
+            "deliv": "Invite, Sign, Toppers, Labels, Favors",
+            "example": true
+          }
+        },
+        "p17": {
+          "type": "piece",
+          "settings": {
+            "asset": "apparel-davinci.jpg",
+            "type": "Streetwear",
+            "cat": "Apparel",
+            "title": "DaVinci Diamond",
+            "story": "A poster-style streetwear showpiece — vintage record-cover energy, halftone grit and full-length attitude. A one-of-one hero graphic.",
+            "deliv": "Poster art, Streetwear"
+          }
+        },
+        "p18": {
+          "type": "piece",
+          "settings": {
+            "asset": "apparel-fatherhood.jpg",
+            "type": "Apparel",
+            "cat": "Apparel",
+            "title": "Fatherhood Dept.",
+            "story": "A dad-pride patch tee — hammer & heart, “Pressure · Patience · Protection · Purpose. Daily operations since 2025.”",
+            "deliv": "Back patch, Shirt"
+          }
+        },
+        "p19": {
+          "type": "piece",
+          "settings": {
+            "asset": "apparel-daddyu.jpg",
+            "type": "Apparel",
+            "cat": "Apparel",
+            "title": "Daddy University",
+            "story": "A crest-style dad tee — “Provide · Protect · Presence. Major: Dad Jokes, Grilling, Sacrificing.” Front crest, full back.",
+            "deliv": "Crest, Front + back"
+          }
+        },
+        "p20": {
+          "type": "piece",
+          "settings": {
+            "asset": "apparel-chiefy.jpg",
+            "type": "Apparel",
+            "cat": "Apparel",
+            "title": "Chiefy Chief",
+            "story": "A personalized name-patch tee — “Chiefy Chief of Baby Chief Brad & Tahj.” Custom to the family, every time.",
+            "deliv": "Name patch, Shirt"
+          }
+        },
+        "p21": {
+          "type": "piece",
+          "settings": {
+            "asset": "apparel-topshelf.jpg",
+            "type": "Streetwear",
+            "cat": "Apparel",
+            "title": "Top Shelf Behavior",
+            "story": "A seasonal streetwear drop — “Red, White & Blue Agave.” Hand-drawn, sparkler-lit, cookout-ready.",
+            "deliv": "Graphic tee, Seasonal drop"
+          }
+        },
+        "p22": {
+          "type": "piece",
+          "settings": {
+            "asset": "apparel-popsicles.jpg",
+            "type": "Streetwear",
+            "cat": "Apparel",
+            "title": "Popsicles & Pyrotechnics",
+            "story": "A retro summer graphic — firecracker popsicle, fireworks and a bubble banner. Bold, nostalgic, seasonal.",
+            "deliv": "Graphic tee, Seasonal drop"
+          }
+        },
+        "p23": {
+          "type": "piece",
+          "settings": {
+            "asset": "keepsake-heyboo.jpg",
+            "type": "Keepsake",
+            "cat": "Keepsake",
+            "title": "Hey Boo!",
+            "story": "A playful seasonal keepsake graphic — two friends toasting the night. Retro-groovy and fun.",
+            "deliv": "Seasonal art, Keepsake"
+          }
+        }
+      },
+      "block_order": [
+        "p1",
+        "p2",
+        "p3",
+        "p4",
+        "p5",
+        "p6",
+        "p7",
+        "p8",
+        "p9",
+        "p10",
+        "p11",
+        "p12",
+        "p13",
+        "p14",
+        "p15",
+        "p16",
+        "p17",
+        "p18",
+        "p19",
+        "p20",
+        "p21",
+        "p22",
+        "p23"
+      ],
+      "settings": {}
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

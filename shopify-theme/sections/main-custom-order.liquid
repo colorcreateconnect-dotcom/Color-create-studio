@@ -1,0 +1,76 @@
+<section class="collection-head band-blush">
+  <div class="wrap">
+    <span class="eyebrow">Custom work, clearly scoped</span>
+    <h1 class="serif mt-1" style="font-size:clamp(2.2rem,5vw,3.4rem)">Tell me the moment. <span class="tagline-gradient">I&rsquo;ll help shape the right build.</span></h1>
+    <p class="muted mt-2" style="max-width:42rem">Submitting does not charge you or confirm an order. It gives the studio enough detail to recommend the right path and price. You&rsquo;ll receive a response within 1&ndash;2 business days.</p>
+  </div>
+</section>
+
+<section class="wrap section" style="max-width:52rem">
+  {%- if page.content != blank -%}<div class="product-desc" style="margin-bottom:1.5rem">{{ page.content }}</div>{%- endif -%}
+
+  {%- form 'contact' -%}
+    {%- if form.posted_successfully? -%}
+      <div class="card" style="padding:1.5rem;margin-bottom:1.5rem"><strong>Your project is in the studio.</strong> I received the inquiry and will review the best build, scope, and price within 1 to 2 business days.</div>
+    {%- endif -%}
+    {%- if form.errors -%}
+      <div class="card" style="padding:1.25rem;margin-bottom:1.5rem;border-color:var(--blush-deep)">Please check the required fields and try again.</div>
+    {%- endif -%}
+
+    <h2 class="serif" style="font-size:1.5rem">Who am I designing for?</h2>
+    <div class="f-grid">
+      <label class="f-label">Your name *<input class="f-in" name="contact[name]" required></label>
+      <label class="f-label">Email *<input class="f-in" type="email" name="contact[email]" required></label>
+      <label class="f-label">Phone, optional<input class="f-in" name="contact[phone]"></label>
+      <label class="f-label">Preferred contact<select class="f-in" name="contact[preferred_contact]"><option>Email</option><option>Phone</option><option>Text</option></select></label>
+    </div>
+
+    <h2 class="serif mt-4" style="font-size:1.5rem">What are we creating together?</h2>
+    <div class="f-grid">
+      <label class="f-label">The moment<select class="f-in" name="contact[occasion]"><option>Graduation</option><option>Sweet Beginnings</option><option>Bridal Bliss</option><option>Birthday</option><option>Group Gatherings</option><option>Sports Social Studio</option><option>Business</option><option>Something Else</option></select></label>
+      <label class="f-label">Closest service or collection<select class="f-in" name="contact[service]"><option>Help me choose</option><option>Celebration Suite</option><option>Group Gatherings</option><option>Custom Apparel</option><option>Paper Lane</option><option>Player Pride</option><option>Team Identity</option><option>Full Team Takeover</option><option>Something beyond standard scope</option></select></label>
+      <label class="f-label">Event date<input class="f-in" type="date" name="contact[event_date]"></label>
+      <label class="f-label">Needed-by date *<input class="f-in" type="date" name="contact[needed_by]" required></label>
+      <label class="f-label">Who is this for, or how many people?<input class="f-in" name="contact[audience]"></label>
+      <label class="f-label">Approximate overall quantities<input class="f-in" name="contact[quantities]" placeholder="Approximate totals are okay"></label>
+    </div>
+    <label class="f-label">Requested pieces *<textarea class="f-in" rows="6" name="contact[pieces]" placeholder="List the pieces you believe the moment needs. It is okay if you need help choosing." required></textarea></label>
+
+    <h2 class="serif mt-4" style="font-size:1.5rem">What should this feel like?</h2>
+    <div class="f-grid">
+      <label class="f-label">Theme and style direction *<textarea class="f-in" rows="3" name="contact[theme_style]" placeholder="Retro, soft luxury, bold stadium, storybook, minimal..." required></textarea></label>
+      <label class="f-label">Colors<textarea class="f-in" rows="3" name="contact[colors]" placeholder="Specific colors, team colors, or CCC's choice."></textarea></label>
+      <label class="f-label">Names and dates<textarea class="f-in" rows="3" name="contact[names_dates]"></textarea></label>
+      <label class="f-label">Exact wording or important phrases<textarea class="f-in" rows="3" name="contact[wording]"></textarea></label>
+      <label class="f-label">Inspiration and meaningful details<textarea class="f-in" rows="3" name="contact[inspiration]" id="ccInspiration"></textarea></label>
+      <label class="f-label">What should be avoided?<textarea class="f-in" rows="3" name="contact[avoid]"></textarea></label>
+    </div>
+
+    <h2 class="serif mt-4" style="font-size:1.5rem">The practical</h2>
+    <div class="f-grid">
+      <label class="f-label">Fulfillment<select class="f-in" name="contact[fulfillment]"><option>Not sure</option><option>Pickup</option><option>Shipping</option><option>Digital delivery</option></select></label>
+      <label class="f-label">Budget range<select class="f-in" name="contact[budget]"><option>Help me determine it</option><option>Under $150</option><option>$150 to $299</option><option>$300 to $499</option><option>$500 to $999</option><option>$1,000+</option></select></label>
+    </div>
+
+    <div class="mt-3">
+      <label class="f-check"><input type="checkbox" required> I understand quoted work requires the applicable deposit or payment before design work begins.</label>
+      <label class="f-check"><input type="checkbox" required> I understand production begins only after complete information and final proof approval. Two design rounds are included.</label>
+      <label class="f-check"><input type="checkbox" required> I understand and acknowledge the Photo Integrity Promise. People in submitted photos will stay recognizable.</label>
+    </div>
+
+    <button type="submit" class="btn btn-cta btn-block mt-3">Send My Project to the Studio</button>
+    <p class="muted mt-2" style="font-size:.82rem">Have reference photos or logos? Reply to the studio&rsquo;s response email with attachments &mdash; and only send images you have permission to use.</p>
+  {%- endform -%}
+</section>
+
+<script>
+(function(){
+  var piece = new URLSearchParams(location.search).get('piece');
+  var field = document.getElementById('ccInspiration');
+  if (piece && field && !field.value) field.value = 'In the spirit of the "' + piece + '" piece from the portfolio.';
+})();
+</script>
+
+{% schema %}
+{ "name": "Start a Project", "settings": [] }
+{% endschema %}

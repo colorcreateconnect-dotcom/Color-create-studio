@@ -1,3 +1,4 @@
+{%- if section.settings.show_head -%}
 <div class="collection-head {{ section.settings.band }}">
   <div class="wrap">
     <span class="eyebrow">Collection</span>
@@ -7,6 +8,7 @@
     {%- endif -%}
   </div>
 </div>
+{%- endif -%}
 
 <div class="wrap section">
   {%- paginate collection.products by 24 -%}
@@ -37,6 +39,7 @@
 {
   "name": "Collection",
   "settings": [
+    { "type": "checkbox", "id": "show_head", "label": "Show collection header", "default": true },
     { "type": "select", "id": "band", "label": "Header band", "options": [
       { "value": "band-mix", "label": "Mixed" },
       { "value": "band-sage", "label": "Sage" },

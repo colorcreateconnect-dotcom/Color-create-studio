@@ -1,0 +1,44 @@
+<section class="collection-head {{ section.settings.band }}">
+  <div class="wrap">
+    {%- if section.settings.eyebrow != blank -%}<span class="eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+    <h1 class="serif mt-1" style="font-size:clamp(2.4rem,5.5vw,4rem);line-height:.98">
+      {{ section.settings.heading }}
+      {%- if section.settings.heading_accent != blank -%}
+        {%- if section.settings.accent_style == 'chrome' -%}
+          <span class="chrome-text">{{ section.settings.heading_accent }}</span>
+        {%- else -%}
+          <span class="tagline-gradient">{{ section.settings.heading_accent }}</span>
+        {%- endif -%}
+      {%- endif -%}
+    </h1>
+    {%- if section.settings.subheading != blank -%}<p class="muted mt-2" style="max-width:42rem;font-size:1.05rem">{{ section.settings.subheading }}</p>{%- endif -%}
+    {%- if section.settings.button_label != blank -%}
+      <div class="mt-3"><a href="{{ section.settings.button_url | default: '/pages/start-a-project' }}" class="btn btn-cta">{{ section.settings.button_label }}</a></div>
+    {%- endif -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Department hero",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
+    { "type": "text", "id": "heading", "label": "Heading" },
+    { "type": "text", "id": "heading_accent", "label": "Heading accent" },
+    { "type": "select", "id": "accent_style", "label": "Accent style", "default": "gradient", "options": [
+      { "value": "gradient", "label": "Pink→purple gradient" },
+      { "value": "chrome", "label": "Stadium chrome" }
+    ]},
+    { "type": "textarea", "id": "subheading", "label": "Subheading" },
+    { "type": "select", "id": "band", "label": "Band", "default": "band-mix", "options": [
+      { "value": "band-mix", "label": "Mixed tint" },
+      { "value": "band-sage", "label": "Sage" },
+      { "value": "band-blush", "label": "Blush" },
+      { "value": "band-stadium", "label": "Stadium (dark blue)" }
+    ]},
+    { "type": "text", "id": "button_label", "label": "Button label" },
+    { "type": "url", "id": "button_url", "label": "Button link" }
+  ],
+  "presets": [{ "name": "Department hero" }]
+}
+{% endschema %}

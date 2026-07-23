@@ -1,0 +1,19 @@
+{
+  "sections": {
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Creator Studio / Custom Apparel",
+        "heading": "Custom shirts built",
+        "heading_accent": "around your idea.",
+        "accent_style": "gradient",
+        "band": "band-mix",
+        "subheading": "A blank page becomes the shirt, keepsake, or coordinated order that makes the thought feel real. Design files or printed and shipped.",
+        "button_label": "Start a custom project",
+        "button_url": "/pages/start-a-project"
+      }
+    },
+    "main": { "type": "main-collection", "settings": { "show_head": false } }
+  },
+  "order": ["hero", "main"]
+}

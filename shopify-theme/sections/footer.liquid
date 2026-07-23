@@ -12,12 +12,13 @@
           {%- if section.settings.menu.links.size > 0 -%}
             {%- for link in section.settings.menu.links -%}<li><a href="{{ link.url }}">{{ link.title }}</a></li>{%- endfor -%}
           {%- else -%}
-            <li><a href="/collections/all">Shop</a></li>
-            <li><a href="/collections/all">Paper Lane</a></li>
-            <li><a href="/collections/all">Sports</a></li>
-            <li><a href="/collections/all">Celebration Suites</a></li>
-            <li><a href="/collections/all">Portfolio</a></li>
-            <li><a href="/collections/customs">Start a Project</a></li>
+            <li><a href="/collections/customs">Shop</a></li>
+            <li><a href="/collections/paper-lane">Paper Lane</a></li>
+            <li><a href="/collections/sports">Sports</a></li>
+            <li><a href="/collections/bundles">Celebration Suites</a></li>
+            <li><a href="/pages/portfolio">Portfolio</a></li>
+            <li><a href="/pages/start-a-project">Start a Project</a></li>
+            <li><a href="/pages/studio-policies">Policies</a></li>
           {%- endif -%}
         </ul>
       </div>

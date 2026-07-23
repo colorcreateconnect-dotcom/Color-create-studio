@@ -16,7 +16,7 @@
           <a href="{{ section.settings.button_url | default: routes.all_products_collection_url }}" class="btn btn-cta">{{ section.settings.button_label }} &rarr;</a>
         {%- endif -%}
         {%- if section.settings.button2_label != blank -%}
-          <a href="{{ section.settings.button2_url | default: '/collections/customs' }}" class="btn btn-ghost">{{ section.settings.button2_label }}</a>
+          <a href="{{ section.settings.button2_url | default: '/pages/start-a-project' }}" class="btn btn-ghost">{{ section.settings.button2_label }}</a>
         {%- endif -%}
       </div>
       {%- if section.settings.fact_1 != blank or section.settings.fact_2 != blank -%}
