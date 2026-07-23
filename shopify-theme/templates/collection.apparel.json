@@ -16,7 +16,8 @@
     "main": {
       "type": "main-collection",
       "settings": {
-        "show_head": false
+        "show_head": false,
+        "band": "band-blush"
       }
     }
   },
