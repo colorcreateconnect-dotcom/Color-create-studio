@@ -1,0 +1,27 @@
+<section class="manifesto">
+  <div class="wrap section">
+    <div class="grid2">
+      <div>
+        {%- if section.settings.eyebrow != blank -%}<span class="label" style="color:var(--gold-soft)">{{ section.settings.eyebrow }}</span>{%- endif -%}
+        <h2 class="serif mt-2" style="font-size:clamp(2rem,4vw,2.8rem);color:#fff">{{ section.settings.heading }}</h2>
+      </div>
+      <div>
+        {%- if section.settings.body_1 != blank -%}<p style="line-height:1.7">{{ section.settings.body_1 }}</p>{%- endif -%}
+        {%- if section.settings.body_2 != blank -%}<p class="mt-2" style="line-height:1.7">{{ section.settings.body_2 }}</p>{%- endif -%}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Manifesto",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Anyone can use AI" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "We bring the whole creative skill set." },
+    { "type": "textarea", "id": "body_1", "label": "Paragraph 1", "default": "Canva, Procreate, AI, illustration, photo editing, and hands-on production are tools in the process. They are not substitutes for the idea, the eye, or the skill behind the design." },
+    { "type": "textarea", "id": "body_2", "label": "Paragraph 2", "default": "Every custom order begins with your information, not a template field." }
+  ],
+  "presets": [{ "name": "Manifesto" }]
+}
+{% endschema %}

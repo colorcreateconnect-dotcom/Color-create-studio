@@ -1,0 +1,68 @@
+<section class="section">
+  <div class="wrap">
+    <div style="max-width:48rem;margin-bottom:2.25rem">
+      {%- if section.settings.eyebrow != blank -%}<span class="eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+      <h2 class="serif mt-2" style="font-size:clamp(2rem,4.5vw,3rem)">{{ section.settings.heading }}</h2>
+      {%- if section.settings.subheading != blank -%}<p class="muted mt-2" style="font-size:1.05rem">{{ section.settings.subheading }}</p>{%- endif -%}
+    </div>
+
+    <div class="doors">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          case block.settings.style
+            when 'grad'   assign bg = 'linear-gradient(135deg,#181514,#3B2A24 45%,#574010)' assign fg = '#ffffff'
+            when 'sweet'  assign bg = 'linear-gradient(135deg,#fff8e9,#f4e7d2 45%,#d8b98d)' assign fg = '#3B2A24'
+            when 'bridal' assign bg = 'linear-gradient(135deg,#ffffff,#f6eee5 45%,#c9a66f)' assign fg = '#3B2A24'
+            when 'wish'   assign bg = 'linear-gradient(135deg,#3d271d,#8b5b38 45%,#e5b768)' assign fg = '#ffffff'
+            when 'func'   assign bg = 'linear-gradient(135deg,#eee5d7,#d9c5a8 45%,#8c6c47)' assign fg = '#181514'
+            when 'sport'  assign bg = 'linear-gradient(135deg,#fffaf0,#eee5d7 45%,#b9c9e8)' assign fg = '#181514'
+            else          assign bg = 'linear-gradient(135deg,#181514,#3B2A24 45%,#574010)' assign fg = '#ffffff'
+          endcase
+        -%}
+        <a href="{{ block.settings.link | default: '/collections/all' }}" class="door" style="background:{{ bg }};color:{{ fg }}" {{ block.shopify_attributes }}>
+          <span class="num">0{{ forloop.index }}</span>
+          <span class="ring"></span>
+          <div class="body">
+            <div>
+              <div class="sub">{{ block.settings.subtitle }}</div>
+              <div class="word">{{ block.settings.wordmark }}</div>
+            </div>
+            <div>
+              <div class="price">{{ block.settings.price }}</div>
+              <div class="enter">Enter collection &rarr;</div>
+            </div>
+          </div>
+        </a>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Collection doors",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Your Idea. Your Moment. Designed to Connect." },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Choose the collection closest to your moment." },
+    { "type": "textarea", "id": "subheading", "label": "Subheading", "default": "Each door opens its own collection page with available items, direct-checkout products, a builder, and a dedicated project inquiry." }
+  ],
+  "blocks": [
+    { "type": "door", "name": "Door", "settings": [
+      { "type": "text", "id": "subtitle", "label": "Subtitle", "default": "Milestone Collection" },
+      { "type": "text", "id": "wordmark", "label": "Wordmark", "default": "GRAD 2026" },
+      { "type": "text", "id": "price", "label": "Price line", "default": "Single items + suites from $85" },
+      { "type": "url", "id": "link", "label": "Link" },
+      { "type": "select", "id": "style", "label": "Gradient", "default": "grad", "options": [
+        { "value": "grad", "label": "Graduation (dark → gold)" },
+        { "value": "sweet", "label": "Sweet Beginnings (cream → tan)" },
+        { "value": "bridal", "label": "Bridal (white → gold)" },
+        { "value": "wish", "label": "Birthday (brown → gold)" },
+        { "value": "func", "label": "The Function (tan → brown)" },
+        { "value": "sport", "label": "Sports (cream → blue)" }
+      ]}
+    ]}
+  ],
+  "max_blocks": 8,
+  "presets": [{ "name": "Collection doors" }]
+}
+{% endschema %}

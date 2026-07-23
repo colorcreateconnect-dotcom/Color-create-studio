@@ -11,9 +11,17 @@
     </a>
 
     <nav class="nav" aria-label="Primary">
-      {%- for link in section.settings.menu.links -%}
-        <a href="{{ link.url }}" class="{% if link.active %}active{% endif %}">{{ link.title }}</a>
-      {%- endfor -%}
+      {%- if section.settings.menu.links.size > 0 -%}
+        {%- for link in section.settings.menu.links -%}
+          <a href="{{ link.url }}" class="{% if link.active %}active{% endif %}">{{ link.title }}</a>
+        {%- endfor -%}
+      {%- else -%}
+        <a href="/collections/all">Shop</a>
+        <a href="/collections/all">Paper Lane</a>
+        <a href="/collections/all">Sports</a>
+        <a href="/collections/all">Celebration Suites</a>
+        <a href="/collections/all">Portfolio</a>
+      {%- endif -%}
     </nav>
 
     <div class="header-actions">
@@ -29,9 +37,15 @@
   </div>
 
   <div class="wrap menu-drawer" id="menuDrawer">
-    {%- for link in section.settings.menu.links -%}
-      <a href="{{ link.url }}">{{ link.title }}</a>
-    {%- endfor -%}
+    {%- if section.settings.menu.links.size > 0 -%}
+      {%- for link in section.settings.menu.links -%}<a href="{{ link.url }}">{{ link.title }}</a>{%- endfor -%}
+    {%- else -%}
+      <a href="/collections/all">Shop</a>
+      <a href="/collections/all">Paper Lane</a>
+      <a href="/collections/all">Sports</a>
+      <a href="/collections/all">Celebration Suites</a>
+      <a href="/collections/all">Portfolio</a>
+    {%- endif -%}
     <a href="{{ section.settings.quote_page | default: '/collections/customs' }}">{{ section.settings.quote_label | default: 'Start a Project' }}</a>
   </div>
 </header>

@@ -1,67 +1,53 @@
 {
   "sections": {
-    "hero": {
-      "type": "hero",
-      "settings": {
-        "eyebrow": "Color Create Studio",
-        "heading": "Real work,",
-        "heading_accent": "real moments.",
-        "subheading": "Custom shirts, invitations, celebration suites, and sports drops — designed from a blank page around the people you love.",
-        "button_label": "Shop the studio",
-        "button2_label": "Start a custom project",
-        "button2_url": "/collections/customs"
-      }
-    },
-    "collections": {
-      "type": "featured-collections",
+    "hero": { "type": "hero" },
+    "doors": {
+      "type": "collection-doors",
       "blocks": {
-        "c1": { "type": "collection", "settings": { "collection": "customs", "label": "Customs" } },
-        "c2": { "type": "collection", "settings": { "collection": "bundles", "label": "Bundles" } },
-        "c3": { "type": "collection", "settings": { "collection": "sweet-beginnings", "label": "Sweet Beginnings" } },
-        "c4": { "type": "collection", "settings": { "collection": "the-function", "label": "The Function" } }
+        "d1": { "type": "door", "settings": { "subtitle": "Milestone Collection", "wordmark": "GRAD 2026", "price": "Single items + suites from $85", "style": "grad", "link": "/collections/all" } },
+        "d2": { "type": "door", "settings": { "subtitle": "Baby and Family", "wordmark": "SWEET BEGINNINGS", "price": "Single items + suites from $85", "style": "sweet", "link": "/collections/sweet-beginnings" } },
+        "d3": { "type": "door", "settings": { "subtitle": "Wedding Collection", "wordmark": "BRIDAL BLISS", "price": "Single items + suites from $85", "style": "bridal", "link": "/collections/bridal-bliss" } },
+        "d4": { "type": "door", "settings": { "subtitle": "Celebration Collection", "wordmark": "MAKE A WISH", "price": "Single items + suites from $85", "style": "wish", "link": "/collections/all" } },
+        "d5": { "type": "door", "settings": { "subtitle": "Coordinated Orders", "wordmark": "THE FUNCTION", "price": "Buy now items + custom builds", "style": "func", "link": "/collections/the-function" } },
+        "d6": { "type": "door", "settings": { "subtitle": "Sports Social Studio", "wordmark": "SHOW UP LOUD", "price": "Shirts from $20", "style": "sport", "link": "/collections/all" } }
       },
-      "block_order": ["c1", "c2", "c3", "c4"],
-      "settings": {
-        "band": "band-mix",
-        "eyebrow": "Browse the studio",
-        "heading": "Find your moment",
-        "subheading": "Curated collections for every celebration."
-      }
+      "block_order": ["d1", "d2", "d3", "d4", "d5", "d6"]
     },
-    "portfolio": {
-      "type": "portfolio-strip",
+    "trust": {
+      "type": "trust-strip",
       "blocks": {
-        "p1": { "type": "photo", "settings": { "asset": "grad-jayvon-apparel.jpg", "caption": "Graduation" } },
-        "p2": { "type": "photo", "settings": { "asset": "sports-jaylen-card.jpg", "caption": "Sports" } },
-        "p3": { "type": "photo", "settings": { "asset": "birthday-brianna-brunch.jpg", "caption": "Birthday" } },
-        "p4": { "type": "photo", "settings": { "asset": "reveal-babybee-invite.jpg", "caption": "Reveal" } },
-        "p5": { "type": "photo", "settings": { "asset": "party-dukes-boots.jpg", "caption": "Party" } },
-        "p6": { "type": "photo", "settings": { "asset": "apparel-topshelf.jpg", "caption": "Apparel" } }
+        "t1": { "type": "item", "settings": { "number": "01", "label": "Made to Order" } },
+        "t2": { "type": "item", "settings": { "number": "02", "label": "Custom Design" } },
+        "t3": { "type": "item", "settings": { "number": "03", "label": "Photo Care" } },
+        "t4": { "type": "item", "settings": { "number": "04", "label": "Whole Skill Set" } },
+        "t5": { "type": "item", "settings": { "number": "05", "label": "Firm Prices or Clear Quotes" } }
       },
-      "block_order": ["p1", "p2", "p3", "p4", "p5", "p6"],
-      "settings": { "band": "band-sage", "eyebrow": "Portfolio", "heading": "Real work, real moments" }
+      "block_order": ["t1", "t2", "t3", "t4", "t5"]
     },
-    "promise": {
-      "type": "promise",
+    "proof": {
+      "type": "proof-wall",
       "blocks": {
-        "i1": { "type": "item", "settings": { "icon": "01", "title": "Tell me the moment", "text": "Share the who, the theme, and the feeling. Every project starts as a conversation." } },
-        "i2": { "type": "item", "settings": { "icon": "02", "title": "Designed from a blank page", "text": "No templates. An original direction built around your names, colors, and story — two design rounds included." } },
-        "i3": { "type": "item", "settings": { "icon": "03", "title": "Made to order", "text": "Approve the proof, then we produce and deliver. Digital files, printed goods, and apparel." } }
+        "w1": { "type": "photo", "settings": { "asset": "grad-jayvon-suite.jpg", "type": "Graduation", "title": "Jayvon · Full Ride" } },
+        "w2": { "type": "photo", "settings": { "asset": "sports-jaylen-card.jpg", "type": "Sports", "title": "Meet the Team" } },
+        "w3": { "type": "photo", "settings": { "asset": "birthday-brianna-brunch.jpg", "type": "Birthday", "title": "Birthday Brunch · 33" } },
+        "w4": { "type": "photo", "settings": { "asset": "reveal-babybee-suite.jpg", "type": "Sweet Beginnings", "title": "Baby Bee" } },
+        "w5": { "type": "photo", "settings": { "asset": "apparel-davinci.jpg", "type": "Streetwear", "title": "DaVinci Diamond" } },
+        "w6": { "type": "photo", "settings": { "asset": "party-dukes-boots.jpg", "type": "Theme Party", "title": "Dukes & Boots" } }
       },
-      "block_order": ["i1", "i2", "i3"],
-      "settings": { "band": "", "heading": "How the studio works" }
+      "block_order": ["w1", "w2", "w3", "w4", "w5", "w6"]
     },
-    "cta": {
-      "type": "rich-text",
-      "settings": {
-        "band": "band-cocoa",
-        "eyebrow": "Custom work, clearly scoped",
-        "heading": "Don't see your exact moment?",
-        "text": "Every project starts as a conversation. Tell me what you're celebrating and I'll build something around it.",
-        "button_label": "Start a Custom Project",
-        "button_url": "/collections/customs"
-      }
-    }
+    "how": {
+      "type": "how-it-works",
+      "blocks": {
+        "s1": { "type": "step", "settings": { "number": "01", "text": "Choose the lane." } },
+        "s2": { "type": "step", "settings": { "number": "02", "text": "Customize one product or build a coordinated suite." } },
+        "s3": { "type": "step", "settings": { "number": "03", "text": "Review every selected detail." } },
+        "s4": { "type": "step", "settings": { "number": "04", "text": "Add the customized item to your bag or send the project to the studio." } },
+        "s5": { "type": "step", "settings": { "number": "05", "text": "Approve the proof, then we produce." } }
+      },
+      "block_order": ["s1", "s2", "s3", "s4", "s5"]
+    },
+    "manifesto": { "type": "manifesto" }
   },
-  "order": ["hero", "collections", "portfolio", "promise", "cta"]
+  "order": ["hero", "doors", "trust", "proof", "how", "manifesto"]
 }
