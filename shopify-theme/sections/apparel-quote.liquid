@@ -33,7 +33,7 @@
   <p class="muted mt-1" style="max-width:40rem">Choose the print, size, and back &mdash; your firm price updates as you go. All shirt orders are <strong>paid in full at checkout</strong>.</p>
 
   {%- if shirt_product != blank and shirt_product.available -%}
-  <form method="post" action="{{ routes.cart_add_url }}" id="abForm" class="card mt-3" style="padding:1.5rem">
+  <form method="post" action="{{ routes.cart_add_url }}" enctype="multipart/form-data" id="abForm" class="card mt-3" style="padding:1.5rem">
     <input type="hidden" name="id" value="{{ shirt_product.selected_or_first_available_variant.id }}">
     <input type="hidden" name="quantity" id="abPayQty" value="35">
     <input type="hidden" name="return_to" value="/checkout">
@@ -73,6 +73,14 @@
     </div>
     <label class="f-label" id="abBackDescRow" style="display:none">What goes on the back? *<textarea class="f-in" rows="2" id="abBackDesc" name="properties[Back design notes]" placeholder="Theme, wording, images &mdash; the studio may follow up to get it exactly right."></textarea></label>
 
+    <span class="f-label">Photos, logos &amp; references</span>
+    <p class="muted" style="font-size:.78rem;margin-top:.3rem">Attach up to 2 files &mdash; logos, inspiration photos, sketches. JPG, PNG, HEIC, or PDF.</p>
+    <div class="f-grid">
+      <label class="f-label">Reference file 1<input class="f-in" type="file" name="properties[Reference file 1]" accept="image/*,.pdf,.heic,.heif"></label>
+      <label class="f-label">Reference file 2<input class="f-in" type="file" name="properties[Reference file 2]" accept="image/*,.pdf,.heic,.heif"></label>
+    </div>
+    <label class="f-check" id="abPermRow"><input type="checkbox" id="abPerm" name="properties[Upload permission]" value="Confirmed: permission to use every uploaded photo, logo, name, and artwork"> I have permission to use every photo, logo, name, and artwork I am uploading.</label>
+
     <div style="display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:1.25rem;padding-top:1.25rem">
       <div>
         <div class="label" style="font-size:.6rem;color:var(--cocoa-soft)">Firm total &mdash; pay now to order</div>
@@ -86,6 +94,14 @@
     <p class="muted">Shirt ordering is being set up &mdash; <a href="/pages/start-a-project" style="color:var(--pink)">start a project</a> and the studio will price it for you.</p>
   </div>
   {%- endif -%}
+
+  <div class="card mt-3" style="padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <div style="max-width:34rem">
+      <strong>Building a whole moment, not just shirts?</strong>
+      <span class="muted" style="font-size:.9rem"> Two or more coordinated pieces build a Celebration Suite &mdash; shirts, paper, and keepsakes designed as one story. It works just like this builder: tap your pieces, send it in.</span>
+    </div>
+    <a href="/pages/celebration-suites#suitePicker" class="btn btn-ghost">Build your suite &rarr;</a>
+  </div>
   <p class="muted mt-2" style="font-size:.85rem">Bigger idea than one shirt &mdash; extra placements, hoodies, performance wear, coordinated keepsakes? That&rsquo;s a project: <a href="#apparelQuote" style="color:var(--pink)">start the quote below</a>.</p>
 </section>
 
@@ -173,6 +189,16 @@
     else if(back === 'nn' && !el('abPlayerNum').value.trim()) bad = el('abPlayerNum');
     else if(back === 'full' && !el('abBackDesc').value.trim()) bad = el('abBackDesc');
     if(bad){ e.preventDefault(); bad.focus(); bad.style.borderColor = '#D98A9B'; return; }
+    var files = abForm.querySelectorAll('input[type="file"]');
+    var hasFile = false;
+    for(var fi = 0; fi < files.length; fi++){ if(files[fi].files && files[fi].files.length){ hasFile = true; break; } }
+    if(hasFile && !el('abPerm').checked){
+      e.preventDefault();
+      el('abPerm').focus();
+      el('abPermRow').style.borderColor = '#D98A9B';
+      alert('Please confirm you have permission to use the uploaded files.');
+      return;
+    }
     el('abPayQty').value = total();
     el('abPType').value = type === 'dtf' ? 'DTF full-color' : '3D sublimation';
     var backLabel = back === 'none' ? 'None' : (back === 'nn' ? 'Name & number' : 'Full custom back');

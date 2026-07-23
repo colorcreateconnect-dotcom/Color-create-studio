@@ -1,0 +1,10 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-collection",
+      "settings": { "show_head": true, "band": "band-mix" }
+    },
+    "suite": { "type": "suite-cta" }
+  },
+  "order": ["main", "suite"]
+}
