@@ -1,0 +1,6 @@
+{
+  "sections": {
+    "main": { "type": "paper-lanes" }
+  },
+  "order": ["main"]
+}

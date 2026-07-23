@@ -3,17 +3,25 @@
     "hero": {
       "type": "department-hero",
       "settings": {
-        "eyebrow": "Creator Studio / Custom Apparel",
-        "heading": "Custom shirts built",
-        "heading_accent": "around your idea.",
+        "eyebrow": "Shop the studio",
+        "heading": "Custom products & keepsakes,",
+        "heading_accent": "purchased independently.",
         "accent_style": "gradient",
         "band": "band-mix",
-        "subheading": "A blank page becomes the shirt, keepsake, or coordinated order that makes the thought feel real. Design files or printed and shipped.",
-        "button_label": "Start a custom project",
-        "button_url": "/pages/start-a-project"
+        "subheading": "Order one firm-price custom piece directly \u2014 shirts, invitations, keepsakes and more. Need a coordinated moment? Two or more pieces build a suite.",
+        "button_label": "Build a suite instead",
+        "button_url": "/pages/celebration-suites"
       }
     },
-    "main": { "type": "main-collection", "settings": { "show_head": false } }
+    "main": {
+      "type": "main-collection",
+      "settings": {
+        "show_head": false
+      }
+    }
   },
-  "order": ["hero", "main"]
+  "order": [
+    "hero",
+    "main"
+  ]
 }

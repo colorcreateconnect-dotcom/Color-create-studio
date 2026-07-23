@@ -1,0 +1,78 @@
+{%- assign inquiry_product = all_products['custom-project-inquiry'] -%}
+<section class="collection-head band-mix">
+  <div class="wrap">
+    <span class="eyebrow">Creator Studio / Custom Apparel</span>
+    <h1 class="serif mt-1" style="font-size:clamp(2.4rem,5.5vw,4rem);line-height:.98">Custom shirts built <span class="tagline-gradient">around your idea.</span></h1>
+    <p class="muted mt-2" style="max-width:42rem;font-size:1.05rem">A blank page becomes the shirt, keepsake, or coordinated order that makes the thought feel real.</p>
+    <div class="mt-3" style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <a href="#apparelQuote" class="btn btn-cta">Ready to wear the idea?</a>
+      <a href="/collections/customs" class="btn btn-ghost">Shop ready-to-order</a>
+    </div>
+  </div>
+</section>
+
+<section class="wrap section">
+  <span class="eyebrow">Choose a path</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Start with what you already know.</h2>
+  <div class="grid grid-4 mt-3">
+    {%- assign paths = 'Adult Custom Shirt|From $35|One personalized adult shirt with an original custom front graphic.;Youth Custom Shirt|From $30|A custom shirt sized for the little person carrying the moment.;3D Full-Front Shirt|From $40|Sublimated color and depth on light polyester or high-poly apparel.;Group Apparel Package|From $175|Six adult shirts and one shared original design direction.' | split: ';' -%}
+    {%- for p in paths -%}
+      {%- assign f = p | split: '|' -%}
+      <div class="card" style="padding:1.25rem">
+        <div class="label" style="font-size:.62rem;color:var(--pink)">{{ f[1] }}</div>
+        <h3 class="serif" style="font-size:1.4rem;margin-top:.5rem">{{ f[0] }}</h3>
+        <p class="muted" style="font-size:.88rem;margin-top:.5rem;line-height:1.6">{{ f[2] }}</p>
+        <button type="button" class="btn btn-ghost mt-2" onclick="ccPick('{{ f[0] }} ({{ f[1] }})','Custom Apparel')">Select this path</button>
+      </div>
+    {%- endfor -%}
+  </div>
+  <p class="muted mt-2" style="font-size:.85rem">Adult size adjustments: 2XL +$2, 3XL +$3, 4XL +$4. Specialty garments, extra placements, hoodies, performance wear, and oversized blanks may cost more and route to a quote.</p>
+
+  <div class="card mt-3" style="padding:1.5rem">
+    <span class="eyebrow">Group Apparel Package</span>
+    <h3 class="serif mt-1" style="font-size:1.7rem">Six shirts start the crew.</h3>
+    <p class="muted mt-1" style="max-width:38rem">$175 includes one shared design direction plus the first six adult shirts. Add adults or youth in the same coordinated order.</p>
+    <p class="mt-1" style="font-size:.9rem;background:var(--cream);border-radius:1rem;padding:.8rem 1rem"><strong>10-15 business days.</strong> Additional adults are $25 each for 1-5 added, then $20 each at 6+. Youth are $20 each, then $15 each at 6+.</p>
+    <button type="button" class="btn btn-cta mt-2" onclick="ccPick('Group Apparel Package, $175 (6 adult shirts + one design; list additional adult/youth shirts)','Custom Apparel')">Build my group order</button>
+  </div>
+
+  <div class="grid grid-4 mt-3">
+    {%- assign poss = 'Personalized Shirts|Wear the idea without buying a full celebration suite.;Front-and-Back Designs|Carry the story around the whole shirt, not just across the chest.;Family and Group Orders|One coordinated direction can keep the whole crew connected.;Coordinated Extras|Turn the same visual idea into totes, tumblers, keepsakes, and paper details.' | split: ';' -%}
+    {%- for p in poss -%}
+      {%- assign f = p | split: '|' -%}
+      <div style="border:1px solid var(--line);background:var(--cream-paper);border-radius:1.25rem;padding:1.1rem">
+        <h4 class="serif" style="font-size:1.15rem">{{ f[0] }}</h4>
+        <p class="muted" style="font-size:.85rem;margin-top:.4rem;line-height:1.55">{{ f[1] }}</p>
+      </div>
+    {%- endfor -%}
+  </div>
+</section>
+
+<section class="wrap section" style="max-width:52rem" id="apparelQuote">
+  <h2 class="serif" style="font-size:clamp(1.9rem,4vw,2.6rem)">Start your apparel project.</h2>
+  <p class="muted mt-1">Your selected path is already in the form. Add sizes, wording, and reference photos.</p>
+  {%- if inquiry_product != blank and inquiry_product.available -%}
+    {%- render 'inquiry-form', variant_id: inquiry_product.selected_or_first_available_variant.id -%}
+  {%- else -%}
+    <a href="/pages/start-a-project" class="btn btn-cta mt-2">Start a Project</a>
+  {%- endif -%}
+</section>
+
+<script>
+(function(){
+  var svc = document.getElementById('ccService');
+  if(svc) svc.value = 'Custom Apparel';
+})();
+function ccPick(text, service){
+  var t = document.querySelector('[name="properties[Requested pieces]"]');
+  if(t){ t.value = (t.value ? t.value + '\n' : '') + 'Selected: ' + text; }
+  var svc = document.getElementById('ccService');
+  if(svc && service) svc.value = service;
+  var q = document.getElementById('apparelQuote');
+  if(q) q.scrollIntoView({behavior:'smooth'});
+}
+</script>
+
+{% schema %}
+{ "name": "Custom Apparel quote page", "settings": [] }
+{% endschema %}

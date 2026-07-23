@@ -1,0 +1,6 @@
+{
+  "sections": {
+    "main": { "type": "apparel-quote" }
+  },
+  "order": ["main"]
+}

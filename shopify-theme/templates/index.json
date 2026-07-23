@@ -9,7 +9,7 @@
         "d3": { "type": "door", "settings": { "subtitle": "Wedding Collection", "wordmark": "BRIDAL BLISS", "price": "Single items + suites from $85", "style": "bridal", "link": "/collections/bridal-bliss" } },
         "d4": { "type": "door", "settings": { "subtitle": "Celebration Collection", "wordmark": "MAKE A WISH", "price": "Single items + suites from $85", "style": "wish", "link": "/collections/birthday" } },
         "d5": { "type": "door", "settings": { "subtitle": "Coordinated Orders", "wordmark": "THE FUNCTION", "price": "Buy now items + custom builds", "style": "func", "link": "/collections/the-function" } },
-        "d6": { "type": "door", "settings": { "subtitle": "Sports Social Studio", "wordmark": "SHOW UP LOUD", "price": "Shirts from $20", "style": "sport", "link": "/collections/sports" } }
+        "d6": { "type": "door", "settings": { "subtitle": "Sports Social Studio", "wordmark": "SHOW UP LOUD", "price": "Shirts from $20", "style": "sport", "link": "/pages/sports" } }
       },
       "block_order": ["d1", "d2", "d3", "d4", "d5", "d6"]
     },
