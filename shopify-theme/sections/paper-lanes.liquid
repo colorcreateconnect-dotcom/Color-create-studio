@@ -1,4 +1,5 @@
 {%- assign paper_product = all_products['paper-lane-set-order'] -%}
+{%- assign paper_digital = all_products['paper-lane-digital-set-order'] -%}
 <section class="wrap section" id="paperSets">
   {%- if section.settings.banner_strong != blank -%}
   <div class="card" style="padding:1.1rem 1.25rem;margin-bottom:1.5rem;border-color:var(--gold-soft);background:#FBF6E9">
@@ -45,6 +46,9 @@
 {%- if paper_product != blank and paper_product.available -%}
 window.ccOrderVariant = {{ paper_product.selected_or_first_available_variant.id }};
 {%- endif -%}
+{%- if paper_digital != blank and paper_digital.available -%}
+window.ccOrderVariantDigital = {{ paper_digital.selected_or_first_available_variant.id }};
+{%- endif -%}
 function plCalc(i, base, extra, digital){
   var fmt = document.getElementById('plFmt' + i).value;
   if(fmt === 'digital') return digital;
@@ -64,7 +68,8 @@ function plOrder(i, name, base, extra, digital){
   var t = document.querySelector('[name="properties[Requested pieces]"]');
   if(t){ t.value = (t.value ? t.value + '\n' : '') + 'Order: ' + desc; }
   var idIn = document.querySelector('#inquiryForm [name="id"]');
-  if(idIn && window.ccOrderVariant) idIn.value = window.ccOrderVariant;
+  var orderVariant = (fmt === 'digital' && window.ccOrderVariantDigital) ? window.ccOrderVariantDigital : window.ccOrderVariant;
+  if(idIn && orderVariant) idIn.value = orderVariant;
   if(window.ccSetPayNow) window.ccSetPayNow(price);
   var q = document.getElementById('deptQuote');
   if(q) q.scrollIntoView({behavior:'smooth'});
