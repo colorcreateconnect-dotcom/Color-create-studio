@@ -9,14 +9,27 @@
     <div class="doors">
       {%- for block in section.blocks -%}
         {%- liquid
+          assign bg = 'linear-gradient(135deg,#EA3B84,#B83FC0 48%,#9B4DD4)'
+          assign fg = '#ffffff'
           case block.settings.style
-            when 'grad'   assign bg = 'linear-gradient(135deg,#2A6FDB,#7C4DD4 55%,#9B4DD4)' assign fg = '#ffffff'
-            when 'sweet'  assign bg = 'linear-gradient(135deg,#FFF3F0,#FAD9DF 45%,#8FD6D2)' assign fg = '#175752'
-            when 'bridal' assign bg = 'linear-gradient(135deg,#ffffff,#FAD9DF 48%,#F4B8C4)' assign fg = '#8C2F4D'
-            when 'wish'   assign bg = 'linear-gradient(135deg,#EA3B84,#B83FC0 48%,#9B4DD4)' assign fg = '#ffffff'
-            when 'func'   assign bg = 'linear-gradient(135deg,#E9EFE3,#C7D2BF 45%,#7E9270)' assign fg = '#2E3A26'
-            when 'sport'  assign bg = 'linear-gradient(135deg,#F4F8FF,#B9C9E8 55%,#2A6FDB)' assign fg = '#14306B'
-            else          assign bg = 'linear-gradient(135deg,#EA3B84,#B83FC0 48%,#9B4DD4)' assign fg = '#ffffff'
+            when 'grad'
+              assign bg = 'linear-gradient(135deg,#2A6FDB,#7C4DD4 55%,#9B4DD4)'
+              assign fg = '#ffffff'
+            when 'sweet'
+              assign bg = 'linear-gradient(135deg,#FFF3F0,#FAD9DF 45%,#8FD6D2)'
+              assign fg = '#175752'
+            when 'bridal'
+              assign bg = 'linear-gradient(135deg,#ffffff,#FAD9DF 48%,#F4B8C4)'
+              assign fg = '#8C2F4D'
+            when 'wish'
+              assign bg = 'linear-gradient(135deg,#EA3B84,#B83FC0 48%,#9B4DD4)'
+              assign fg = '#ffffff'
+            when 'func'
+              assign bg = 'linear-gradient(135deg,#E9EFE3,#C7D2BF 45%,#7E9270)'
+              assign fg = '#2E3A26'
+            when 'sport'
+              assign bg = 'linear-gradient(135deg,#F4F8FF,#B9C9E8 55%,#2A6FDB)'
+              assign fg = '#14306B'
           endcase
         -%}
         <a href="{{ block.settings.link | default: '/collections/all' }}" class="door" style="background:{{ bg }};color:{{ fg }}" {{ block.shopify_attributes }}>
