@@ -1,0 +1,49 @@
+<header class="site-header">
+  <div class="wrap bar">
+    <a href="{{ routes.root_url }}" class="brand" aria-label="{{ shop.name }} home">
+      {%- if section.settings.logo != blank -%}
+        <img src="{{ section.settings.logo | image_url: width: 320 }}" alt="{{ shop.name }}" width="160">
+      {%- else -%}
+        <img src="{{ 'logo.jpg' | asset_url }}" alt="{{ shop.name }}" width="160"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+        <span class="word" style="display:none">{{ shop.name }}</span>
+      {%- endif -%}
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      {%- for link in section.settings.menu.links -%}
+        <a href="{{ link.url }}" class="{% if link.active %}active{% endif %}">{{ link.title }}</a>
+      {%- endfor -%}
+    </nav>
+
+    <div class="header-actions">
+      <a href="{{ section.settings.quote_page | default: '/collections/customs' }}" class="btn btn-cocoa show-lg">{{ section.settings.quote_label | default: 'Start a Project' }}</a>
+      <a href="{{ routes.cart_url }}" class="icon-btn" aria-label="Cart">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        {%- if cart.item_count > 0 -%}<span class="cart-count">{{ cart.item_count }}</span>{%- endif -%}
+      </a>
+      <button class="icon-btn hide-lg" id="menuToggle" aria-label="Menu" aria-expanded="false">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="wrap menu-drawer" id="menuDrawer">
+    {%- for link in section.settings.menu.links -%}
+      <a href="{{ link.url }}">{{ link.title }}</a>
+    {%- endfor -%}
+    <a href="{{ section.settings.quote_page | default: '/collections/customs' }}">{{ section.settings.quote_label | default: 'Start a Project' }}</a>
+  </div>
+</header>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": [
+    { "type": "image_picker", "id": "logo", "label": "Logo image" },
+    { "type": "link_list", "id": "menu", "label": "Menu", "default": "main-menu" },
+    { "type": "url", "id": "quote_page", "label": "Start a Project button link" },
+    { "type": "text", "id": "quote_label", "label": "Start a Project button text", "default": "Start a Project" }
+  ]
+}
+{% endschema %}

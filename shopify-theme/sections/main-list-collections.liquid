@@ -1,0 +1,18 @@
+<div class="collection-head band-mix"><div class="wrap"><span class="eyebrow">Browse</span><h1 class="serif mt-1">Collections</h1></div></div>
+<div class="wrap section">
+  <div class="grid grid-3">
+    {%- for collection in collections -%}
+      <a href="{{ collection.url }}" class="card">
+        <div class="card-media">
+          {%- if collection.image != blank -%}<img src="{{ collection.image | image_url: width: 600 }}" alt="{{ collection.title | escape }}" loading="lazy">
+          {%- elsif collection.products.first.featured_image != blank -%}<img src="{{ collection.products.first.featured_image | image_url: width: 600 }}" alt="{{ collection.title | escape }}" loading="lazy">
+          {%- else -%}<img src="{{ 'party-lailah-garden.jpg' | asset_url }}" alt="{{ collection.title | escape }}" loading="lazy">{%- endif -%}
+        </div>
+        <div class="card-body"><h3 class="card-title">{{ collection.title }}</h3><span class="label" style="color:var(--pink)">Shop &rarr;</span></div>
+      </a>
+    {%- endfor -%}
+  </div>
+</div>
+{% schema %}
+{ "name": "List collections", "settings": [] }
+{% endschema %}

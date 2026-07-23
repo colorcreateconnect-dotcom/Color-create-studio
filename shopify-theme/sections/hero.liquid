@@ -1,0 +1,51 @@
+{%- liquid
+  assign img1 = section.settings.image_1
+  assign img2 = section.settings.image_2
+  assign img3 = section.settings.image_3
+  assign img4 = section.settings.image_4
+-%}
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      {%- if section.settings.eyebrow != blank -%}<span class="eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+      <h1 class="mt-2">{{ section.settings.heading }} <span class="tagline-gradient">{{ section.settings.heading_accent }}</span></h1>
+      {%- if section.settings.subheading != blank -%}<p class="lede">{{ section.settings.subheading }}</p>{%- endif -%}
+      <div class="hero-cta">
+        {%- if section.settings.button_label != blank -%}
+          <a href="{{ section.settings.button_url | default: routes.all_products_collection_url }}" class="btn btn-cta">{{ section.settings.button_label }}</a>
+        {%- endif -%}
+        {%- if section.settings.button2_label != blank -%}
+          <a href="{{ section.settings.button2_url | default: '#' }}" class="btn btn-ghost">{{ section.settings.button2_label }}</a>
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div class="collage" aria-hidden="true">
+      <figure class="tall">{% if img1 %}<img src="{{ img1 | image_url: width: 700 }}" alt="">{% else %}<img src="{{ 'grad-jayvon-suite.jpg' | asset_url }}" alt="">{% endif %}</figure>
+      <figure>{% if img2 %}<img src="{{ img2 | image_url: width: 500 }}" alt="">{% else %}<img src="{{ 'birthday-sweet16.jpg' | asset_url }}" alt="">{% endif %}</figure>
+      <figure>{% if img3 %}<img src="{{ img3 | image_url: width: 500 }}" alt="">{% else %}<img src="{{ 'reveal-babybee-suite.jpg' | asset_url }}" alt="">{% endif %}</figure>
+      <figure class="tall">{% if img4 %}<img src="{{ img4 | image_url: width: 700 }}" alt="">{% else %}<img src="{{ 'sports-family-tees.jpg' | asset_url }}" alt="">{% endif %}</figure>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Hero",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Color Create Studio" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Real work," },
+    { "type": "text", "id": "heading_accent", "label": "Heading accent (gradient)", "default": "real moments." },
+    { "type": "textarea", "id": "subheading", "label": "Subheading", "default": "Custom shirts, invitations, celebration suites, and sports drops — designed from a blank page around the people you love." },
+    { "type": "text", "id": "button_label", "label": "Primary button", "default": "Shop the studio" },
+    { "type": "url", "id": "button_url", "label": "Primary button link" },
+    { "type": "text", "id": "button2_label", "label": "Secondary button", "default": "Start a custom project" },
+    { "type": "url", "id": "button2_url", "label": "Secondary button link" },
+    { "type": "image_picker", "id": "image_1", "label": "Collage image 1 (tall)" },
+    { "type": "image_picker", "id": "image_2", "label": "Collage image 2" },
+    { "type": "image_picker", "id": "image_3", "label": "Collage image 3" },
+    { "type": "image_picker", "id": "image_4", "label": "Collage image 4 (tall)" }
+  ],
+  "presets": [{ "name": "Hero" }]
+}
+{% endschema %}

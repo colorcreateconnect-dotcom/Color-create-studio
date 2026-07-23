@@ -1,0 +1,43 @@
+<section class="section {{ section.settings.band }}">
+  <div class="wrap">
+    <div class="center" style="margin-bottom:1.75rem">
+      {%- if section.settings.heading != blank -%}<h2 class="serif" style="font-size:clamp(1.8rem,3.5vw,2.6rem)">{{ section.settings.heading }}</h2>{%- endif -%}
+    </div>
+    <div class="promise">
+      {%- for block in section.blocks -%}
+        <div class="item" {{ block.shopify_attributes }}>
+          {%- if block.settings.icon != blank -%}<div class="script" style="font-size:2rem;color:var(--pink)">{{ block.settings.icon }}</div>{%- endif -%}
+          <h3>{{ block.settings.title }}</h3>
+          <p class="muted">{{ block.settings.text }}</p>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Promise",
+  "settings": [
+    { "type": "select", "id": "band", "label": "Background band", "options": [
+      { "value": "", "label": "Cream" },
+      { "value": "band-blush", "label": "Blush" },
+      { "value": "band-sage", "label": "Sage" }
+    ], "default": "" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "How the studio works" }
+  ],
+  "blocks": [
+    { "type": "item", "name": "Item", "settings": [
+      { "type": "text", "id": "icon", "label": "Script accent", "default": "01" },
+      { "type": "text", "id": "title", "label": "Title", "default": "Tell me the moment" },
+      { "type": "textarea", "id": "text", "label": "Text", "default": "Share the who, the theme, and the feeling. Every project starts as a conversation." }
+    ]}
+  ],
+  "max_blocks": 4,
+  "presets": [{ "name": "Promise", "blocks": [
+    { "type": "item", "settings": { "icon": "01", "title": "Tell me the moment", "text": "Share the who, the theme, and the feeling. Every project starts as a conversation." } },
+    { "type": "item", "settings": { "icon": "02", "title": "Designed from a blank page", "text": "No templates. An original direction built around your names, colors, and story — two design rounds included." } },
+    { "type": "item", "settings": { "icon": "03", "title": "Made to order", "text": "Approve the proof, then we produce and deliver. Digital files, printed goods, and apparel." } }
+  ]}]
+}
+{% endschema %}

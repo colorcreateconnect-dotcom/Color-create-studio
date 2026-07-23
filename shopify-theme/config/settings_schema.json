@@ -1,0 +1,17 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Color Create Studio",
+    "theme_version": "1.0.0",
+    "theme_author": "Color Create Studio",
+    "theme_documentation_url": "https://shopify.dev",
+    "theme_support_url": "https://help.shopify.com"
+  },
+  {
+    "name": "Brand",
+    "settings": [
+      { "type": "image_picker", "id": "favicon", "label": "Favicon" },
+      { "type": "color", "id": "accent_color", "label": "Accent color (pink)", "default": "#EA3B84" }
+    ]
+  }
+]

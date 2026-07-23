@@ -1,0 +1,29 @@
+<div class="wrap section" style="max-width:40rem">
+  <h1 class="serif" style="font-size:2rem">Your addresses</h1>
+  <p class="mt-1"><a href="{{ routes.account_url }}" style="color:var(--pink)">&larr; Back to account</a></p>
+
+  <h2 class="serif mt-3" style="font-size:1.3rem">Add a new address</h2>
+  {%- form 'customer_address', customer.new_address -%}
+    {{ form.errors | default_errors }}
+    <label style="display:block;margin-top:.75rem">First name<input name="address[first_name]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.7rem 1rem;background:var(--cream-paper)"></label>
+    <label style="display:block;margin-top:.75rem">Last name<input name="address[last_name]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.7rem 1rem;background:var(--cream-paper)"></label>
+    <label style="display:block;margin-top:.75rem">Address<input name="address[address1]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.7rem 1rem;background:var(--cream-paper)"></label>
+    <label style="display:block;margin-top:.75rem">City<input name="address[city]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.7rem 1rem;background:var(--cream-paper)"></label>
+    <label style="display:block;margin-top:.75rem">Country<select name="address[country]" id="AddressCountryNew">{{ country_option_tags }}</select></label>
+    <label style="display:block;margin-top:.75rem">Zip / Postal<input name="address[zip]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.7rem 1rem;background:var(--cream-paper)"></label>
+    <button type="submit" class="btn btn-cta mt-3">Save address</button>
+  {%- endform -%}
+
+  {%- if customer.addresses.size > 0 -%}
+    <h2 class="serif mt-4" style="font-size:1.3rem">Saved</h2>
+    {%- for address in customer.addresses -%}
+      <div class="card" style="padding:1rem;margin-top:.75rem">
+        {{ address | format_address }}
+        {%- form 'customer_address', address -%}
+          <input type="hidden" name="_method" value="delete">
+          <button type="submit" class="muted" style="background:none;border:none;text-decoration:underline;cursor:pointer;font-size:.8rem">Remove</button>
+        {%- endform -%}
+      </div>
+    {%- endfor -%}
+  {%- endif -%}
+</div>

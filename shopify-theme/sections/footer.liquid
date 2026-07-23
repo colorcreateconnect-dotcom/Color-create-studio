@@ -1,0 +1,58 @@
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div>
+      <div class="serif" style="font-size:1.6rem;color:var(--cream)">{{ shop.name }}</div>
+      <p class="mt-1" style="color:#cdbfb2;max-width:22rem">{{ section.settings.tagline }}</p>
+      {%- if section.settings.promise != blank -%}
+        <div class="promise-badge mt-3">{{ section.settings.promise }}</div>
+      {%- endif -%}
+    </div>
+
+    <div>
+      <h4>{{ section.settings.col1_title }}</h4>
+      <ul>
+        {%- for link in section.settings.menu_1.links -%}
+          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+        {%- endfor -%}
+      </ul>
+    </div>
+
+    <div>
+      <h4>{{ section.settings.col2_title }}</h4>
+      <ul>
+        {%- for link in section.settings.menu_2.links -%}
+          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+        {%- endfor -%}
+      </ul>
+    </div>
+
+    <div>
+      <h4>Studio</h4>
+      <ul>
+        {%- if section.settings.email != blank -%}<li><a href="mailto:{{ section.settings.email }}">{{ section.settings.email }}</a></li>{%- endif -%}
+        <li>By appointment &amp; online</li>
+        <li>Made to order</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="wrap footer-legal">
+    <span>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. All rights reserved.</span>
+    <span>{{ powered_by_link }}</span>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "settings": [
+    { "type": "text", "id": "tagline", "label": "Tagline", "default": "Original celebration design, built from a blank page around your moment." },
+    { "type": "textarea", "id": "promise", "label": "Photo Integrity Promise", "default": "Photo Integrity Promise: people in your photos stay recognizable — we design around real faces, never over them." },
+    { "type": "text", "id": "col1_title", "label": "Column 1 title", "default": "Shop" },
+    { "type": "link_list", "id": "menu_1", "label": "Column 1 menu", "default": "footer" },
+    { "type": "text", "id": "col2_title", "label": "Column 2 title", "default": "Explore" },
+    { "type": "link_list", "id": "menu_2", "label": "Column 2 menu" },
+    { "type": "text", "id": "email", "label": "Contact email", "default": "colorcreateconnect@gmail.com" }
+  ]
+}
+{% endschema %}

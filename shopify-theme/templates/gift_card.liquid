@@ -1,0 +1,11 @@
+<div class="wrap section center" style="max-width:30rem">
+  <span class="eyebrow">{{ shop.name }}</span>
+  <h1 class="serif mt-2" style="font-size:2.4rem">Your gift card</h1>
+  <div class="card" style="padding:2rem;margin-top:1.5rem">
+    <div class="price" style="font-size:2.4rem">{{ gift_card.balance | money }}</div>
+    <p class="muted">Gift card code</p>
+    <div class="rounded" style="font-family:var(--font-label);font-weight:700;letter-spacing:.1em;background:var(--cream);padding:.8rem;border:1px dashed var(--line-strong)">{{ gift_card.code | format_code }}</div>
+    {%- if gift_card.qr_identifier -%}<img src="{{ gift_card.qr_identifier }}" alt="QR code" class="mt-2" style="margin:1rem auto 0">{%- endif -%}
+  </div>
+  <a href="{{ shop.url }}" class="btn btn-cta mt-3">Shop the studio</a>
+</div>

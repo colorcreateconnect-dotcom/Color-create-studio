@@ -1,0 +1,19 @@
+<div class="wrap section" style="max-width:48rem">
+  <h1 class="serif" style="font-size:2rem">Order {{ order.name }}</h1>
+  <p class="muted mt-1">Placed {{ order.created_at | date: '%B %e, %Y' }} · {{ order.financial_status }} · {{ order.fulfillment_status }}</p>
+  <div class="mt-3">
+    {%- for line in order.line_items -%}
+      <div class="cart-row">
+        {%- if line.image != blank -%}<img src="{{ line.image | image_url: width: 160 }}" alt="{{ line.title | escape }}">{%- else -%}<span></span>{%- endif -%}
+        <div><div style="font-weight:600">{{ line.title }}</div><div class="muted" style="font-size:.85rem">Qty {{ line.quantity }}</div></div>
+        <strong>{{ line.final_line_price | money }}</strong>
+      </div>
+    {%- endfor -%}
+  </div>
+  <div class="cart-summary">
+    <div style="display:flex;justify-content:space-between"><span>Subtotal</span><strong>{{ order.subtotal_price | money }}</strong></div>
+    <div style="display:flex;justify-content:space-between" class="mt-1"><span>Shipping</span><strong>{{ order.shipping_price | money }}</strong></div>
+    <div style="display:flex;justify-content:space-between;font-size:1.15rem" class="mt-1"><span>Total</span><strong>{{ order.total_price | money }}</strong></div>
+  </div>
+  <p class="mt-3"><a href="{{ routes.account_url }}" style="color:var(--pink)">&larr; Back to account</a></p>
+</div>

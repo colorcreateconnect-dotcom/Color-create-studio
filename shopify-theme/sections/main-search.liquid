@@ -1,0 +1,23 @@
+<div class="collection-head band-sage"><div class="wrap"><span class="eyebrow">Search</span><h1 class="serif mt-1">Find something</h1></div></div>
+<div class="wrap section">
+  <form action="{{ routes.search_url }}" method="get" role="search" style="max-width:34rem;display:flex;gap:.5rem">
+    <input type="search" name="q" value="{{ search.terms | escape }}" placeholder="Search products…" style="flex:1;border:1px solid var(--line-strong);border-radius:9999px;padding:.85rem 1.2rem;background:var(--cream-paper)">
+    <button type="submit" class="btn btn-cta">Search</button>
+  </form>
+
+  {%- if search.performed -%}
+    <p class="muted mt-2">{{ search.results_count }} result(s) for &ldquo;{{ search.terms | escape }}&rdquo;</p>
+    {%- if search.results.size > 0 -%}
+      <div class="grid grid-3 mt-2">
+        {%- for item in search.results -%}
+          {%- if item.object_type == 'product' -%}{%- render 'product-card', product: item -%}{%- endif -%}
+        {%- endfor -%}
+      </div>
+    {%- else -%}
+      <p class="muted mt-2">No matches. Try a different word, or <a href="{{ routes.all_products_collection_url }}" style="color:var(--pink)">browse everything</a>.</p>
+    {%- endif -%}
+  {%- endif -%}
+</div>
+{% schema %}
+{ "name": "Search", "settings": [] }
+{% endschema %}

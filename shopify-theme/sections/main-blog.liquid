@@ -1,0 +1,16 @@
+<div class="collection-head band-mix"><div class="wrap"><span class="eyebrow">Journal</span><h1 class="serif mt-1">{{ blog.title }}</h1></div></div>
+<div class="wrap section">
+  <div class="grid grid-3">
+    {%- for article in blog.articles -%}
+      <a href="{{ article.url }}" class="card">
+        {%- if article.image != blank -%}<div class="card-media"><img src="{{ article.image | image_url: width: 600 }}" alt="{{ article.title | escape }}" loading="lazy"></div>{%- endif -%}
+        <div class="card-body"><h3 class="card-title">{{ article.title }}</h3><p class="muted mt-1" style="font-size:.85rem">{{ article.excerpt_or_content | strip_html | truncate: 120 }}</p></div>
+      </a>
+    {%- else -%}
+      <p class="muted">No posts yet.</p>
+    {%- endfor -%}
+  </div>
+</div>
+{% schema %}
+{ "name": "Blog", "settings": [] }
+{% endschema %}

@@ -1,0 +1,12 @@
+{%- if section.settings.text != blank -%}
+  <div class="announce">{{ section.settings.text }}</div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Announcement bar",
+  "settings": [
+    { "type": "text", "id": "text", "label": "Message", "default": "Custom, made-to-order celebration design — every project starts as a conversation" }
+  ]
+}
+{% endschema %}

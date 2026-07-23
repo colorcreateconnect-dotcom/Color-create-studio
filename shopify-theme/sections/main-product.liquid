@@ -1,0 +1,64 @@
+<div class="wrap section">
+  <div class="product">
+    <div class="product-gallery">
+      {%- if product.featured_image != blank -%}
+        <img id="pmain" src="{{ product.featured_image | image_url: width: 1000 }}" alt="{{ product.title | escape }}">
+      {%- else -%}
+        <img id="pmain" src="{{ 'apparel-davinci.jpg' | asset_url }}" alt="{{ product.title | escape }}">
+      {%- endif -%}
+      {%- if product.images.size > 1 -%}
+        <div class="grid grid-4 mt-2">
+          {%- for image in product.images limit: 8 -%}
+            <img src="{{ image | image_url: width: 220 }}" alt="" class="rounded" style="cursor:pointer;aspect-ratio:1;object-fit:cover"
+                 onclick="document.getElementById('pmain').src='{{ image | image_url: width: 1000 }}'">
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    <div>
+      {%- if product.type != blank -%}<span class="eyebrow">{{ product.type }}</span>{%- endif -%}
+      <h1 class="mt-1">{{ product.title }}</h1>
+      <div class="price" id="pprice">{{ product.selected_or_first_available_variant.price | money }}</div>
+
+      {%- form 'product', product, id: 'product-form' -%}
+        {%- unless product.has_only_default_variant -%}
+          <div class="variant-select">
+            <label for="variant-id">Options</label>
+            <select name="id" id="variant-id" onchange="ccUpdatePrice(this)">
+              {%- for variant in product.variants -%}
+                <option value="{{ variant.id }}" data-price="{{ variant.price | money }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %} {% unless variant.available %}disabled{% endunless %}>
+                  {{ variant.title }} &middot; {{ variant.price | money }}{% unless variant.available %} (sold out){% endunless %}
+                </option>
+              {%- endfor -%}
+            </select>
+          </div>
+        {%- else -%}
+          <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        {%- endunless -%}
+
+        <button type="submit" name="add" class="btn btn-cta btn-block mt-2" {% unless product.available %}disabled{% endunless %}>
+          {% if product.available %}Add to bag{% else %}Sold out{% endif %}
+        </button>
+      {%- endform -%}
+
+      {%- if product.description != blank -%}
+        <div class="product-desc mt-3">{{ product.description }}</div>
+      {%- endif -%}
+
+      <p class="muted mt-2" style="font-size:.85rem">Custom &amp; made-to-order pieces are produced after proof approval. Questions? <a href="mailto:{{ shop.email | default: 'colorcreateconnect@gmail.com' }}" style="color:var(--pink)">Message the studio</a>.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function ccUpdatePrice(sel){
+    var o = sel.options[sel.selectedIndex];
+    var p = o.getAttribute('data-price');
+    if(p){ document.getElementById('pprice').textContent = p; }
+  }
+</script>
+
+{% schema %}
+{ "name": "Product", "settings": [] }
+{% endschema %}

@@ -1,0 +1,67 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "eyebrow": "Color Create Studio",
+        "heading": "Real work,",
+        "heading_accent": "real moments.",
+        "subheading": "Custom shirts, invitations, celebration suites, and sports drops — designed from a blank page around the people you love.",
+        "button_label": "Shop the studio",
+        "button2_label": "Start a custom project",
+        "button2_url": "/collections/customs"
+      }
+    },
+    "collections": {
+      "type": "featured-collections",
+      "blocks": {
+        "c1": { "type": "collection", "settings": { "collection": "customs", "label": "Customs" } },
+        "c2": { "type": "collection", "settings": { "collection": "bundles", "label": "Bundles" } },
+        "c3": { "type": "collection", "settings": { "collection": "sweet-beginnings", "label": "Sweet Beginnings" } },
+        "c4": { "type": "collection", "settings": { "collection": "the-function", "label": "The Function" } }
+      },
+      "block_order": ["c1", "c2", "c3", "c4"],
+      "settings": {
+        "band": "band-mix",
+        "eyebrow": "Browse the studio",
+        "heading": "Find your moment",
+        "subheading": "Curated collections for every celebration."
+      }
+    },
+    "portfolio": {
+      "type": "portfolio-strip",
+      "blocks": {
+        "p1": { "type": "photo", "settings": { "asset": "grad-jayvon-apparel.jpg", "caption": "Graduation" } },
+        "p2": { "type": "photo", "settings": { "asset": "sports-jaylen-card.jpg", "caption": "Sports" } },
+        "p3": { "type": "photo", "settings": { "asset": "birthday-brianna-brunch.jpg", "caption": "Birthday" } },
+        "p4": { "type": "photo", "settings": { "asset": "reveal-babybee-invite.jpg", "caption": "Reveal" } },
+        "p5": { "type": "photo", "settings": { "asset": "party-dukes-boots.jpg", "caption": "Party" } },
+        "p6": { "type": "photo", "settings": { "asset": "apparel-topshelf.jpg", "caption": "Apparel" } }
+      },
+      "block_order": ["p1", "p2", "p3", "p4", "p5", "p6"],
+      "settings": { "band": "band-sage", "eyebrow": "Portfolio", "heading": "Real work, real moments" }
+    },
+    "promise": {
+      "type": "promise",
+      "blocks": {
+        "i1": { "type": "item", "settings": { "icon": "01", "title": "Tell me the moment", "text": "Share the who, the theme, and the feeling. Every project starts as a conversation." } },
+        "i2": { "type": "item", "settings": { "icon": "02", "title": "Designed from a blank page", "text": "No templates. An original direction built around your names, colors, and story — two design rounds included." } },
+        "i3": { "type": "item", "settings": { "icon": "03", "title": "Made to order", "text": "Approve the proof, then we produce and deliver. Digital files, printed goods, and apparel." } }
+      },
+      "block_order": ["i1", "i2", "i3"],
+      "settings": { "band": "", "heading": "How the studio works" }
+    },
+    "cta": {
+      "type": "rich-text",
+      "settings": {
+        "band": "band-cocoa",
+        "eyebrow": "Custom work, clearly scoped",
+        "heading": "Don't see your exact moment?",
+        "text": "Every project starts as a conversation. Tell me what you're celebrating and I'll build something around it.",
+        "button_label": "Start a Custom Project",
+        "button_url": "/collections/customs"
+      }
+    }
+  },
+  "order": ["hero", "collections", "portfolio", "promise", "cta"]
+}

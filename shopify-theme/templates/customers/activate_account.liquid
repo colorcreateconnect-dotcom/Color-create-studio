@@ -1,0 +1,11 @@
+<div class="wrap section" style="max-width:26rem">
+  <h1 class="serif" style="font-size:2rem">Activate account</h1>
+  <p class="muted mt-1">Create your password to finish setting up your account.</p>
+  {%- form 'activate_customer_password' -%}
+    {{ form.errors | default_errors }}
+    <label style="display:block;margin-top:1rem">Password<input type="password" name="customer[password]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.8rem 1rem;background:var(--cream-paper)" required></label>
+    <label style="display:block;margin-top:1rem">Confirm password<input type="password" name="customer[password_confirmation]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.8rem 1rem;background:var(--cream-paper)" required></label>
+    <button type="submit" class="btn btn-cta mt-3 btn-block">Activate</button>
+    <button type="submit" name="decline" class="btn btn-ghost mt-2 btn-block">Decline invitation</button>
+  {%- endform -%}
+</div>
