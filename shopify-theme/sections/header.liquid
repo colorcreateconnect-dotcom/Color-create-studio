@@ -26,9 +26,22 @@
 
     <div class="header-actions">
       <a href="{{ section.settings.quote_page | default: '/pages/start-a-project' }}" class="btn btn-cta show-lg">{{ section.settings.quote_label | default: 'Start a Project' }}</a>
+      {%- comment -%} Order-unit products price by quantity ($1 units), so the badge counts real items, not dollars. {%- endcomment -%}
+      {%- assign cc_bag_count = 0 -%}
+      {%- for item in cart.items -%}
+        {%- case item.product.handle -%}
+          {%- when 'custom-shirt-order', 'paper-lane-set-order', 'sports-pack-order', 'custom-project-inquiry', 'request-something-similar' -%}
+            {%- assign cc_line = 1 -%}
+            {%- for p in item.properties -%}{%- if p.first == 'Shirts' -%}{%- assign cc_line = p.last | times: 1 -%}{%- endif -%}{%- endfor -%}
+            {%- if cc_line < 1 -%}{%- assign cc_line = 1 -%}{%- endif -%}
+            {%- assign cc_bag_count = cc_bag_count | plus: cc_line -%}
+          {%- else -%}
+            {%- assign cc_bag_count = cc_bag_count | plus: item.quantity -%}
+        {%- endcase -%}
+      {%- endfor -%}
       <a href="{{ routes.cart_url }}" class="icon-btn" aria-label="Cart">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-        {%- if cart.item_count > 0 -%}<span class="cart-count">{{ cart.item_count }}</span>{%- endif -%}
+        {%- if cc_bag_count > 0 -%}<span class="cart-count">{{ cc_bag_count }}</span>{%- endif -%}
       </a>
       <button class="icon-btn hide-lg" id="menuToggle" aria-label="Menu" aria-expanded="false">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
