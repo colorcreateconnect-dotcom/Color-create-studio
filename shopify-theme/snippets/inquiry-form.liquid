@@ -1,0 +1,120 @@
+{%- comment -%} Deep project intake as a product form with file uploads.
+Expects: variant_id (a $1 order-unit variant). The hidden quantity field is
+the amount due in dollars. Deposits apply ONLY to brand-new projects and
+Celebration Suites (under $150 pays in full, $150+ takes a 50% deposit, open
+requests take the $25 minimum — all credited to the final invoice).
+Pay-now orders (paper sets etc.) charge the full price via ccSetPayNow.
+Submits to cart then straight to checkout. {%- endcomment -%}
+<form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data" id="inquiryForm">
+  <input type="hidden" name="id" value="{{ variant_id }}">
+  <input type="hidden" name="return_to" value="/checkout">
+  <input type="hidden" name="quantity" id="ccDepositQty" value="25">
+  <input type="hidden" name="properties[Inspiration piece]" id="ccInspPiece" value="">
+
+  <h2 class="serif" style="font-size:1.5rem">Who am I designing for?</h2>
+  <div class="f-grid">
+    <label class="f-label">Your name *<input class="f-in" name="properties[Name]" required></label>
+    <label class="f-label">Email *<input class="f-in" type="email" name="properties[Email]" required></label>
+    <label class="f-label">Phone, optional<input class="f-in" name="properties[Phone]"></label>
+    <label class="f-label">Preferred contact<select class="f-in" name="properties[Preferred contact]"><option>Email</option><option>Phone</option><option>Text</option></select></label>
+  </div>
+
+  <h2 class="serif mt-4" style="font-size:1.5rem">What are we creating together?</h2>
+  <div class="f-grid">
+    <label class="f-label">The moment<select class="f-in" name="properties[The moment]" id="ccOccasion"><option>Graduation</option><option>Sweet Beginnings</option><option>Bridal Bliss</option><option>Birthday</option><option>Group Gatherings</option><option>Sports Social Studio</option><option>Business</option><option>Something Else</option></select></label>
+    <label class="f-label">Closest service or collection<select class="f-in" name="properties[Service]" id="ccService"><option>Help me choose</option><option>Celebration Suite</option><option>Group Gatherings</option><option>Custom Apparel</option><option>Paper Lane</option><option>Player Pride</option><option>Team Identity</option><option>Full Team Takeover</option><option>Business Promo &amp; Merch</option><option>Something beyond standard scope</option></select></label>
+    <label class="f-label">Event date<input class="f-in" type="date" name="properties[Event date]"></label>
+    <label class="f-label">Needed-by date *<input class="f-in" type="date" name="properties[Needed by]" required></label>
+    <label class="f-label">Who is this for, or how many people?<input class="f-in" name="properties[Audience]"></label>
+    <label class="f-label">Approximate overall quantities<input class="f-in" name="properties[Quantities]" placeholder="Approximate totals are okay"></label>
+  </div>
+  <label class="f-label">Requested pieces *<textarea class="f-in" rows="6" name="properties[Requested pieces]" placeholder="List the pieces you believe the moment needs. It is okay if you need help choosing." required></textarea></label>
+
+  <h2 class="serif mt-4" style="font-size:1.5rem">What should this feel like?</h2>
+  <div class="f-grid">
+    <label class="f-label">Theme and style direction *<textarea class="f-in" rows="3" name="properties[Theme and style]" placeholder="Retro, soft luxury, bold stadium, storybook, minimal..." required></textarea></label>
+    <label class="f-label">Colors<textarea class="f-in" rows="3" name="properties[Colors]" placeholder="Specific colors, team colors, or CCC's choice."></textarea></label>
+    <label class="f-label">Names and dates<textarea class="f-in" rows="3" name="properties[Names and dates]"></textarea></label>
+    <label class="f-label">Exact wording or important phrases<textarea class="f-in" rows="3" name="properties[Wording]"></textarea></label>
+    <label class="f-label">Inspiration and meaningful details<textarea class="f-in" rows="3" name="properties[Inspiration]" id="ccInspiration"></textarea></label>
+    <label class="f-label">What should be avoided?<textarea class="f-in" rows="3" name="properties[Avoid]"></textarea></label>
+  </div>
+
+  <h2 class="serif mt-4" style="font-size:1.5rem">Photos, logos &amp; references</h2>
+  <p class="muted mt-1" style="font-size:.9rem">Attach up to 3 reference files &mdash; inspiration photos, logos, sketches. JPG, PNG, HEIC, or PDF. People in your photos stay recognizable.</p>
+  <div class="f-grid">
+    <label class="f-label">Reference file 1<input class="f-in" type="file" name="properties[Reference file 1]" accept="image/*,.pdf,.heic,.heif"></label>
+    <label class="f-label">Reference file 2<input class="f-in" type="file" name="properties[Reference file 2]" accept="image/*,.pdf,.heic,.heif"></label>
+    <label class="f-label">Reference file 3<input class="f-in" type="file" name="properties[Reference file 3]" accept="image/*,.pdf,.heic,.heif"></label>
+  </div>
+  <label class="f-check" id="ccPermRow"><input type="checkbox" id="ccPerm" name="properties[Upload permission]" value="Confirmed: permission to use every uploaded photo, logo, name, and artwork"> I have permission to use every photo, logo, name, and artwork I am uploading.</label>
+
+  <h2 class="serif mt-4" style="font-size:1.5rem">The practical</h2>
+  <div class="f-grid">
+    <label class="f-label">Fulfillment<select class="f-in" name="properties[Fulfillment]"><option>Not sure</option><option>Pickup</option><option>Shipping</option><option>Digital delivery</option></select></label>
+    <label class="f-label">Budget range<select class="f-in" name="properties[Budget]"><option>Help me determine it</option><option>Under $150</option><option>$150 to $299</option><option>$300 to $499</option><option>$500 to $999</option><option>$1,000+</option></select></label>
+  </div>
+
+  <div class="mt-3">
+    <label class="f-check"><input type="checkbox" required name="properties[Payment acknowledgment]" value="Acknowledged"> I understand quoted work requires the applicable deposit or payment before design work begins.</label>
+    <label class="f-check"><input type="checkbox" required name="properties[Proof acknowledgment]" value="Acknowledged"> I understand production begins only after complete information and final proof approval. Two design rounds are included.</label>
+    <label class="f-check"><input type="checkbox" required name="properties[Photo Integrity acknowledgment]" value="Acknowledged"> I understand and acknowledge the Photo Integrity Promise. People in submitted photos will stay recognizable.</label>
+  </div>
+
+  <div class="card mt-3" style="padding:1rem 1.25rem;background:#FBF6E9;border-color:var(--gold-soft)">
+    <strong><span id="ccDepositWord">Deposit</span> due at checkout: <span id="ccDepositLabel">$25</span></strong>
+    <p class="muted" id="ccDepositNote" style="font-size:.85rem;margin-top:.3rem">$25 project deposit &mdash; credited in full toward your final invoice. Design work begins once your deposit and details are in.</p>
+  </div>
+  <button type="submit" class="btn btn-cta btn-block mt-3" id="ccPayBtn">Send My Project + Pay Deposit</button>
+  <p class="muted mt-2" style="font-size:.82rem">Whatever you pay today is <strong>credited in full</strong> to your project total &mdash; it is not an extra fee. If the studio cannot take your project, it is refunded in full. You&rsquo;ll receive your complete quote within 1&ndash;2 business days.</p>
+</form>
+
+<script>
+(function(){
+  var form = document.getElementById('inquiryForm');
+  if(!form) return;
+  form.addEventListener('submit', function(e){
+    var hasFile = ['1','2','3'].some(function(n){
+      var f = form.querySelector('[name="properties[Reference file ' + n + ']"]');
+      return f && f.files && f.files.length > 0;
+    });
+    var perm = document.getElementById('ccPerm');
+    if(hasFile && perm && !perm.checked){
+      e.preventDefault();
+      perm.focus();
+      document.getElementById('ccPermRow').style.borderColor = '#D98A9B';
+      alert('Please confirm you have permission to use the uploaded files.');
+    }
+  });
+  window.ccSetDeposit = function(fullPrice){
+    var p = Math.max(1, Math.ceil(Number(fullPrice)));
+    var full = p < 150;
+    var d = full ? p : Math.ceil(p / 2);
+    var q = document.getElementById('ccDepositQty');
+    var l = document.getElementById('ccDepositLabel');
+    var n = document.getElementById('ccDepositNote');
+    var w = document.getElementById('ccDepositWord');
+    var b = document.getElementById('ccPayBtn');
+    if(q) q.value = d;
+    if(l) l.textContent = '$' + d;
+    if(w) w.textContent = full ? 'Full payment' : 'Deposit';
+    if(b) b.textContent = full ? 'Send My Project + Pay in Full' : 'Send My Project + Pay Deposit';
+    if(n) n.textContent = full
+      ? 'Selections under $150 are paid in full \u2014 your $' + d + ' covers this selection completely. If the studio cannot take your project, it is refunded in full.'
+      : '50% of your selected total ($' + p + ') \u2014 credited in full toward your final invoice. Design work begins once your deposit and details are in.';
+  };
+  window.ccSetPayNow = function(fullPrice){
+    var p = Math.max(1, Math.ceil(Number(fullPrice)));
+    var q = document.getElementById('ccDepositQty');
+    var l = document.getElementById('ccDepositLabel');
+    var n = document.getElementById('ccDepositNote');
+    var w = document.getElementById('ccDepositWord');
+    var b = document.getElementById('ccPayBtn');
+    if(q) q.value = p;
+    if(l) l.textContent = '$' + p;
+    if(w) w.textContent = 'Full payment';
+    if(b) b.textContent = 'Submit My Order + Pay Now';
+    if(n) n.textContent = 'Pay now to order \u2014 $' + p + ' is your full price, not a deposit. Production begins after your proof is approved.';
+  };
+})();
+</script>

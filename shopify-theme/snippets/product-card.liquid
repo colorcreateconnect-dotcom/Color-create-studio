@@ -1,0 +1,17 @@
+{%- comment -%} Renders a product card. Expects: product (object) {%- endcomment -%}
+<a href="{{ product.url }}" class="card">
+  <div class="card-media">
+    {%- if product.featured_image != blank -%}
+      <img src="{{ product.featured_image | image_url: width: 600 }}" alt="{{ product.title | escape }}" loading="lazy">
+    {%- else -%}
+      <img src="{{ 'apparel-topshelf.jpg' | asset_url }}" alt="{{ product.title | escape }}" loading="lazy">
+    {%- endif -%}
+    {%- if product.type != blank -%}<span class="card-tag">{{ product.type }}</span>{%- endif -%}
+  </div>
+  <div class="card-body">
+    <h3 class="card-title">{{ product.title }}</h3>
+    <div class="card-price">
+      {%- if product.price_varies -%}From {% endif %}{{ product.price | money }}
+    </div>
+  </div>
+</a>

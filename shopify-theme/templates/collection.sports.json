@@ -1,0 +1,19 @@
+{
+  "sections": {
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Sports Social Studio",
+        "heading": "SHOW UP",
+        "heading_accent": "LOUD.",
+        "accent_style": "chrome",
+        "band": "band-stadium",
+        "subheading": "Player spotlight cards, team bundles, yard signs, supporter tees and game-day keepsakes — one protected visual system for the whole season.",
+        "button_label": "Start Team Project",
+        "button_url": "/pages/start-a-project"
+      }
+    },
+    "main": { "type": "main-collection", "settings": { "show_head": false } }
+  },
+  "order": ["hero", "main"]
+}

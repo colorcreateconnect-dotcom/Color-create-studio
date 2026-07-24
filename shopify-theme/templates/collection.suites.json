@@ -1,0 +1,19 @@
+{
+  "sections": {
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Celebration Suites",
+        "heading": "Two or more pieces",
+        "heading_accent": "build a moment.",
+        "accent_style": "gradient",
+        "band": "band-sage",
+        "subheading": "Coordinated suites, bundles and packages — apparel, paper and keepsakes designed as one story around your celebration.",
+        "button_label": "Build your suite",
+        "button_url": "/pages/start-a-project"
+      }
+    },
+    "main": { "type": "main-collection", "settings": { "show_head": false } }
+  },
+  "order": ["hero", "main"]
+}

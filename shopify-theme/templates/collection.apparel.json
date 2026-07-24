@@ -1,0 +1,28 @@
+{
+  "sections": {
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Shop the studio",
+        "heading": "Custom products & keepsakes,",
+        "heading_accent": "purchased independently.",
+        "accent_style": "gradient",
+        "band": "band-mix",
+        "subheading": "Order one firm-price custom piece directly \u2014 shirts, invitations, keepsakes and more. Need a coordinated moment? Two or more pieces build a suite.",
+        "button_label": "Build a suite instead",
+        "button_url": "/pages/celebration-suites"
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "settings": {
+        "show_head": false,
+        "band": "band-blush"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "main"
+  ]
+}

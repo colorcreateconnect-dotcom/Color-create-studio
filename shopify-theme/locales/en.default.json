@@ -1,0 +1,15 @@
+{
+  "general": {
+    "search": { "search": "Search", "placeholder": "Search products" },
+    "cart": { "title": "Your Bag", "subtotal": "Subtotal", "checkout": "Continue to checkout", "empty": "Your bag is empty" },
+    "404": { "title": "Page not found" }
+  },
+  "products": {
+    "product": { "add_to_cart": "Add to bag", "sold_out": "Sold out", "from_price": "From" }
+  },
+  "customer": {
+    "login": { "title": "Sign in" },
+    "register": { "title": "Create account" },
+    "account": { "title": "Account" }
+  }
+}

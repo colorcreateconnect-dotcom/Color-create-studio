@@ -1,0 +1,30 @@
+<section class="trust">
+  <div class="wrap"><div class="row">
+    {%- for block in section.blocks -%}
+      <div class="cell" {{ block.shopify_attributes }}>
+        <div class="n">{{ block.settings.number }}</div>
+        <div class="l">{{ block.settings.label }}</div>
+      </div>
+    {%- endfor -%}
+  </div></div>
+</section>
+
+{% schema %}
+{
+  "name": "Trust strip",
+  "blocks": [
+    { "type": "item", "name": "Item", "settings": [
+      { "type": "text", "id": "number", "label": "Number", "default": "01" },
+      { "type": "text", "id": "label", "label": "Label", "default": "Made to Order" }
+    ]}
+  ],
+  "max_blocks": 6,
+  "presets": [{ "name": "Trust strip", "blocks": [
+    { "type": "item", "settings": { "number": "01", "label": "Made to Order" } },
+    { "type": "item", "settings": { "number": "02", "label": "Custom Design" } },
+    { "type": "item", "settings": { "number": "03", "label": "Photo Care" } },
+    { "type": "item", "settings": { "number": "04", "label": "Whole Skill Set" } },
+    { "type": "item", "settings": { "number": "05", "label": "Firm Prices or Clear Quotes" } }
+  ]}]
+}
+{% endschema %}

@@ -1,0 +1,19 @@
+{
+  "sections": {
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Paper Lane",
+        "heading": "Paper that sets",
+        "heading_accent": "the whole vibe.",
+        "accent_style": "gradient",
+        "band": "band-blush",
+        "subheading": "Invitations, toppers, wraps, labels and party paper — coordinated sets designed around your theme, printed or digital.",
+        "button_label": "Start a custom set",
+        "button_url": "/pages/start-a-project"
+      }
+    },
+    "main": { "type": "main-collection", "settings": { "show_head": false } }
+  },
+  "order": ["hero", "main"]
+}

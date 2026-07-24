@@ -1,0 +1,12 @@
+<div class="wrap section" style="max-width:26rem">
+  <h1 class="serif" style="font-size:2rem">Create account</h1>
+  {%- form 'create_customer' -%}
+    {{ form.errors | default_errors }}
+    <label style="display:block;margin-top:1rem">First name<input name="customer[first_name]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.8rem 1rem;background:var(--cream-paper)"></label>
+    <label style="display:block;margin-top:1rem">Last name<input name="customer[last_name]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.8rem 1rem;background:var(--cream-paper)"></label>
+    <label style="display:block;margin-top:1rem">Email<input type="email" name="customer[email]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.8rem 1rem;background:var(--cream-paper)" required></label>
+    <label style="display:block;margin-top:1rem">Password<input type="password" name="customer[password]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.8rem 1rem;background:var(--cream-paper)" required></label>
+    <button type="submit" class="btn btn-cta mt-3 btn-block">Create account</button>
+  {%- endform -%}
+  <p class="muted mt-2" style="font-size:.85rem"><a href="{{ routes.account_login_url }}" style="color:var(--pink)">Already have an account? Sign in</a></p>
+</div>

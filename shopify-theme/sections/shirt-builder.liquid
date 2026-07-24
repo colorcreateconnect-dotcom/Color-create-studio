@@ -1,0 +1,186 @@
+{%- assign shirt_product = all_products['custom-shirt-order'] -%}
+<section class="wrap section" id="shirtBuilder">
+  {%- if section.settings.eyebrow != blank -%}<span class="eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+  {%- if section.settings.heading != blank -%}
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">{{ section.settings.heading }}{% if section.settings.heading_accent != blank %} <span class="tagline-gradient">{{ section.settings.heading_accent }}</span>{% endif %}</h2>
+  {%- endif -%}
+  {%- if section.settings.intro != blank -%}<p class="muted mt-1" style="max-width:40rem">{{ section.settings.intro }}</p>{%- endif -%}
+
+  {%- if shirt_product != blank and shirt_product.available -%}
+  <form method="post" action="{{ routes.cart_add_url }}" enctype="multipart/form-data" id="sbForm" class="card mt-3" style="padding:1.5rem">
+    <input type="hidden" name="id" value="{{ shirt_product.selected_or_first_available_variant.id }}">
+    <input type="hidden" name="quantity" id="sbPayQty" value="25">
+    <input type="hidden" name="return_to" value="/checkout">
+    <input type="hidden" name="properties[Print type]" id="sbPType" value="DTF full-color">
+    <input type="hidden" name="properties[Design source]" id="sbPSource" value="{% if section.settings.show_source %}Already-approved team design{% else %}New custom design{% endif %}">
+    <input type="hidden" name="properties[Design idea]" id="sbPRef" value="">
+    <input type="hidden" name="properties[Back graphic]" id="sbPBack" value="None">
+    <input type="hidden" name="properties[Order total]" id="sbPTotal" value="$25">
+    <div class="f-grid">
+      <div>
+        <span class="f-label" style="margin-top:0">Print type</span>
+        <div style="display:flex;gap:.5rem;margin-top:.4rem">
+          <button type="button" class="chip chip-active" id="sbDtf">DTF full-color</button>
+          <button type="button" class="chip" id="sb3d">3D sublimation</button>
+        </div>
+        <p class="muted" id="sbTurn" style="font-size:.78rem;margin-top:.4rem">Turnaround: 5-7 business days after approval.</p>
+      </div>
+      {%- if section.settings.show_source -%}
+      <div>
+        <span class="f-label" style="margin-top:0">Design source</span>
+        <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+          <button type="button" class="chip chip-active" id="sbApproved">Already-approved team design</button>
+          <button type="button" class="chip" id="sbNew">New custom design</button>
+        </div>
+      </div>
+      {%- endif -%}
+      <label class="f-label">Size<select class="f-in" id="sbSize" name="properties[Size]"><option>Youth S</option><option>Youth M</option><option>Youth L</option><option>Adult S</option><option selected>Adult M</option><option>Adult L</option><option>Adult XL</option><option>2XL</option><option>3XL</option><option>4XL</option></select></label>
+      <label class="f-label">How many shirts<input class="f-in" id="sbQty" name="properties[Shirts]" type="number" min="1" value="1"></label>
+      {%- if section.settings.show_color -%}
+      <label class="f-label">Shirt color<select class="f-in" name="properties[Shirt color]"><option>White</option><option>Black</option><option>Sand / Natural</option><option>Sport Grey</option><option>Navy</option><option>Royal Blue</option><option>Light Blue</option><option>Red</option><option>Pink</option><option>Purple</option><option>Green</option><option>Yellow</option><option>Orange</option><option>Maroon</option><option>Let the studio match my theme</option></select></label>
+      {%- endif -%}
+    </div>
+
+    <label class="f-label" id="sbRefLabel">{% if section.settings.show_source %}Approved design code *{% else %}Your design idea *{% endif %}<textarea class="f-in" rows="2" id="sbRef" placeholder="{% if section.settings.show_source %}Enter the design code for your approved team graphic.{% else %}Describe the design: names, dates, colors, theme, and the feeling it should carry.{% endif %}"></textarea></label>
+
+    <span class="f-label">Back graphic</span>
+    <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+      <button type="button" class="chip chip-active" id="sbBackNone">No back</button>
+      <button type="button" class="chip" id="sbBackNN">Name &amp; number</button>
+      <button type="button" class="chip" id="sbBackFull">Full custom back</button>
+    </div>
+    <p class="muted" id="sbBackCost" style="font-size:.78rem;margin-top:.4rem">Back graphic is free with DTF.</p>
+    <div class="f-grid" id="sbNNRow" style="display:none">
+      <label class="f-label">Name for the back *<input class="f-in" id="sbPlayerName" name="properties[Back name]"></label>
+      <label class="f-label">Number *<input class="f-in" id="sbPlayerNum" name="properties[Back number]"></label>
+    </div>
+    <label class="f-label" id="sbBackDescRow" style="display:none">What goes on the back? *<textarea class="f-in" rows="2" id="sbBackDesc" name="properties[Back design notes]" placeholder="Theme, wording, images &mdash; the studio may follow up to get it exactly right."></textarea></label>
+
+    <span class="f-label">Photos, logos &amp; references</span>
+    <p class="muted" style="font-size:.78rem;margin-top:.3rem">Attach up to 2 files &mdash; logos, inspiration photos, sketches. JPG, PNG, HEIC, or PDF.</p>
+    <div class="f-grid">
+      <label class="f-label">Reference file 1<input class="f-in" type="file" name="properties[Reference file 1]" accept="image/*,.pdf,.heic,.heif"></label>
+      <label class="f-label">Reference file 2<input class="f-in" type="file" name="properties[Reference file 2]" accept="image/*,.pdf,.heic,.heif"></label>
+    </div>
+    <label class="f-check" id="sbPermRow"><input type="checkbox" id="sbPerm" name="properties[Upload permission]" value="Confirmed: permission to use every uploaded photo, logo, name, and artwork"> I have permission to use every photo, logo, name, and artwork I am uploading.</label>
+
+    <div style="display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:1.25rem;padding-top:1.25rem">
+      <div>
+        <div class="label" style="font-size:.6rem;color:var(--cocoa-soft)">Firm total &mdash; pay now to order</div>
+        <div class="serif" id="sbTotal" style="font-size:2.4rem">$25</div>
+      </div>
+      <button type="submit" class="btn btn-cta" id="sbSend"><span id="sbSendLabel">Add to cart &amp; check out &mdash; $25</span></button>
+    </div>
+  </form>
+  {%- else -%}
+  <div class="card mt-3" style="padding:1.5rem">
+    <p class="muted">Shirt ordering is being set up &mdash; <a href="/pages/start-a-project" style="color:var(--pink)">start a project</a> and the studio will price it for you.</p>
+  </div>
+  {%- endif -%}
+</section>
+
+<script>
+(function(){
+  var el = function(id){ return document.getElementById(id); };
+  var sbForm = el('sbForm');
+  if(!sbForm) return;
+  var showSource = {% if section.settings.show_source %}true{% else %}false{% endif %};
+  var type = 'dtf', source = showSource ? 'approved' : 'new', back = 'none';
+  var dtfB = el('sbDtf'), tdB = el('sb3d'), apB = el('sbApproved'), nwB = el('sbNew');
+  var bkN = el('sbBackNone'), bkNN = el('sbBackNN'), bkF = el('sbBackFull');
+  function per(){
+    var size = el('sbSize').value;
+    var youth = size.indexOf('Youth') === 0;
+    var big2 = size === '2XL', big3 = size === '3XL', big4 = size === '4XL';
+    var p;
+    if(type === 'dtf' && source === 'approved') p = youth ? 20 : big2 ? 27 : big3 ? 28 : big4 ? 29 : 25;
+    else if(type === 'dtf') p = youth ? 30 : big2 ? 37 : big3 ? 38 : big4 ? 39 : 35;
+    else if(source === 'approved') p = youth ? 30 : (big2 || big3 || big4) ? 50 : 40;
+    else p = youth ? 40 : (big2 || big3 || big4) ? 60 : 50;
+    if(type === '3d' && back !== 'none') p += 15;
+    return p;
+  }
+  function qty(){ return Math.max(1, parseInt(el('sbQty').value || '1', 10)); }
+  function total(){ return per() * qty(); }
+  function sync(){
+    dtfB.classList.toggle('chip-active', type === 'dtf');
+    tdB.classList.toggle('chip-active', type === '3d');
+    if(apB){ apB.classList.toggle('chip-active', source === 'approved'); }
+    if(nwB){ nwB.classList.toggle('chip-active', source === 'new'); }
+    bkN.classList.toggle('chip-active', back === 'none');
+    bkNN.classList.toggle('chip-active', back === 'nn');
+    bkF.classList.toggle('chip-active', back === 'full');
+    el('sbTurn').textContent = 'Turnaround: ' + (type === '3d' ? '7-10' : '5-7') + ' business days after approval.';
+    el('sbBackCost').textContent = type === '3d' ? 'Back graphic adds $15 with 3D sublimation.' : 'Back graphic is free with DTF.';
+    el('sbNNRow').style.display = back === 'nn' ? 'grid' : 'none';
+    el('sbBackDescRow').style.display = back === 'full' ? 'block' : 'none';
+    el('sbPlayerName').disabled = back !== 'nn';
+    el('sbPlayerNum').disabled = back !== 'nn';
+    el('sbBackDesc').disabled = back !== 'full';
+    if(showSource){
+      el('sbRefLabel').childNodes[0].textContent = source === 'approved' ? 'Approved design code *' : 'Your design idea *';
+      el('sbRef').placeholder = source === 'approved' ? 'Enter the design code for your approved team graphic.' : 'Describe the design: names, numbers, colors, theme, and the feeling it should carry.';
+    }
+    el('sbTotal').textContent = '$' + total();
+    el('sbSendLabel').textContent = 'Add to cart & check out — $' + total();
+  }
+  dtfB.onclick = function(){ type = 'dtf'; sync(); };
+  tdB.onclick = function(){ type = '3d'; sync(); };
+  if(apB){ apB.onclick = function(){ source = 'approved'; sync(); }; }
+  if(nwB){ nwB.onclick = function(){ source = 'new'; sync(); }; }
+  bkN.onclick = function(){ back = 'none'; sync(); };
+  bkNN.onclick = function(){ back = 'nn'; sync(); };
+  bkF.onclick = function(){ back = 'full'; sync(); };
+  el('sbSize').onchange = sync; el('sbQty').oninput = sync;
+  sbForm.addEventListener('submit', function(e){
+    var ref = el('sbRef').value.trim();
+    var bad = null;
+    if(!ref) bad = el('sbRef');
+    else if(back === 'nn' && !el('sbPlayerName').value.trim()) bad = el('sbPlayerName');
+    else if(back === 'nn' && !el('sbPlayerNum').value.trim()) bad = el('sbPlayerNum');
+    else if(back === 'full' && !el('sbBackDesc').value.trim()) bad = el('sbBackDesc');
+    if(bad){
+      e.preventDefault();
+      bad.focus();
+      bad.style.borderColor = '#D98A9B';
+      if(source === 'approved' && bad === el('sbRef')) alert('Enter the design code for your approved team graphic before adding to cart.');
+      return;
+    }
+    var files = sbForm.querySelectorAll('input[type="file"]');
+    var hasFile = false;
+    for(var fi = 0; fi < files.length; fi++){ if(files[fi].files && files[fi].files.length){ hasFile = true; break; } }
+    if(hasFile && !el('sbPerm').checked){
+      e.preventDefault();
+      el('sbPerm').focus();
+      el('sbPermRow').style.borderColor = '#D98A9B';
+      alert('Please confirm you have permission to use the uploaded files.');
+      return;
+    }
+    el('sbPayQty').value = total();
+    el('sbPType').value = type === 'dtf' ? 'DTF full-color' : '3D sublimation';
+    el('sbPSource').value = source === 'approved' ? 'Already-approved team design' : 'New custom design';
+    el('sbPRef').name = source === 'approved' ? 'properties[Approved design code]' : 'properties[Design idea]';
+    el('sbPRef').value = ref;
+    var backLabel = back === 'none' ? 'None' : (back === 'nn' ? 'Name & number' : 'Full custom back');
+    if(back !== 'none') backLabel += type === '3d' ? ' (+$15)' : ' (free with DTF)';
+    el('sbPBack').value = backLabel;
+    el('sbPTotal').value = '$' + total() + ' (' + qty() + ' x $' + per() + ')';
+  });
+  sync();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Shirt builder",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Build your shirt" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "DTF or 3D." },
+    { "type": "text", "id": "heading_accent", "label": "Heading accent (gradient)", "default": "Your idea, a firm price." },
+    { "type": "textarea", "id": "intro", "label": "Intro text" },
+    { "type": "checkbox", "id": "show_source", "label": "Show design source choice (approved team code)", "default": false },
+    { "type": "checkbox", "id": "show_color", "label": "Show shirt color picker", "default": true }
+  ],
+  "presets": [{ "name": "Shirt builder" }]
+}
+{% endschema %}

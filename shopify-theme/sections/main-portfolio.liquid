@@ -1,0 +1,104 @@
+<section class="collection-head" style="background:radial-gradient(circle at 90% 0%,rgba(234,59,132,.10),transparent 34%),radial-gradient(circle at 8% 0%,rgba(244,184,196,.16),transparent 30%),radial-gradient(circle at 92% 90%,rgba(168,185,157,.18),transparent 36%)">
+  <div class="wrap">
+    <span class="eyebrow">Portfolio</span>
+    <h1 class="serif mt-1" style="font-size:clamp(2.4rem,5.5vw,4rem);line-height:.98">Real work, <span class="tagline-gradient">real moments</span>.</h1>
+    <p class="muted mt-2" style="max-width:42rem;font-size:1.05rem">{{ section.settings.intro }}</p>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:2rem" id="pfFilters">
+    <button type="button" class="chip chip-active" data-cat="All">All</button>
+    <button type="button" class="chip" data-cat="Sports">Sports</button>
+    <button type="button" class="chip" data-cat="Graduation">Graduation</button>
+    <button type="button" class="chip" data-cat="Birthday">Birthday</button>
+    <button type="button" class="chip" data-cat="Reveal">Reveal</button>
+    <button type="button" class="chip" data-cat="Party">Party</button>
+    <button type="button" class="chip" data-cat="Apparel">Apparel</button>
+    <button type="button" class="chip" data-cat="Keepsake">Keepsake</button>
+  </div>
+
+  <div class="grid grid-3" id="pfGrid">
+    {%- for block in section.blocks -%}
+      <article class="card" data-cat="{{ block.settings.cat }}" {{ block.shopify_attributes }}>
+        <div class="card-media">
+          {%- if block.settings.image != blank -%}
+            <img src="{{ block.settings.image | image_url: width: 700 }}" alt="{{ block.settings.title | escape }}" loading="lazy">
+          {%- elsif block.settings.asset != blank -%}
+            <img src="{{ block.settings.asset | asset_url }}" alt="{{ block.settings.title | escape }}" loading="lazy">
+          {%- endif -%}
+          {%- if block.settings.type != blank -%}<span class="card-tag">{{ block.settings.type }}</span>{%- endif -%}
+          {%- if block.settings.example -%}<span class="badge-example">Example only</span>{%- endif -%}
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">{{ block.settings.title }}</h3>
+          <p class="pf-story">{{ block.settings.story }}</p>
+          {%- if block.settings.deliv != blank -%}
+            <div style="margin-top:.8rem">
+              <div class="label" style="font-size:.58rem;color:var(--cocoa-soft)">In the suite</div>
+              <div style="margin-top:.4rem">
+                {%- assign parts = block.settings.deliv | split: ',' -%}
+                {%- for part in parts -%}<span class="deliv">{{ part | strip }}</span>{%- endfor -%}
+              </div>
+            </div>
+          {%- endif -%}
+          <a class="req-sim" href="/products/request-something-similar?piece={{ block.settings.title | url_encode }}{% if block.settings.asset != blank %}&img={{ block.settings.asset | url_encode }}{% endif %}&cat={{ block.settings.cat | url_encode }}">Request something similar &rarr;</a>
+        </div>
+      </article>
+    {%- endfor -%}
+  </div>
+
+  <div class="mt-4 center" style="background:var(--cream-soft);border:1px solid var(--line);border-radius:2rem;padding:2.5rem 1.5rem">
+    <h2 class="serif" style="font-size:clamp(1.8rem,3.5vw,2.6rem)">Don&rsquo;t see your exact moment?</h2>
+    <p class="muted mt-1">Every project starts as a conversation. Tell me what you&rsquo;re celebrating.</p>
+    <div class="mt-3"><a href="/pages/start-a-project" class="btn btn-cta">Start a Custom Project</a></div>
+  </div>
+</section>
+
+<script>
+(function(){
+  var wrap = document.getElementById('pfFilters');
+  if(!wrap) return;
+  wrap.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-cat]');
+    if(!b) return;
+    wrap.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('chip-active'); });
+    b.classList.add('chip-active');
+    var cat = b.getAttribute('data-cat');
+    document.querySelectorAll('#pfGrid [data-cat]').forEach(function(card){
+      card.classList.toggle('pf-hidden', cat !== 'All' && card.getAttribute('data-cat') !== cat);
+    });
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Portfolio",
+  "settings": [
+    { "type": "textarea", "id": "intro", "label": "Intro", "default": "Browse custom suites, sports drops and celebration designs by category. See something you love? I'll build something similar around your moment." }
+  ],
+  "blocks": [
+    { "type": "piece", "name": "Piece", "settings": [
+      { "type": "image_picker", "id": "image", "label": "Image" },
+      { "type": "text", "id": "asset", "label": "Bundled asset filename (fallback)" },
+      { "type": "text", "id": "type", "label": "Type badge" },
+      { "type": "select", "id": "cat", "label": "Category", "default": "Party", "options": [
+        { "value": "Sports", "label": "Sports" },
+        { "value": "Graduation", "label": "Graduation" },
+        { "value": "Birthday", "label": "Birthday" },
+        { "value": "Reveal", "label": "Reveal" },
+        { "value": "Party", "label": "Party" },
+        { "value": "Apparel", "label": "Apparel" },
+        { "value": "Keepsake", "label": "Keepsake" }
+      ]},
+      { "type": "text", "id": "title", "label": "Title" },
+      { "type": "textarea", "id": "story", "label": "Story" },
+      { "type": "text", "id": "deliv", "label": "Deliverables (comma separated)" },
+      { "type": "checkbox", "id": "example", "label": "Example only badge", "default": false }
+    ]}
+  ],
+  "max_blocks": 40,
+  "presets": [{ "name": "Portfolio" }]
+}
+{% endschema %}

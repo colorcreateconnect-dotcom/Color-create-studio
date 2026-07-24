@@ -1,0 +1,19 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-policies",
+      "blocks": {
+        "b1": { "type": "policy", "settings": { "title": "Payments", "text": "Buy-now items are paid in full. Quoted work requires a 50% deposit, with the balance due before printing, pickup, shipping, or final-file release." } },
+        "b2": { "type": "policy", "settings": { "title": "Proofs and revisions", "text": "Two design rounds are included. One round means one complete list of changes submitted together. Additional rounds are $15." } },
+        "b3": { "type": "policy", "settings": { "title": "Turnaround", "text": "Digital files 3-5 business days. Paper goods and single items 5-7. Apparel bundles and 3D sublimation 7-10. Large orders and Full Moment suites 10-15." } },
+        "b4": { "type": "policy", "settings": { "title": "Rush work", "text": "Rush is 25% with a $25 minimum and must be confirmed in writing before payment. No rush inside 5 business days of an event without approval." } },
+        "b5": { "type": "policy", "settings": { "title": "Shipping", "text": "Local pickup is free. Shipping is $8 under $75 and free at $75 or more. Separate addresses route to quote. Local delivery is not offered at launch." } },
+        "b6": { "type": "policy", "settings": { "title": "Digital files", "text": "Made to order and delivered by email after proof approval. Personal use only. Final sale once delivered. A second design requires a second file purchase." } },
+        "b7": { "type": "policy", "settings": { "title": "Original concepts", "text": "CCC retains ownership of original concepts and working files unless transferred in writing. Unpaid proofs may not be copied, printed, or used." } }
+      },
+      "block_order": ["b1", "b2", "b3", "b4", "b5", "b6", "b7"],
+      "settings": {}
+    }
+  },
+  "order": ["main"]
+}

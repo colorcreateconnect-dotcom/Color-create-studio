@@ -1,0 +1,22 @@
+<div class="wrap section" style="max-width:44rem">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+    <h1 class="serif" style="font-size:2rem">Hi, {{ customer.first_name | default: 'friend' }}</h1>
+    <a href="{{ routes.account_logout_url }}" class="btn btn-ghost">Sign out</a>
+  </div>
+  <p class="muted mt-1"><a href="{{ routes.account_addresses_url }}" style="color:var(--pink)">Manage addresses</a></p>
+
+  <h2 class="serif mt-3" style="font-size:1.4rem">Order history</h2>
+  {%- if customer.orders.size > 0 -%}
+    <div class="mt-2">
+      {%- for order in customer.orders -%}
+        <div class="cart-row">
+          <span></span>
+          <div><a href="{{ order.customer_url }}" style="font-weight:600">Order {{ order.name }}</a><div class="muted" style="font-size:.85rem">{{ order.created_at | date: '%B %e, %Y' }} · {{ order.financial_status }}</div></div>
+          <strong>{{ order.total_price | money }}</strong>
+        </div>
+      {%- endfor -%}
+    </div>
+  {%- else -%}
+    <p class="muted mt-1">No orders yet.</p>
+  {%- endif -%}
+</div>

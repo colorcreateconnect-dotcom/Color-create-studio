@@ -1,0 +1,60 @@
+<footer style="border-top:1px solid var(--line-strong);background:var(--cream-soft)">
+  <div class="wrap section">
+    <div class="footer-grid" style="padding:0">
+      <div>
+        <img src="{{ 'logo.jpg' | asset_url }}" alt="{{ shop.name }}" style="height:2.75rem;width:auto;mix-blend-mode:multiply">
+        <p class="muted mt-2" style="max-width:20rem;font-size:.9rem">{{ section.settings.about }}</p>
+      </div>
+
+      <div>
+        <h4 style="color:var(--cocoa)">Studio</h4>
+        <ul>
+          {%- if section.settings.menu.links.size > 0 -%}
+            {%- for link in section.settings.menu.links -%}<li><a href="{{ link.url }}">{{ link.title }}</a></li>{%- endfor -%}
+          {%- else -%}
+            <li><a href="/collections/customs">Shop</a></li>
+            <li><a href="/collections/paper-lane">Paper Lane</a></li>
+            <li><a href="/collections/sports">Sports</a></li>
+            <li><a href="/collections/bundles">Celebration Suites</a></li>
+            <li><a href="/pages/portfolio">Portfolio</a></li>
+            <li><a href="/pages/start-a-project">Start a Project</a></li>
+            <li><a href="/pages/studio-policies">Policies</a></li>
+          {%- endif -%}
+        </ul>
+      </div>
+
+      <div>
+        <h4 style="color:var(--cocoa)">Contact</h4>
+        <ul>
+          <li><a href="mailto:{{ section.settings.email }}">{{ section.settings.email }}</a></li>
+          <li>{{ section.settings.social }}</li>
+          <li>{{ section.settings.location }}</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 style="color:var(--cocoa)">The promise</h4>
+        <p class="muted" style="font-size:.9rem;line-height:1.6">{{ section.settings.promise }}</p>
+      </div>
+    </div>
+
+    <div style="margin-top:2.5rem;border-top:1px solid var(--line-strong);padding-top:1.5rem;display:flex;flex-wrap:wrap;gap:.75rem;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--cocoa-soft)">
+      <span>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }} &middot; by Color Create Connect</span>
+      <span class="label" style="color:var(--cocoa-soft)">Designed with <span style="color:var(--gold)">&#9829;</span> &middot; Color &bull; Create &bull; Connect</span>
+    </div>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "settings": [
+    { "type": "textarea", "id": "about", "label": "About", "default": "Made by hand. Built from stories. Designed with care. Original custom design from a blank canvas in Atlanta, Georgia." },
+    { "type": "link_list", "id": "menu", "label": "Studio menu", "default": "main-menu" },
+    { "type": "text", "id": "email", "label": "Email", "default": "colorcreateconnect@gmail.com" },
+    { "type": "text", "id": "social", "label": "Social handle", "default": "@colorcreateconnect" },
+    { "type": "text", "id": "location", "label": "Location", "default": "Atlanta, Georgia" },
+    { "type": "textarea", "id": "promise", "label": "Promise", "default": "Every design is original and made around your story. Photos of real people are only ever published with permission — our Photo Integrity Promise." }
+  ]
+}
+{% endschema %}

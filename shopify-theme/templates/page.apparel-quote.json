@@ -1,0 +1,78 @@
+{
+  "sections": {
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Creator Studio / Custom Apparel",
+        "heading": "Custom shirts built",
+        "heading_accent": "around your idea.",
+        "accent_style": "gradient",
+        "subheading": "A blank page becomes the shirt, keepsake, or coordinated order that makes the thought feel real.",
+        "band": "band-mix",
+        "button_label": "Build your shirt now",
+        "button_url": "#shirtBuilder"
+      }
+    },
+    "shop": {
+      "type": "shop-grid",
+      "settings": {
+        "collection": "customs",
+        "eyebrow": "Shop the shirt wall",
+        "heading": "Ready-to-order",
+        "heading_accent": "custom pieces.",
+        "intro": "Every tile is a real product — open it, pick your size and shirt color, and check out at full price. Need something that isn’t on the wall? Build it below.",
+        "limit": 8,
+        "button_label": "Shop all custom pieces"
+      }
+    },
+    "builder": {
+      "type": "shirt-builder",
+      "settings": {
+        "eyebrow": "Build your shirt",
+        "heading": "DTF or 3D.",
+        "heading_accent": "Your idea, a firm price.",
+        "intro": "Choose the print, size, and back — your firm price updates as you go. All shirt orders are paid in full at checkout.",
+        "show_source": false,
+        "show_color": true
+      }
+    },
+    "group": {
+      "type": "group-package",
+      "blocks": {
+        "g1": { "type": "tile", "settings": { "title": "Personalized Shirts", "text": "Wear the idea without buying a full celebration suite." } },
+        "g2": { "type": "tile", "settings": { "title": "Front-and-Back Designs", "text": "Carry the story around the whole shirt, not just across the chest." } },
+        "g3": { "type": "tile", "settings": { "title": "Family and Group Orders", "text": "One coordinated direction can keep the whole crew connected." } },
+        "g4": { "type": "tile", "settings": { "title": "Coordinated Extras", "text": "Turn the same visual idea into totes, tumblers, keepsakes, and paper details." } }
+      },
+      "block_order": ["g1", "g2", "g3", "g4"],
+      "settings": {
+        "eyebrow": "Group Apparel Package",
+        "heading": "Six shirts start the crew.",
+        "intro": "$175 includes one shared design direction plus the first six adult shirts. Add adults or youth in the same coordinated order.",
+        "note": "10-15 business days. Additional adults are $25 each for 1-5 added, then $20 each at 6+. Youth are $20 each, then $15 each at 6+.",
+        "price": 175,
+        "pick_text": "Group Apparel Package, $175 (6 adult shirts + one design; list additional adult/youth shirts)",
+        "button_label": "Build my group order"
+      }
+    },
+    "suite": {
+      "type": "suite-cta",
+      "settings": {
+        "eyebrow": "Two or more pieces build a moment",
+        "heading": "Building a whole moment,",
+        "heading_accent": "not just shirts?",
+        "subheading": "Two or more coordinated pieces build a Celebration Suite — shirts, paper, and keepsakes designed as one story. It works just like the shirt builder: tap your pieces, send it in, pay the deposit."
+      }
+    },
+    "quote": {
+      "type": "quote-intake",
+      "settings": {
+        "heading": "Start your apparel project.",
+        "intro": "For group orders and bigger custom builds — add sizes, wording, and reference photos.",
+        "occasion": "Something Else",
+        "service": "Custom Apparel"
+      }
+    }
+  },
+  "order": ["hero", "shop", "builder", "group", "suite", "quote"]
+}

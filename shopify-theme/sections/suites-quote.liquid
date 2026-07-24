@@ -1,0 +1,91 @@
+{%- assign inquiry_product = all_products['custom-project-inquiry'] -%}
+<section class="collection-head band-sage">
+  <div class="wrap">
+    <span class="eyebrow">Celebration Suites</span>
+    <h1 class="serif mt-1" style="font-size:clamp(2.4rem,5.5vw,4rem);line-height:.98">Two or more pieces <span class="tagline-gradient">build a moment.</span></h1>
+    <p class="muted mt-2" style="max-width:42rem;font-size:1.05rem">One item shops directly. A suite begins with two distinct coordinated item types &mdash; apparel, paper and keepsakes designed as one story around your celebration.</p>
+    <div class="mt-3" style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <a href="#suiteQuote" class="btn btn-cta">Build your suite</a>
+      <a href="/collections/bundles" class="btn btn-ghost">Shop ready-made bundles</a>
+    </div>
+  </div>
+</section>
+
+{%- assign shop_col = collections['bundles'] -%}
+{%- if shop_col != blank and shop_col.products.size > 0 -%}
+<section class="wrap section">
+  <span class="eyebrow">Shop ready-made bundles</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Suites already <span class="tagline-gradient">on the shelf.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">Every tile is a real bundle &mdash; open it, personalize it, and check out at full price. Want yours built piece by piece? Keep scrolling.</p>
+  <div class="grid grid-4 mt-3">
+    {%- for product in shop_col.products limit: 8 -%}
+      {%- render 'product-card', product: product -%}
+    {%- endfor -%}
+  </div>
+  <div class="mt-3"><a href="{{ shop_col.url }}" class="btn btn-ghost">Shop all {{ shop_col.products_count }} bundles</a></div>
+</section>
+{%- endif -%}
+
+<section class="wrap section">
+  <span class="eyebrow">Build your collection</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Put the pieces on the table.</h2>
+  <p class="muted mt-1" style="max-width:40rem">Tap every piece your moment needs &mdash; your selections travel straight into the project form below. Choose at least two item types to make it a suite.</p>
+
+  <div class="mt-3" id="suitePicker" style="display:flex;flex-wrap:wrap;gap:.6rem">
+    {%- assign pieces = 'Welcome sign,Invitations,Custom shirt,Cupcake toppers,Cake topper,Water bottle labels,Treat bags,Chip bags,Favor tags,Thank-you cards,Place cards,Banner,Yard sign,Napkins,Candy wraps,Photo keepsake' | split: ',' -%}
+    {%- for p in pieces -%}
+      <button type="button" class="chip" data-piece="{{ p }}">{{ p }}</button>
+    {%- endfor -%}
+  </div>
+
+  <div class="card mt-3" style="padding:1.1rem 1.25rem">
+    <span class="label" style="font-size:.6rem;color:var(--pink)">Your suite so far</span>
+    <div id="suiteList" class="muted" style="margin-top:.4rem;font-size:.95rem">Nothing selected yet &mdash; tap the pieces above.</div>
+  </div>
+
+  <div class="grid grid-3 mt-3">
+    <div class="step"><div class="n">01</div><div class="l">Choose the pieces your moment needs.</div></div>
+    <div class="step"><div class="n">02</div><div class="l">Send the suite to the studio with your theme and dates.</div></div>
+    <div class="step"><div class="n">03</div><div class="l">Get one clear quote &mdash; approve the proof, then we produce.</div></div>
+  </div>
+</section>
+
+<section class="wrap section" style="max-width:52rem" id="suiteQuote">
+  <h2 class="serif" style="font-size:clamp(1.9rem,4vw,2.6rem)">Send your suite to the studio.</h2>
+  <p class="muted mt-1">Your selected pieces are already in the form. Add the who, the theme, and the feeling.</p>
+  {%- if inquiry_product != blank and inquiry_product.available -%}
+    {%- render 'inquiry-form', variant_id: inquiry_product.selected_or_first_available_variant.id -%}
+  {%- else -%}
+    <a href="/pages/start-a-project" class="btn btn-cta mt-2">Start a Project</a>
+  {%- endif -%}
+</section>
+
+<script>
+(function(){
+  var svc = document.getElementById('ccService');
+  if(svc) svc.value = 'Celebration Suite';
+  var picker = document.getElementById('suitePicker');
+  var list = document.getElementById('suiteList');
+  var selected = [];
+  function sync(){
+    list.textContent = selected.length ? selected.join(' · ') : 'Nothing selected yet — tap the pieces above.';
+    var t = document.querySelector('[name="properties[Requested pieces]"]');
+    if(t) t.value = selected.length ? 'Celebration Suite pieces: ' + selected.join(', ') : '';
+  }
+  if(picker){
+    picker.addEventListener('click', function(e){
+      var b = e.target.closest('button[data-piece]');
+      if(!b) return;
+      var p = b.getAttribute('data-piece');
+      var i = selected.indexOf(p);
+      if(i === -1){ selected.push(p); b.classList.add('chip-active'); }
+      else { selected.splice(i,1); b.classList.remove('chip-active'); }
+      sync();
+    });
+  }
+})();
+</script>
+
+{% schema %}
+{ "name": "Suites quote page", "settings": [] }
+{% endschema %}

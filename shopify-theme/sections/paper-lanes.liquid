@@ -1,0 +1,113 @@
+{%- assign paper_product = all_products['paper-lane-set-order'] -%}
+{%- assign paper_digital = all_products['paper-lane-digital-set-order'] -%}
+<section class="wrap section" id="paperSets">
+  {%- if section.settings.banner_strong != blank -%}
+  <div class="card" style="padding:1.1rem 1.25rem;margin-bottom:1.5rem;border-color:var(--gold-soft);background:#FBF6E9">
+    <strong>{{ section.settings.banner_strong }}</strong>
+    <span class="muted" style="font-size:.9rem"> {{ section.settings.banner_note }}</span>
+  </div>
+  {%- endif -%}
+
+  <div class="grid grid-2">
+    {%- for block in section.blocks -%}
+      {%- assign i = forloop.index -%}
+      {%- assign lane_product = block.settings.product -%}
+      {%- assign lane_img = block.settings.image -%}
+      {%- if lane_img == blank and lane_product != blank -%}{%- assign lane_img = lane_product.featured_image -%}{%- endif -%}
+      <div class="card" style="padding:1.25rem;position:relative" {{ block.shopify_attributes }}>
+        <span style="position:absolute;right:.9rem;top:.9rem;z-index:2;transform:rotate(3deg);background:var(--gold-soft);color:var(--cocoa-deep);border-radius:9999px;padding:.25rem .7rem;font-family:var(--font-label);font-size:.6rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase">{{ section.settings.badge_label | default: 'Set of 12' }}</span>
+        {%- if lane_img != blank -%}
+        <a {% if lane_product != blank %}href="{{ lane_product.url }}"{% endif %} style="display:block;border-radius:.75rem;overflow:hidden;aspect-ratio:4/3;margin-bottom:.9rem;background:#F3EDE2">
+          <img src="{{ lane_img | image_url: width: 640 }}" alt="{{ block.settings.name | escape }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">
+        </a>
+        {%- endif -%}
+        <h3 style="max-width:70%;font-size:1.05rem;font-weight:700">{{ block.settings.name }}</h3>
+        <div class="serif" style="font-size:1.9rem;margin-top:.6rem">${{ block.settings.base }}</div>
+        <div class="muted" style="font-size:.82rem">Additional 12, ${{ block.settings.extra }} &middot; Digital file, ${{ block.settings.digital }}</div>
+        {%- if block.settings.specs != blank -%}<div class="muted" style="margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem;font-size:.8rem;line-height:1.5">{{ block.settings.specs }}</div>{%- endif -%}
+        {%- if block.settings.note != blank -%}<div class="muted" style="font-size:.78rem;margin-top:.3rem"><em>{{ block.settings.note }}</em></div>{%- endif -%}
+        {%- if lane_product != blank -%}<a href="{{ lane_product.url }}" style="display:inline-block;margin-top:.5rem;font-size:.8rem;font-weight:700;text-decoration:underline;color:var(--pink)">{{ section.settings.view_label | default: 'View item' }} &rarr;</a>{%- endif -%}
+        <div style="display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap">
+          <select class="f-in" id="plFmt{{ i }}" style="flex:1;min-width:8rem" onchange="plSync({{ i }},{{ block.settings.base }},{{ block.settings.extra }},{{ block.settings.digital }})">
+            <option value="printed">Printed</option>
+            <option value="digital">Digital file</option>
+          </select>
+          <select class="f-in" id="plQty{{ i }}" style="flex:1;min-width:7rem" onchange="plSync({{ i }},{{ block.settings.base }},{{ block.settings.extra }},{{ block.settings.digital }})">
+            <option value="12">12 pieces</option>
+            <option value="24">24 pieces</option>
+            <option value="36">36 pieces</option>
+            <option value="48">48 pieces</option>
+            <option value="60">60 pieces</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.7rem">
+          <div><span class="muted" style="font-size:.75rem">Your price</span> <strong id="plPrice{{ i }}" style="font-size:1.15rem;color:var(--pink)">${{ block.settings.base }}</strong></div>
+          <button type="button" class="btn btn-cta" onclick="plOrder({{ i }},'{{ block.settings.name | escape }}',{{ block.settings.base }},{{ block.settings.extra }},{{ block.settings.digital }})">Order &mdash; pay now</button>
+        </div>
+      </div>
+    {%- endfor -%}
+  </div>
+
+  {%- if section.settings.footnote != blank -%}<p class="muted mt-3" style="font-size:.9rem">{{ section.settings.footnote }}</p>{%- endif -%}
+</section>
+
+<script>
+{%- if paper_product != blank and paper_product.available -%}
+window.ccOrderVariant = {{ paper_product.selected_or_first_available_variant.id }};
+{%- endif -%}
+{%- if paper_digital != blank and paper_digital.available -%}
+window.ccOrderVariantDigital = {{ paper_digital.selected_or_first_available_variant.id }};
+{%- endif -%}
+function plCalc(i, base, extra, digital){
+  var fmt = document.getElementById('plFmt' + i).value;
+  if(fmt === 'digital') return digital;
+  var qty = parseInt(document.getElementById('plQty' + i).value, 10);
+  return base + (qty / 12 - 1) * extra;
+}
+function plSync(i, base, extra, digital){
+  var digitalOn = document.getElementById('plFmt' + i).value === 'digital';
+  document.getElementById('plQty' + i).disabled = digitalOn;
+  document.getElementById('plPrice' + i).textContent = '$' + plCalc(i, base, extra, digital);
+}
+function plOrder(i, name, base, extra, digital){
+  var fmt = document.getElementById('plFmt' + i).value;
+  var qty = document.getElementById('plQty' + i).value;
+  var price = plCalc(i, base, extra, digital);
+  var desc = name + ' — ' + (fmt === 'digital' ? 'digital file' : qty + ' pieces, printed') + ', $' + price;
+  var t = document.querySelector('[name="properties[Requested pieces]"]');
+  if(t){ t.value = (t.value ? t.value + '\n' : '') + 'Order: ' + desc; }
+  var idIn = document.querySelector('#inquiryForm [name="id"]');
+  var orderVariant = (fmt === 'digital' && window.ccOrderVariantDigital) ? window.ccOrderVariantDigital : window.ccOrderVariant;
+  if(idIn && orderVariant) idIn.value = orderVariant;
+  if(window.ccSetPayNow) window.ccSetPayNow(price);
+  var q = document.getElementById('deptQuote');
+  if(q) q.scrollIntoView({behavior:'smooth'});
+}
+</script>
+
+{% schema %}
+{
+  "name": "Paper Lane sets",
+  "settings": [
+    { "type": "text", "id": "badge_label", "label": "Corner badge", "default": "Set of 12" },
+    { "type": "text", "id": "view_label", "label": "View item link text", "default": "View item" },
+    { "type": "text", "id": "banner_strong", "label": "Banner (bold part)", "default": "Smooth matte cardstock is our included standard." },
+    { "type": "textarea", "id": "banner_note", "label": "Banner note" },
+    { "type": "textarea", "id": "footnote", "label": "Footnote" }
+  ],
+  "blocks": [
+    { "type": "lane", "name": "Paper set", "settings": [
+      { "type": "text", "id": "name", "label": "Set name" },
+      { "type": "product", "id": "product", "label": "Linked product", "info": "Adds a View item link and pulls the product's photo" },
+      { "type": "image_picker", "id": "image", "label": "Preview photo", "info": "Overrides the linked product's photo" },
+      { "type": "number", "id": "base", "label": "Printed set of 12 price", "default": 21 },
+      { "type": "number", "id": "extra", "label": "Each additional 12", "default": 18 },
+      { "type": "number", "id": "digital", "label": "Digital file price", "default": 15 },
+      { "type": "textarea", "id": "specs", "label": "Specs" },
+      { "type": "text", "id": "note", "label": "Italic note" }
+    ]}
+  ],
+  "max_blocks": 12,
+  "presets": [{ "name": "Paper Lane sets" }]
+}
+{% endschema %}

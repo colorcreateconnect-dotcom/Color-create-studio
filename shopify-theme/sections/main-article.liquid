@@ -1,0 +1,9 @@
+<div class="wrap section" style="max-width:44rem">
+  <span class="eyebrow">{{ article.published_at | date: '%B %e, %Y' }}</span>
+  <h1 class="serif mt-1" style="font-size:clamp(2rem,4vw,3rem)">{{ article.title }}</h1>
+  {%- if article.image != blank -%}<img src="{{ article.image | image_url: width: 1000 }}" alt="{{ article.title | escape }}" class="rounded mt-3">{%- endif -%}
+  <div class="product-desc mt-3">{{ article.content }}</div>
+</div>
+{% schema %}
+{ "name": "Article", "settings": [] }
+{% endschema %}

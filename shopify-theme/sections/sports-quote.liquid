@@ -1,0 +1,364 @@
+{%- assign inquiry_product = all_products['custom-project-inquiry'] -%}
+{%- assign shirt_product = all_products['custom-shirt-order'] -%}
+{%- assign pack_product = all_products['sports-pack-order'] -%}
+<section class="collection-head band-stadium">
+  <div class="wrap">
+    <span class="eyebrow">One team. Three ways to show up.</span>
+    <h1 class="serif mt-1" style="font-size:clamp(2.4rem,5.5vw,4rem);line-height:.98">SHOW UP <span class="chrome-text">LOUD.</span></h1>
+    <p class="muted mt-2" style="max-width:42rem;font-size:1.05rem">Player spotlights, supporter packs, team identity systems and roster bundles &mdash; one protected visual direction for the whole season.</p>
+    <div class="mt-3"><a href="#shirtBuilder" class="btn btn-cta">Build a shirt now</a></div>
+  </div>
+</section>
+
+<section class="wrap section">
+  <span class="eyebrow">See the real thing</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">One player. <span class="tagline-gradient">A whole game-day look.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">The Atlanta Spartans &ldquo;Hit Squad&rdquo; drop &mdash; one design carried across every piece, from the spotlight card to the fan in the stands.</p>
+  <div class="grid grid-3 mt-3">
+    {%- assign shots = 'sports-jaylen-card.jpg|Player card|Meet the Team,sports-jaylen-yardsign.jpg|Yard sign|Front-yard pride,sports-family-tees.jpg|Group tees|The whole squad,sports-magnet-badge.jpg|Magnet|Fridge keepsake,sports-magnet-contour.jpg|Contour magnet|Cut-to-shape,sports-face-fan.jpg|Game-day fan|Face on a stick' | split: ',' -%}
+    {%- for s in shots -%}
+      {%- assign parts = s | split: '|' -%}
+      <div class="proof-cell" style="aspect-ratio:1;grid-row:auto">
+        <img src="{{ parts[0] | asset_url }}" alt="{{ parts[2] }}" loading="lazy">
+        <div class="cap"><div class="t" style="color:var(--teal)">{{ parts[1] }}</div><div class="n">{{ parts[2] }}</div></div>
+      </div>
+    {%- endfor -%}
+  </div>
+</section>
+
+{%- assign shop_col = collections['sports'] -%}
+{%- if shop_col != blank and shop_col.products.size > 0 -%}
+<section class="wrap section">
+  <span class="eyebrow">Shop game-day gear</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">Ready-to-order <span class="tagline-gradient">sports pieces.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">Every tile is a real product &mdash; open it, pick your size and shirt color, and check out at full price. Building a whole look? Use the shirt builder and packs below.</p>
+  <div class="grid grid-4 mt-3">
+    {%- for product in shop_col.products limit: 8 -%}
+      {%- render 'product-card', product: product -%}
+    {%- endfor -%}
+  </div>
+  <div class="mt-3"><a href="{{ shop_col.url }}" class="btn btn-ghost">Shop all {{ shop_col.products_count }} sports pieces</a></div>
+</section>
+{%- else -%}
+<section class="wrap" style="padding-top:0">
+  <div class="card" style="padding:1.1rem 1.25rem;border-color:var(--gold-soft);background:#FBF6E9">
+    <strong>The sports shop is being stocked.</strong>
+    <span class="muted" style="font-size:.9rem"> New ready-to-order drops land here soon &mdash; meanwhile, build your shirt below at a firm price or start a project.</span>
+  </div>
+</section>
+{%- endif -%}
+
+<section class="wrap section" id="shirtBuilder">
+  <span class="eyebrow">Build your shirt</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">DTF or 3D. <span class="tagline-gradient">New design or approved team graphic.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">Choose the print, the design source, and the details &mdash; your firm price updates as you go. All shirt orders are <strong>paid in full at checkout</strong>, whether the design is new or already approved.</p>
+
+  {%- if shirt_product != blank and shirt_product.available -%}
+  <form method="post" action="{{ routes.cart_add_url }}" enctype="multipart/form-data" id="sbForm" class="card mt-3" style="padding:1.5rem">
+    <input type="hidden" name="id" value="{{ shirt_product.selected_or_first_available_variant.id }}">
+    <input type="hidden" name="quantity" id="sbPayQty" value="25">
+    <input type="hidden" name="return_to" value="/checkout">
+    <input type="hidden" name="properties[Print type]" id="sbPType" value="DTF full-color">
+    <input type="hidden" name="properties[Design source]" id="sbPSource" value="Already-approved team design">
+    <input type="hidden" name="properties[Design idea]" id="sbPRef" value="">
+    <input type="hidden" name="properties[Back graphic]" id="sbPBack" value="None">
+    <input type="hidden" name="properties[Order total]" id="sbPTotal" value="$25">
+    <div class="f-grid">
+      <div>
+        <span class="f-label" style="margin-top:0">Print type</span>
+        <div style="display:flex;gap:.5rem;margin-top:.4rem">
+          <button type="button" class="chip chip-active" id="sbDtf">DTF full-color</button>
+          <button type="button" class="chip" id="sb3d">3D sublimation</button>
+        </div>
+        <p class="muted" id="sbTurn" style="font-size:.78rem;margin-top:.4rem">Turnaround: 5-7 business days after approval.</p>
+      </div>
+      <div>
+        <span class="f-label" style="margin-top:0">Design source</span>
+        <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+          <button type="button" class="chip chip-active" id="sbApproved">Already-approved team design</button>
+          <button type="button" class="chip" id="sbNew">New custom design</button>
+        </div>
+      </div>
+      <label class="f-label">Size<select class="f-in" id="sbSize" name="properties[Size]"><option>Youth S</option><option>Youth M</option><option>Youth L</option><option>Adult S</option><option selected>Adult M</option><option>Adult L</option><option>Adult XL</option><option>2XL</option><option>3XL</option><option>4XL</option></select></label>
+      <label class="f-label">How many shirts<input class="f-in" id="sbQty" name="properties[Shirts]" type="number" min="1" value="1"></label>
+    </div>
+
+    <label class="f-label" id="sbRefLabel">Approved design code *<textarea class="f-in" rows="2" id="sbRef" placeholder="Enter the design code for your approved team graphic."></textarea></label>
+
+    <span class="f-label">Back graphic</span>
+    <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+      <button type="button" class="chip chip-active" id="sbBackNone">No back</button>
+      <button type="button" class="chip" id="sbBackNN">Player name &amp; number</button>
+      <button type="button" class="chip" id="sbBackFull">Full custom back</button>
+    </div>
+    <p class="muted" id="sbBackCost" style="font-size:.78rem;margin-top:.4rem">Back graphic is free with DTF.</p>
+    <div class="f-grid" id="sbNNRow" style="display:none">
+      <label class="f-label">Player name *<input class="f-in" id="sbPlayerName" name="properties[Player name]"></label>
+      <label class="f-label">Player number *<input class="f-in" id="sbPlayerNum" name="properties[Player number]"></label>
+    </div>
+    <label class="f-label" id="sbBackDescRow" style="display:none">What goes on the back? *<textarea class="f-in" rows="2" id="sbBackDesc" name="properties[Back design notes]" placeholder="Theme, wording, images &mdash; the studio may follow up to get it exactly right."></textarea></label>
+
+    <span class="f-label">Photos, logos &amp; references</span>
+    <p class="muted" style="font-size:.78rem;margin-top:.3rem">Attach up to 2 files &mdash; team logo, inspiration photos, sketches. JPG, PNG, HEIC, or PDF.</p>
+    <div class="f-grid">
+      <label class="f-label">Reference file 1<input class="f-in" type="file" name="properties[Reference file 1]" accept="image/*,.pdf,.heic,.heif"></label>
+      <label class="f-label">Reference file 2<input class="f-in" type="file" name="properties[Reference file 2]" accept="image/*,.pdf,.heic,.heif"></label>
+    </div>
+    <label class="f-check" id="sbPermRow"><input type="checkbox" id="sbPerm" name="properties[Upload permission]" value="Confirmed: permission to use every uploaded photo, logo, name, and artwork"> I have permission to use every photo, logo, name, and artwork I am uploading.</label>
+
+    <div style="display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:1.25rem;padding-top:1.25rem">
+      <div>
+        <div class="label" style="font-size:.6rem;color:var(--cocoa-soft)">Firm total &mdash; pay now to order</div>
+        <div class="serif" id="sbTotal" style="font-size:2.4rem">$25</div>
+      </div>
+      <button type="submit" class="btn btn-cta" id="sbSend"><span id="sbSendLabel">Add to cart &amp; check out &mdash; $25</span></button>
+    </div>
+  </form>
+  {%- else -%}
+  <div class="card mt-3" style="padding:1.5rem">
+    <p class="muted">Shirt ordering is being set up &mdash; <a href="/pages/start-a-project" style="color:var(--pink)">start a project</a> and the studio will price it for you.</p>
+  </div>
+  {%- endif -%}
+
+  <div class="card mt-3" style="padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <div style="max-width:34rem">
+      <strong>Building a whole moment, not just shirts?</strong>
+      <span class="muted" style="font-size:.9rem"> Two or more coordinated pieces build a Celebration Suite &mdash; shirts, paper, and keepsakes designed as one story. It works just like this builder: tap your pieces, send it in.</span>
+    </div>
+    <a href="/pages/celebration-suites#suitePicker" class="btn btn-ghost">Build your suite &rarr;</a>
+  </div>
+</section>
+
+<section class="band-stadium section">
+  <div class="wrap">
+    <span class="eyebrow">Player Pride &amp; Fan Support</span>
+    <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem);color:#fff">Choose how loudly <span class="chrome-text">the family shows up.</span></h2>
+    <p style="color:#B9C9E8;max-width:40rem;margin-top:.5rem">Fan packs and keepsakes are <strong style="color:#fff">pay-now orders</strong> &mdash; check out today and the studio confirms personalization right after.</p>
+    <div class="grid grid-3 mt-3">
+      {%- assign i1 = '1 personalized supporter shirt~1 small player keepsake~Player name, number, sport, and team colors~1 coordinated design direction' -%}
+      {%- assign i2 = 'Minimum 2 personalized supporter shirts~1 featured player keepsake~2 small keepsakes~1 coordinated player design direction' -%}
+      {%- assign i3 = 'Minimum 4 personalized supporter shirts~1 premium player keepsake~4 small keepsakes~1 digital copy of approved artwork for personal social sharing~Priority scheduling' -%}
+      {%- assign packs = 'Sideline Support Pack|65|5-7 business days|' | append: i1 | append: ',Player Pride Pack|145|7-10 business days|' | append: i2 | append: ',Full Family Fan Pack|295|10-15 business days|' | append: i3 | split: ',' -%}
+      {%- for p in packs -%}
+        {%- assign f = p | split: '|' -%}
+        <div style="border:1px solid rgba(147,197,253,.3);background:rgba(255,255,255,.06);border-radius:1.5rem;padding:1.5rem;color:#fff">
+          <div style="color:#93C5FD;font-weight:700;font-size:.85rem">From</div>
+          <div class="serif" style="font-size:2rem">${{ f[1] }}</div>
+          <h3 style="margin-top:.75rem;font-size:1.15rem">{{ f[0] }}</h3>
+          <ul style="margin:.75rem 0 0;padding-left:1.1rem;color:#B9C9E8;font-size:.88rem;line-height:1.6">
+            {%- assign items = f[3] | split: '~' -%}
+            {%- for it in items -%}<li>{{ it }}</li>{%- endfor -%}
+          </ul>
+          <p style="margin-top:.9rem;border-top:1px solid rgba(255,255,255,.12);padding-top:.75rem;font-size:.75rem;color:#93C5FD;font-weight:700">Two design rounds &middot; {{ f[2] }}</p>
+          {%- if pack_product != blank and pack_product.available -%}
+          <form method="post" action="{{ routes.cart_add_url }}" class="mt-2">
+            <input type="hidden" name="id" value="{{ pack_product.selected_or_first_available_variant.id }}">
+            <input type="hidden" name="quantity" value="{{ f[1] }}">
+            <input type="hidden" name="return_to" value="/checkout">
+            <input type="hidden" name="properties[Pack]" value="{{ f[0] }}">
+            <input type="hidden" name="properties[Order total]" value="${{ f[1] }}">
+            <input class="f-in" name="properties[Player details]" placeholder="Player name, number, team &amp; colors" style="margin-bottom:.5rem">
+            <button type="submit" class="btn btn-cta" style="width:100%">Order now &mdash; ${{ f[1] }}</button>
+          </form>
+          {%- else -%}
+          <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }}, ${{ f[1] }}','Player Pride',{{ f[1] }})">Start with this pack</button>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+    <div class="grid grid-4 mt-3">
+      {%- assign minis = 'Mini Keepsake Pack|15|Any 3 approved small items;Player Pocket Pack|25|Keychain, magnet, button, 5 printed cards;Game-Day Extras Pack|30|Can cooler, keychain, button, mini print, magnet;Grandstand Keepsake Pack|40|8 x 10 print, keychain, magnet, button, 5 cards' | split: ';' -%}
+      {%- for m in minis -%}
+        {%- assign f = m | split: '|' -%}
+        <div style="border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);border-radius:1.25rem;padding:1rem;color:#fff">
+          <div style="font-weight:700;font-size:.92rem">{{ f[0] }}</div>
+          <div style="color:#93C5FD;font-weight:900;font-size:1.25rem;margin-top:.2rem">${{ f[1] }}</div>
+          <div style="color:#B9C9E8;font-size:.78rem;margin-top:.4rem;line-height:1.5">{{ f[2] }}</div>
+          {%- if pack_product != blank and pack_product.available -%}
+          <form method="post" action="{{ routes.cart_add_url }}" class="mt-2">
+            <input type="hidden" name="id" value="{{ pack_product.selected_or_first_available_variant.id }}">
+            <input type="hidden" name="quantity" value="{{ f[1] }}">
+            <input type="hidden" name="return_to" value="/checkout">
+            <input type="hidden" name="properties[Pack]" value="{{ f[0] }}">
+            <input type="hidden" name="properties[Order total]" value="${{ f[1] }}">
+            <input class="f-in" name="properties[Player details]" placeholder="Player name, number, team" style="margin-bottom:.5rem;font-size:.85rem">
+            <button type="submit" class="btn btn-cta" style="width:100%;font-size:.85rem">Order now &mdash; ${{ f[1] }}</button>
+          </form>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+<section class="wrap section">
+  <span class="eyebrow">Team Identity &amp; Social Graphics</span>
+  <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem)">One protected visual system <span class="tagline-gradient">for the season.</span></h2>
+  <p class="muted mt-1" style="max-width:40rem">Season identity packages are custom projects &mdash; they start as a quote with a 50% deposit, credited in full.</p>
+  <div class="grid grid-3 mt-3">
+    {%- assign t1 = 'Up to 12 collectible player cards~Custom team visual direction~1 team roster graphic~1 complete season schedule graphic~1 team announcement or season-launch graphic~Social media-ready digital files' -%}
+    {%- assign t2 = 'Up to 18 collectible player cards~1 team roster graphic~1 complete season schedule graphic~4 game-day graphics~2 final-score graphics~2 player spotlight or MVP graphics~1 reusable birthday graphic~1 sponsor recognition graphic~Social media-ready digital files' -%}
+    {%- assign t3 = 'Up to 18 collectible player cards~Roster and complete season schedule graphics~6 game-day and 3 final-score graphics~3 player recognition graphics~Birthday, playoff, championship, and coach appreciation graphics~Up to 2 sponsor graphics~Banquet invitation and welcome or recap graphic~Social media-ready digital files' -%}
+    {%- assign tp1 = 'Rookie Team Package|395|10-15 business days|' | append: t1 -%}
+    {%- assign tp2 = 'All-Star Team Package|750|Initial identity, then approved content schedule|' | append: t2 -%}
+    {%- assign tp3 = 'Championship Season Package|1050|Priority season scheduling with approved milestones|' | append: t3 -%}
+    {%- assign tlist = tp1 | append: '@@' | append: tp2 | append: '@@' | append: tp3 | split: '@@' -%}
+    {%- for p in tlist -%}
+      {%- assign f = p | split: '|' -%}
+      <div class="card" style="padding:1.5rem">
+        <div style="color:var(--pink);font-weight:700;font-size:.85rem">From</div>
+        <div class="serif" style="font-size:2rem">${{ f[1] }}</div>
+        <h3 style="margin-top:.75rem;font-size:1.15rem">{{ f[0] }}</h3>
+        <ul style="margin:.75rem 0 0;padding-left:1.1rem;color:var(--cocoa-soft);font-size:.88rem;line-height:1.6">
+          {%- assign items = f[3] | split: '~' -%}
+          {%- for it in items -%}<li>{{ it }}</li>{%- endfor -%}
+        </ul>
+        <p class="muted" style="margin-top:.9rem;border-top:1px solid var(--line);padding-top:.75rem;font-size:.78rem;font-weight:700">Two design rounds &middot; {{ f[2] }}</p>
+        <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }}, ${{ f[1] }}','Team Identity',{{ f[1] }})">Start with this package</button>
+      </div>
+    {%- endfor -%}
+  </div>
+  <div class="grid mt-3" style="grid-template-columns:repeat(2,1fr);gap:.75rem">
+    {%- assign addons = 'Additional player card|$15;Schedule update|$5;Game-day graphic|$12;Player spotlight|$15;Additional schedule|$30;Sponsor announcement|$18;Quick Update Pack|$25;Game Week Pack|$50;Banquet &amp; Awards Pack|$95;Season Extension Pack|$100' | split: ';' -%}
+    {%- for a in addons -%}
+      {%- assign f = a | split: '|' -%}
+      <div style="border:1px solid var(--line);background:var(--cream-paper);border-radius:1rem;padding:.9rem;display:flex;justify-content:space-between;gap:.5rem"><span style="font-size:.88rem;font-weight:600">{{ f[0] }}</span><strong style="color:var(--pink)">{{ f[1] }}</strong></div>
+    {%- endfor -%}
+  </div>
+</section>
+
+<section class="band-stadium section">
+  <div class="wrap">
+    <span class="eyebrow">Build Your Team</span>
+    <h2 class="serif mt-1" style="font-size:clamp(1.9rem,4vw,2.8rem);color:#fff">One roster. <span class="chrome-text">One running total.</span></h2>
+    <p style="color:#B9C9E8;max-width:40rem;margin-top:.5rem">14-shirt minimum. Sizes and personalization included &mdash; every bundle prices clean: a base plus a flat rate per extra shirt. Bundles are quoted projects with a 50% deposit. Bundle turnaround: 7-10 business days after approval.</p>
+    <div class="grid grid-3 mt-3">
+      {%- assign bundles = 'DTF Graphic + 14 Shirts|270|15;3D Full-Front 14 Shirts|420|30;3D Front-and-Back 14 Shirts|630|45' | split: ';' -%}
+      {%- for b in bundles -%}
+        {%- assign f = b | split: '|' -%}
+        <div style="border:1px solid rgba(147,197,253,.3);background:rgba(255,255,255,.06);border-radius:1.5rem;padding:1.5rem;color:#fff">
+          <h3 style="font-size:1.1rem">{{ f[0] }}</h3>
+          <div class="serif" style="font-size:2rem;margin-top:.5rem">${{ f[1] }}</div>
+          <p style="color:#B9C9E8;font-size:.85rem;margin-top:.5rem">+ ${{ f[2] }} per shirt beyond 14 &middot; sizes &amp; personalization included</p>
+          <button type="button" class="btn btn-cta mt-2" onclick="ccPick('{{ f[0] }} bundle, ${{ f[1] }} + ${{ f[2] }}/extra shirt (send roster: names, numbers, sizes)','Full Team Takeover',{{ f[1] }})">Start this bundle</button>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+<section class="wrap section" style="max-width:52rem" id="sportsQuote">
+  <h2 class="serif" style="font-size:clamp(1.9rem,4vw,2.6rem)">Start your sports project.</h2>
+  <p class="muted mt-1">For bundles, identity packages, and brand-new ideas &mdash; roster details, team colors, and reference photos welcome.</p>
+  {%- if inquiry_product != blank and inquiry_product.available -%}
+    {%- render 'inquiry-form', variant_id: inquiry_product.selected_or_first_available_variant.id -%}
+  {%- else -%}
+    <a href="/pages/start-a-project" class="btn btn-cta mt-2">Start a Project</a>
+  {%- endif -%}
+</section>
+
+<script>
+(function(){
+  var occ = document.getElementById('ccOccasion'), svc = document.getElementById('ccService');
+  if(occ) occ.value = 'Sports Social Studio';
+  if(svc) svc.value = 'Player Pride';
+
+  // Shirt builder — pricing mirrors the audited engine exactly. Pay in full at checkout.
+  var el = function(id){ return document.getElementById(id); };
+  var sbForm = el('sbForm');
+  if(!sbForm) return;
+  var type = 'dtf', source = 'approved', back = 'none';
+  var dtfB = el('sbDtf'), tdB = el('sb3d'), apB = el('sbApproved'), nwB = el('sbNew');
+  var bkN = el('sbBackNone'), bkNN = el('sbBackNN'), bkF = el('sbBackFull');
+  function per(){
+    var size = el('sbSize').value;
+    var youth = size.indexOf('Youth') === 0;
+    var big2 = size === '2XL', big3 = size === '3XL', big4 = size === '4XL';
+    var p;
+    if(type === 'dtf' && source === 'approved') p = youth ? 20 : big2 ? 27 : big3 ? 28 : big4 ? 29 : 25;
+    else if(type === 'dtf') p = youth ? 30 : big2 ? 37 : big3 ? 38 : big4 ? 39 : 35;
+    else if(source === 'approved') p = youth ? 30 : (big2 || big3 || big4) ? 50 : 40;
+    else p = youth ? 40 : (big2 || big3 || big4) ? 60 : 50;
+    if(type === '3d' && back !== 'none') p += 15;
+    return p;
+  }
+  function qty(){ return Math.max(1, parseInt(el('sbQty').value || '1', 10)); }
+  function total(){ return per() * qty(); }
+  function sync(){
+    dtfB.classList.toggle('chip-active', type === 'dtf');
+    tdB.classList.toggle('chip-active', type === '3d');
+    apB.classList.toggle('chip-active', source === 'approved');
+    nwB.classList.toggle('chip-active', source === 'new');
+    bkN.classList.toggle('chip-active', back === 'none');
+    bkNN.classList.toggle('chip-active', back === 'nn');
+    bkF.classList.toggle('chip-active', back === 'full');
+    el('sbTurn').textContent = 'Turnaround: ' + (type === '3d' ? '7-10' : '5-7') + ' business days after approval.';
+    el('sbBackCost').textContent = type === '3d' ? 'Back graphic adds $15 with 3D sublimation.' : 'Back graphic is free with DTF.';
+    el('sbNNRow').style.display = back === 'nn' ? 'grid' : 'none';
+    el('sbBackDescRow').style.display = back === 'full' ? 'block' : 'none';
+    el('sbPlayerName').disabled = back !== 'nn';
+    el('sbPlayerNum').disabled = back !== 'nn';
+    el('sbBackDesc').disabled = back !== 'full';
+    el('sbRefLabel').childNodes[0].textContent = source === 'approved' ? 'Approved design code *' : 'Your design idea *';
+    el('sbRef').placeholder = source === 'approved' ? 'Enter the design code for your approved team graphic.' : 'Describe the design: names, numbers, colors, theme, and the feeling it should carry.';
+    el('sbTotal').textContent = '$' + total();
+    el('sbSendLabel').textContent = 'Add to cart & check out — $' + total();
+  }
+  dtfB.onclick = function(){ type = 'dtf'; sync(); };
+  tdB.onclick = function(){ type = '3d'; sync(); };
+  apB.onclick = function(){ source = 'approved'; sync(); };
+  nwB.onclick = function(){ source = 'new'; sync(); };
+  bkN.onclick = function(){ back = 'none'; sync(); };
+  bkNN.onclick = function(){ back = 'nn'; sync(); };
+  bkF.onclick = function(){ back = 'full'; sync(); };
+  el('sbSize').onchange = sync; el('sbQty').oninput = sync;
+  sbForm.addEventListener('submit', function(e){
+    var ref = el('sbRef').value.trim();
+    var bad = null;
+    if(!ref) bad = el('sbRef');
+    else if(back === 'nn' && !el('sbPlayerName').value.trim()) bad = el('sbPlayerName');
+    else if(back === 'nn' && !el('sbPlayerNum').value.trim()) bad = el('sbPlayerNum');
+    else if(back === 'full' && !el('sbBackDesc').value.trim()) bad = el('sbBackDesc');
+    if(bad){
+      e.preventDefault();
+      bad.focus();
+      bad.style.borderColor = '#D98A9B';
+      if(source === 'approved' && bad === el('sbRef')) alert('Enter the design code for your approved team graphic before adding to cart.');
+      return;
+    }
+    var files = sbForm.querySelectorAll('input[type="file"]');
+    var hasFile = false;
+    for(var fi = 0; fi < files.length; fi++){ if(files[fi].files && files[fi].files.length){ hasFile = true; break; } }
+    if(hasFile && !el('sbPerm').checked){
+      e.preventDefault();
+      el('sbPerm').focus();
+      el('sbPermRow').style.borderColor = '#D98A9B';
+      alert('Please confirm you have permission to use the uploaded files.');
+      return;
+    }
+    el('sbPayQty').value = total();
+    el('sbPType').value = type === 'dtf' ? 'DTF full-color' : '3D sublimation';
+    el('sbPSource').value = source === 'approved' ? 'Already-approved team design' : 'New custom design';
+    el('sbPRef').name = source === 'approved' ? 'properties[Approved design code]' : 'properties[Design idea]';
+    el('sbPRef').value = ref;
+    var backLabel = back === 'none' ? 'None' : (back === 'nn' ? 'Player name & number' : 'Full custom back');
+    if(back !== 'none') backLabel += type === '3d' ? ' (+$15)' : ' (free with DTF)';
+    el('sbPBack').value = backLabel;
+    el('sbPTotal').value = '$' + total() + ' (' + qty() + ' x $' + per() + ')';
+  });
+  sync();
+})();
+function ccPick(text, service, price){
+  var t = document.querySelector('[name="properties[Requested pieces]"]');
+  if(t){ t.value = (t.value ? t.value + '\n' : '') + 'Selected: ' + text; }
+  var svc = document.getElementById('ccService');
+  if(svc && service) svc.value = service;
+  if(price && window.ccSetDeposit) window.ccSetDeposit(price);
+  var q = document.getElementById('sportsQuote');
+  if(q) q.scrollIntoView({behavior:'smooth'});
+}
+</script>
+
+{% schema %}
+{ "name": "Sports quote page", "settings": [] }
+{% endschema %}

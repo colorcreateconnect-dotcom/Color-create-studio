@@ -1,0 +1,137 @@
+{
+  "sections": {
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "One team. Three ways to show up.",
+        "heading": "SHOW UP",
+        "heading_accent": "LOUD.",
+        "accent_style": "chrome",
+        "subheading": "Player spotlights, supporter packs, team identity systems and roster bundles — one protected visual direction for the whole season.",
+        "band": "band-stadium",
+        "button_label": "Build a shirt now",
+        "button_url": "#shirtBuilder"
+      }
+    },
+    "showcase": {
+      "type": "photo-showcase",
+      "blocks": {
+        "w1": { "type": "photo", "settings": { "asset": "sports-jaylen-card.jpg", "tag": "Player card", "caption": "Meet the Team" } },
+        "w2": { "type": "photo", "settings": { "asset": "sports-jaylen-yardsign.jpg", "tag": "Yard sign", "caption": "Front-yard pride" } },
+        "w3": { "type": "photo", "settings": { "asset": "sports-family-tees.jpg", "tag": "Group tees", "caption": "The whole squad" } },
+        "w4": { "type": "photo", "settings": { "asset": "sports-magnet-badge.jpg", "tag": "Magnet", "caption": "Fridge keepsake" } },
+        "w5": { "type": "photo", "settings": { "asset": "sports-magnet-contour.jpg", "tag": "Contour magnet", "caption": "Cut-to-shape" } },
+        "w6": { "type": "photo", "settings": { "asset": "sports-face-fan.jpg", "tag": "Game-day fan", "caption": "Face on a stick" } }
+      },
+      "block_order": ["w1", "w2", "w3", "w4", "w5", "w6"],
+      "settings": {
+        "eyebrow": "See the real thing",
+        "heading": "One player.",
+        "heading_accent": "A whole game-day look.",
+        "intro": "The Atlanta Spartans “Hit Squad” drop — one design carried across every piece, from the spotlight card to the fan in the stands."
+      }
+    },
+    "shop": {
+      "type": "shop-grid",
+      "settings": {
+        "collection": "sports",
+        "eyebrow": "Shop game-day gear",
+        "heading": "Ready-to-order",
+        "heading_accent": "sports pieces.",
+        "intro": "Every tile is a real product — open it, pick your size and shirt color, and check out at full price. Building a whole look? Use the shirt builder and packs below.",
+        "limit": 8,
+        "button_label": "Shop all sports pieces",
+        "empty_text": "The sports shop is being stocked. New ready-to-order drops land here soon — meanwhile, build your shirt below at a firm price or start a project."
+      }
+    },
+    "builder": {
+      "type": "shirt-builder",
+      "settings": {
+        "eyebrow": "Build your shirt",
+        "heading": "DTF or 3D.",
+        "heading_accent": "New design or approved team graphic.",
+        "intro": "Choose the print, the design source, and the details — your firm price updates as you go. All shirt orders are paid in full at checkout, whether the design is new or already approved.",
+        "show_source": true,
+        "show_color": false
+      }
+    },
+    "suite": {
+      "type": "suite-cta",
+      "settings": {
+        "eyebrow": "Two or more pieces build a moment",
+        "heading": "Building a whole moment,",
+        "heading_accent": "not just shirts?",
+        "subheading": "Two or more coordinated pieces build a Celebration Suite — shirts, paper, and keepsakes designed as one story. It works just like the shirt builder: tap your pieces, send it in, pay the deposit."
+      }
+    },
+    "packs": {
+      "type": "fan-packs",
+      "blocks": {
+        "p1": { "type": "pack", "settings": { "title": "Sideline Support Pack", "price": 65, "turnaround": "5-7 business days", "features": "1 personalized supporter shirt\n1 small player keepsake\nPlayer name, number, sport, and team colors\n1 coordinated design direction" } },
+        "p2": { "type": "pack", "settings": { "title": "Player Pride Pack", "price": 145, "turnaround": "7-10 business days", "features": "Minimum 2 personalized supporter shirts\n1 featured player keepsake\n2 small keepsakes\n1 coordinated player design direction" } },
+        "p3": { "type": "pack", "settings": { "title": "Full Family Fan Pack", "price": 295, "turnaround": "10-15 business days", "features": "Minimum 4 personalized supporter shirts\n1 premium player keepsake\n4 small keepsakes\n1 digital copy of approved artwork for personal social sharing\nPriority scheduling" } },
+        "m1": { "type": "mini", "settings": { "title": "Mini Keepsake Pack", "price": 15, "contents": "Any 3 approved small items" } },
+        "m2": { "type": "mini", "settings": { "title": "Player Pocket Pack", "price": 25, "contents": "Keychain, magnet, button, 5 printed cards" } },
+        "m3": { "type": "mini", "settings": { "title": "Game-Day Extras Pack", "price": 30, "contents": "Can cooler, keychain, button, mini print, magnet" } },
+        "m4": { "type": "mini", "settings": { "title": "Grandstand Keepsake Pack", "price": 40, "contents": "8 x 10 print, keychain, magnet, button, 5 cards" } }
+      },
+      "block_order": ["p1", "p2", "p3", "m1", "m2", "m3", "m4"],
+      "settings": {
+        "eyebrow": "Player Pride & Fan Support",
+        "heading": "Choose how loudly",
+        "heading_accent": "the family shows up.",
+        "intro": "Fan packs and keepsakes are pay-now orders — check out today and the studio confirms personalization right after."
+      }
+    },
+    "identity": {
+      "type": "team-identity",
+      "blocks": {
+        "t1": { "type": "package", "settings": { "title": "Rookie Team Package", "price": 395, "turnaround": "10-15 business days", "features": "Up to 12 collectible player cards\nCustom team visual direction\n1 team roster graphic\n1 complete season schedule graphic\n1 team announcement or season-launch graphic\nSocial media-ready digital files" } },
+        "t2": { "type": "package", "settings": { "title": "All-Star Team Package", "price": 750, "turnaround": "Initial identity, then approved content schedule", "features": "Up to 18 collectible player cards\n1 team roster graphic\n1 complete season schedule graphic\n4 game-day graphics\n2 final-score graphics\n2 player spotlight or MVP graphics\n1 reusable birthday graphic\n1 sponsor recognition graphic\nSocial media-ready digital files" } },
+        "t3": { "type": "package", "settings": { "title": "Championship Season Package", "price": 1050, "turnaround": "Priority season scheduling with approved milestones", "features": "Up to 18 collectible player cards\nRoster and complete season schedule graphics\n6 game-day and 3 final-score graphics\n3 player recognition graphics\nBirthday, playoff, championship, and coach appreciation graphics\nUp to 2 sponsor graphics\nBanquet invitation and welcome or recap graphic\nSocial media-ready digital files" } },
+        "a1": { "type": "addon", "settings": { "title": "Additional player card", "price": "$15" } },
+        "a2": { "type": "addon", "settings": { "title": "Schedule update", "price": "$5" } },
+        "a3": { "type": "addon", "settings": { "title": "Game-day graphic", "price": "$12" } },
+        "a4": { "type": "addon", "settings": { "title": "Player spotlight", "price": "$15" } },
+        "a5": { "type": "addon", "settings": { "title": "Additional schedule", "price": "$30" } },
+        "a6": { "type": "addon", "settings": { "title": "Sponsor announcement", "price": "$18" } },
+        "a7": { "type": "addon", "settings": { "title": "Quick Update Pack", "price": "$25" } },
+        "a8": { "type": "addon", "settings": { "title": "Game Week Pack", "price": "$50" } },
+        "a9": { "type": "addon", "settings": { "title": "Banquet & Awards Pack", "price": "$95" } },
+        "a10": { "type": "addon", "settings": { "title": "Season Extension Pack", "price": "$100" } }
+      },
+      "block_order": ["t1", "t2", "t3", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10"],
+      "settings": {
+        "eyebrow": "Team Identity & Social Graphics",
+        "heading": "One protected visual system",
+        "heading_accent": "for the season.",
+        "intro": "Season identity packages are custom projects — they start as a quote with a 50% deposit, credited in full."
+      }
+    },
+    "bundles": {
+      "type": "team-bundles",
+      "blocks": {
+        "b1": { "type": "bundle", "settings": { "title": "DTF Graphic + 14 Shirts", "price": 270, "per_extra": 15 } },
+        "b2": { "type": "bundle", "settings": { "title": "3D Full-Front 14 Shirts", "price": 420, "per_extra": 30 } },
+        "b3": { "type": "bundle", "settings": { "title": "3D Front-and-Back 14 Shirts", "price": 630, "per_extra": 45 } }
+      },
+      "block_order": ["b1", "b2", "b3"],
+      "settings": {
+        "eyebrow": "Build Your Team",
+        "heading": "One roster.",
+        "heading_accent": "One running total.",
+        "intro": "14-shirt minimum. Sizes and personalization included — every bundle prices clean: a base plus a flat rate per extra shirt. Bundles are quoted projects with a 50% deposit. Bundle turnaround: 7-10 business days after approval."
+      }
+    },
+    "quote": {
+      "type": "quote-intake",
+      "settings": {
+        "heading": "Start your sports project.",
+        "intro": "For bundles, identity packages, and brand-new ideas — roster details, team colors, and reference photos welcome.",
+        "occasion": "Sports Social Studio",
+        "service": "Player Pride"
+      }
+    }
+  },
+  "order": ["hero", "showcase", "shop", "builder", "suite", "packs", "identity", "bundles", "quote"]
+}

@@ -1,0 +1,31 @@
+<div class="collection-head band-blush"><div class="wrap"><span class="eyebrow">Custom work, clearly scoped</span><h1 class="serif mt-1">{{ page.title | default: 'Start a Project' }}</h1><p class="muted mt-1" style="max-width:40rem">{{ section.settings.intro }}</p></div></div>
+
+<div class="wrap section" style="max-width:44rem">
+  {%- if page.content != blank -%}<div class="product-desc" style="margin-bottom:1.5rem">{{ page.content }}</div>{%- endif -%}
+
+  {%- form 'contact' -%}
+    {%- if form.posted_successfully? -%}
+      <div class="card" style="padding:1.25rem;margin-bottom:1.25rem"><strong>Thank you.</strong> Your project is in the studio — I'll respond within 1–2 business days.</div>
+    {%- endif -%}
+    {%- if form.errors -%}
+      <div class="card" style="padding:1.25rem;margin-bottom:1.25rem;border-color:var(--blush-deep)">Please check the highlighted fields and try again.</div>
+    {%- endif -%}
+    <div class="grid grid-2">
+      <label>Name<input class="variant-select" name="contact[name]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.85rem 1rem;background:var(--cream-paper)" required></label>
+      <label>Email<input type="email" name="contact[email]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.85rem 1rem;background:var(--cream-paper)" required></label>
+    </div>
+    <label style="display:block;margin-top:1rem">Phone (optional)<input name="contact[phone]" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.85rem 1rem;background:var(--cream-paper)"></label>
+    <label style="display:block;margin-top:1rem">Tell me about your project<textarea name="contact[body]" rows="7" style="width:100%;border:1px solid var(--line-strong);border-radius:1rem;padding:.85rem 1rem;background:var(--cream-paper)" placeholder="Occasion, theme, colors, quantities, needed-by date, and how it should feel." required></textarea></label>
+    <button type="submit" class="btn btn-cta mt-3">Send my project to the studio</button>
+    <p class="muted mt-2" style="font-size:.82rem">Submitting does not charge you or confirm an order. It gives the studio enough detail to recommend the right path and price.</p>
+  {%- endform -%}
+</div>
+
+{% schema %}
+{
+  "name": "Contact",
+  "settings": [
+    { "type": "textarea", "id": "intro", "label": "Intro", "default": "Tell me the moment and I'll help shape the right build — original design, made to order." }
+  ]
+}
+{% endschema %}

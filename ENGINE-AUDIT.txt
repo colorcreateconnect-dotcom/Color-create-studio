@@ -1,0 +1,15 @@
+COLOR CREATE CONNECT CREATOR STUDIO v3.6.1
+COMMERCE ENGINE AUDIT NOTES
+
+- Netlify runtime: netlify/functions/api.ts
+- Shared server-side pricing: backend/pricing.ts
+- Approved-team DTF and approved-team 3D require a graphic code.
+- Approved-team 3D price table: Youth $30, Adult S-XL $40, Adult 2XL-4XL $50.
+- New personalized 3D price table: Youth $40, Adult S-XL $50, Adult 2XL-4XL $60.
+- Sublimation back option: +$15 per shirt once.
+- DTF back-dropdown options: included.
+- Celebration Suite minimum: two distinct item types.
+- Shipping: $8 under $75, free at $75+, pickup free, digital no shipping.
+- Team bundles retain the fourteen-shirt minimum and verified roster pricing.
+
+The original AppDeploy backend source is retained for audit reference. Netlify imports backend/pricing.ts directly for server-side totals.

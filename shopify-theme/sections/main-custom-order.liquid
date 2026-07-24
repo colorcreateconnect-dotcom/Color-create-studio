@@ -1,0 +1,45 @@
+{%- assign inquiry_product = all_products['custom-project-inquiry'] -%}
+<section class="collection-head band-blush">
+  <div class="wrap">
+    <span class="eyebrow">Custom work, clearly scoped</span>
+    <h1 class="serif mt-1" style="font-size:clamp(2.2rem,5vw,3.4rem)">Tell me the moment. <span class="tagline-gradient">I&rsquo;ll help shape the right build.</span></h1>
+    <p class="muted mt-2" style="max-width:42rem">Selections under $150 are paid in full at checkout; larger projects take a 50% deposit (open requests start at the $25 project minimum). Every dollar is <strong>credited in full to your project</strong>. You&rsquo;ll receive your complete quote within 1&ndash;2 business days.</p>
+  </div>
+</section>
+
+<section class="wrap section" style="max-width:52rem">
+  {%- if page.content != blank -%}<div class="product-desc" style="margin-bottom:1.5rem">{{ page.content }}</div>{%- endif -%}
+
+  {%- if inquiry_product != blank and inquiry_product.available -%}
+    {%- render 'inquiry-form', variant_id: inquiry_product.selected_or_first_available_variant.id -%}
+  {%- else -%}
+    {%- form 'contact' -%}
+      {%- if form.posted_successfully? -%}
+        <div class="card" style="padding:1.5rem;margin-bottom:1.5rem"><strong>Your project is in the studio.</strong> I received the inquiry and will respond within 1 to 2 business days.</div>
+      {%- endif -%}
+      {%- if form.errors -%}
+        <div class="card" style="padding:1.25rem;margin-bottom:1.5rem;border-color:var(--blush-deep)">Please check the required fields and try again.</div>
+      {%- endif -%}
+      <div class="f-grid">
+        <label class="f-label">Your name *<input class="f-in" name="contact[name]" required></label>
+        <label class="f-label">Email *<input class="f-in" type="email" name="contact[email]" required></label>
+      </div>
+      <label class="f-label">Tell me about your project *<textarea class="f-in" rows="8" name="contact[body]" placeholder="Occasion, theme, colors, quantities, needed-by date, and how it should feel." required></textarea></label>
+      <button type="submit" class="btn btn-cta btn-block mt-3">Send My Project to the Studio</button>
+    {%- endform -%}
+  {%- endif -%}
+</section>
+
+<script>
+(function(){
+  var piece = new URLSearchParams(location.search).get('piece');
+  var field = document.getElementById('ccInspiration');
+  if (piece && field && !field.value) field.value = 'In the spirit of the "' + piece + '" piece from the portfolio.';
+  var hidden = document.getElementById('ccInspPiece');
+  if (piece && hidden) hidden.value = piece;
+})();
+</script>
+
+{% schema %}
+{ "name": "Start a Project", "settings": [] }
+{% endschema %}

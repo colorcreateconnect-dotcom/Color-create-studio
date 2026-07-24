@@ -1,0 +1,180 @@
+{
+  "sections": {
+    "hero": {
+      "type": "department-hero",
+      "settings": {
+        "eyebrow": "Coordinated promo + branded merch for small businesses, vendors, events, and local brands",
+        "heading": "Business Promo",
+        "heading_accent": "& Merch Kits.",
+        "accent_style": "gradient",
+        "subheading": "Flyers, business cards, service menus, stickers, and branded apparel built to make your business look ready to be seen.",
+        "band": "band-mix",
+        "button_label": "Build my order",
+        "button_url": "#bizBuilder"
+      }
+    },
+    "builder": {
+      "type": "business-builder",
+      "blocks": {
+        "k1": { "type": "kit", "settings": { "title": "Business Basics Kit", "price": 95, "blurb": "For someone who needs the basic pieces to start promoting professionally.", "features": "Double-sided business card design\nOne promotional flyer or service menu\nOne sticker design\nPrint-ready files\nTwo design rounds\nPrinting and shirts are added separately", "ships": false, "turnaround": "5-7 business days" } },
+        "k2": { "type": "kit", "settings": { "title": "Pop-Up Ready Kit", "price": 175, "badge": "Most Popular", "blurb": "For vendors, beauty professionals, food businesses, service providers, and pop-up events.", "features": "Double-sided business card design\nOne promotional flyer\nOne service menu or price list\nOne sticker design\nOne custom branded shirt\n25 printed stickers\nPrint-ready files\nTwo design rounds", "ships": true, "turnaround": "7-10 business days" } },
+        "k3": { "type": "kit", "settings": { "title": "Full Business Visibility Kit", "price": 275, "blurb": "For a launch, vendor event, grand opening, or major promotion.", "features": "Double-sided business card design\nOne general promotional flyer\nOne event promo flyer\nOne service menu or price sheet\nOne sticker design\nTwo custom branded shirts\n100 printed business cards\nCoordinated visual direction across all pieces\nPrint-ready files\nTwo design rounds", "ships": true, "turnaround": "10-15 business days" } },
+        "i1": { "type": "item", "settings": { "name": "Business card design — front and back", "price": 45, "ships": false, "turnaround": "5-7 business days" } },
+        "i2": { "type": "item", "settings": { "name": "Promotional flyer design", "price": 55, "ships": false, "turnaround": "5-7 business days" } },
+        "i3": { "type": "item", "settings": { "name": "Event promo flyer design", "price": 55, "ships": false, "turnaround": "5-7 business days" } },
+        "i4": { "type": "item", "settings": { "name": "Double-sided flyer design", "price": 60, "ships": false, "turnaround": "5-7 business days" } },
+        "i5": { "type": "item", "settings": { "name": "Business service menu / price sheet design", "price": 50, "ships": false, "turnaround": "5-7 business days" } },
+        "i6": { "type": "item", "settings": { "name": "Sticker design", "price": 25, "ships": false, "turnaround": "5-7 business days" } },
+        "i7": { "type": "item", "settings": { "name": "Existing logo cleanup", "price": 25, "ships": false, "turnaround": "5-7 business days" } },
+        "i8": { "type": "item", "settings": { "name": "New logo design", "price": 150, "ships": false, "turnaround": "5-7 business days" } },
+        "i9": { "type": "item", "settings": { "name": "Loyalty / punch card design", "price": 25, "ships": false, "turnaround": "5-7 business days", "note": "Included free inside any kit." } },
+        "i10": { "type": "item", "settings": { "name": "Table tent card design", "price": 30, "ships": false, "turnaround": "5-7 business days" } },
+        "i11": { "type": "item", "settings": { "name": "Printed business cards", "tiers": "100 = 45 | 250 = 60 | 500 = 90 | 1000 = 130", "ships": true, "turnaround": "10-15 business days", "note": "Double-sided full color. Design not included — add a card design or bring print-ready files." } },
+        "i12": { "type": "item", "settings": { "name": "Printed flyers", "tiers": "25 = 30 | 50 = 45 | 100 = 85 | 250 = 150", "ships": true, "turnaround": "7-10 business days", "note": "8.5 x 11 full color. Design not included." } },
+        "i13": { "type": "item", "settings": { "name": "Printed service menus / price sheets", "tiers": "25 = 45 | 50 = 70 | 100 = 110", "ships": true, "turnaround": "7-10 business days", "note": "Design not included." } },
+        "i14": { "type": "item", "settings": { "name": "Printed stickers — 2 inch", "tiers": "50 = 55 | 100 = 85 | 250 = 150", "mod1_label": "Custom contour cut", "mod1_amount": 15, "mod2_label": "Standard non-laminate finish", "mod2_amount": -10, "ships": true, "turnaround": "10-15 business days", "note": "Circle or square. Waterproof laminate is the default finish. 50 piece minimum. Design not included." } },
+        "i15": { "type": "item", "settings": { "name": "Printed stickers — 3 inch or 2 x 3", "tiers": "50 = 70 | 100 = 110 | 250 = 190", "mod1_label": "Custom contour cut", "mod1_amount": 15, "mod2_label": "Standard non-laminate finish", "mod2_amount": -10, "ships": true, "turnaround": "10-15 business days", "note": "Circle, square, or 2 x 3 rectangle. Waterproof laminate is the default finish. 50 piece minimum. Design not included." } },
+        "i16": { "type": "item", "settings": { "name": "Printed loyalty / punch cards", "tiers": "100 = 55 | 250 = 95 | 500 = 150", "ships": true, "turnaround": "7-10 business days", "note": "Design not included." } },
+        "i17": { "type": "item", "settings": { "name": "Printed table tent cards", "tiers": "Set of 10 = 40 | 25 = 75 | 50 = 120", "ships": true, "turnaround": "7-10 business days", "note": "Design not included." } },
+        "i18": { "type": "item", "settings": { "name": "Retractable banner + design", "price": 225, "ships": true, "turnaround": "10-15 business days", "note": "33 x 79 inch full color — includes design, stand, and carry bag." } },
+        "i19": { "type": "item", "settings": { "name": "Branded shirt", "route_url": "/pages/custom-apparel#shirtBuilder" } },
+        "i20": { "type": "item", "settings": { "name": "Always Current plan — annual", "price": 175, "ships": false, "turnaround": "First refresh scheduled after signup", "note": "One refreshed promo flyer or price sheet each quarter, unlimited price and menu edits, print-ready files every time. Printing billed separately at published tiers." } },
+        "i21": { "type": "item", "settings": { "name": "Always Current plan — quarterly", "price": 49, "ships": false, "turnaround": "First refresh scheduled after signup", "note": "One refreshed promo flyer or price sheet this quarter, unlimited price and menu edits, print-ready files. Printing billed separately." } }
+      },
+      "block_order": ["k1", "k2", "k3", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "i8", "i9", "i10", "i11", "i12", "i13", "i14", "i15", "i16", "i17", "i18", "i19", "i20", "i21"],
+      "settings": {
+        "eyebrow": "Build my order",
+        "heading": "A kit or a single piece.",
+        "heading_accent": "A firm price either way.",
+        "intro": "Pick your pieces, tell us about your business, and check out at a firm price — never a guess. Your details, logo, and files travel with the order.",
+        "kit_note": "Business Promo & Merch Kits use your existing business name, logo, colors, photos, and service information. Full logo development, website creation, ongoing marketing, and social media management are not included.",
+        "footnote": "Two design rounds are included on every kit and every design service. All orders are paid in full at checkout. Your details, files, and selections travel with the order."
+      }
+    },
+    "alacarte": {
+      "type": "price-list",
+      "blocks": {
+        "a1": { "type": "row", "settings": { "label": "Business card design, front and back", "price": "$45" } },
+        "a2": { "type": "row", "settings": { "label": "Promotional flyer design", "price": "$55" } },
+        "a3": { "type": "row", "settings": { "label": "Event promo flyer design", "price": "$55" } },
+        "a4": { "type": "row", "settings": { "label": "Double-sided flyer design", "price": "$60" } },
+        "a5": { "type": "row", "settings": { "label": "Business service menu / price sheet design", "price": "$50" } },
+        "a6": { "type": "row", "settings": { "label": "Sticker design", "price": "$25" } },
+        "a7": { "type": "row", "settings": { "label": "Existing logo cleanup", "price": "$25" } },
+        "a8": { "type": "row", "settings": { "label": "New logo design", "price": "$150" } },
+        "a9": { "type": "row", "settings": { "label": "Additional revision round", "price": "$15", "note": "Two design rounds are always included first." } },
+        "a10": { "type": "row", "settings": { "label": "Rush service", "price": "+25%", "note": "$25 minimum — confirmed in writing before payment." } }
+      },
+      "block_order": ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10"],
+      "settings": {
+        "eyebrow": "A la carte design menu",
+        "heading": "One piece at a time,",
+        "heading_accent": "clearly priced.",
+        "intro": "Every design is delivered as print-ready files with two design rounds included. Order any of these in the builder above."
+      }
+    },
+    "tiers": {
+      "type": "price-list",
+      "blocks": {
+        "t1": { "type": "row", "settings": { "label": "Printed business cards — double-sided", "price": "from $45", "note": "100 = $45 · 250 = $60 · 500 = $90 · 1000 = $130" } },
+        "t2": { "type": "row", "settings": { "label": "Printed flyers — 8.5 x 11 full color", "price": "from $30", "note": "25 = $30 · 50 = $45 · 100 = $85 · 250 = $150" } },
+        "t3": { "type": "row", "settings": { "label": "Printed service menus / price sheets", "price": "from $45", "note": "25 = $45 · 50 = $70 · 100 = $110" } },
+        "t4": { "type": "row", "settings": { "label": "Printed stickers — 2 inch circle or square", "price": "from $55", "note": "50 = $55 · 100 = $85 · 250 = $150 · waterproof laminate default" } },
+        "t5": { "type": "row", "settings": { "label": "Printed stickers — 3 inch, or 2 x 3 rectangle", "price": "from $70", "note": "50 = $70 · 100 = $110 · 250 = $190 · waterproof laminate default" } },
+        "t6": { "type": "row", "settings": { "label": "Sticker finish options", "price": "+$15 / −$10", "note": "Custom contour cut adds $15 per tier. Standard non-laminate finish subtracts $10 per tier." } }
+      },
+      "block_order": ["t1", "t2", "t3", "t4", "t5", "t6"],
+      "settings": {
+        "eyebrow": "Print quantity tiers",
+        "heading": "Printing, priced",
+        "heading_accent": "by the stack.",
+        "intro": "Print runs use these published tiers only — design is charged separately. Need more than the top tier? That routes to a quote.",
+        "footnote": "Stickers have a 50 piece minimum. The exact tier prices are always selected inside the order builder — these cards are the menu."
+      }
+    },
+    "shirts": {
+      "type": "rich-text",
+      "settings": {
+        "band": "",
+        "eyebrow": "Branded shirts",
+        "heading": "Shirts run on the studio's standard apparel pricing.",
+        "text": "Branded shirts use our custom apparel pricing — Youth $30, Adult S-XL $35, 2XL $37, 3XL $38, 4XL $39. Ordering for a team or staff? Use the group apparel pricing on the Custom Apparel page.",
+        "button_label": "Open the shirt builder",
+        "button_url": "/pages/custom-apparel#shirtBuilder"
+      }
+    },
+    "addons": {
+      "type": "price-list",
+      "blocks": {
+        "d1": { "type": "row", "settings": { "label": "Loyalty / punch card design", "price": "$25", "note": "Included free inside any kit." } },
+        "d2": { "type": "row", "settings": { "label": "Printed loyalty / punch cards", "price": "from $55", "note": "100 = $55 · 250 = $95 · 500 = $150" } },
+        "d3": { "type": "row", "settings": { "label": "Table tent card design", "price": "$30" } },
+        "d4": { "type": "row", "settings": { "label": "Printed table tent cards", "price": "from $40", "note": "Set of 10 = $40 · 25 = $75 · 50 = $120" } },
+        "d5": { "type": "row", "settings": { "label": "Retractable banner + design", "price": "$225", "note": "33 x 79 inch full color — includes the stand and carry bag." } }
+      },
+      "block_order": ["d1", "d2", "d3", "d4", "d5"],
+      "settings": {
+        "eyebrow": "Add-ons",
+        "heading": "The pieces that keep",
+        "heading_accent": "customers coming back.",
+        "intro": "All available in the order builder above."
+      }
+    },
+    "always": {
+      "type": "rich-text",
+      "settings": {
+        "band": "band-cocoa",
+        "eyebrow": "Always Current — $175 per year, or $49 per quarter",
+        "heading": "Keep your promo materials current all year.",
+        "text": "One refreshed promo flyer or price sheet each quarter, unlimited price and menu edits, and print-ready files delivered every time — printing billed separately at published tiers. Four seasonal refreshes for less than the cost of four separate flyer designs.",
+        "button_label": "Add Always Current in the builder",
+        "button_url": "#bizBuilder"
+      }
+    },
+    "how": {
+      "type": "how-it-works",
+      "blocks": {
+        "s1": { "type": "step", "settings": { "number": "01", "text": "Tell us about your business." } },
+        "s2": { "type": "step", "settings": { "number": "02", "text": "Pay your firm total at checkout." } },
+        "s3": { "type": "step", "settings": { "number": "03", "text": "Approve your proof — two design rounds included." } },
+        "s4": { "type": "step", "settings": { "number": "04", "text": "We produce. Pickup free, or shipping from $8 — free at $75." } }
+      },
+      "block_order": ["s1", "s2", "s3", "s4"],
+      "settings": {
+        "eyebrow": "How it works",
+        "heading": "From details to done.",
+        "footnote": "Turnaround: design only (print-ready files) 5-7 business days · design plus in-house printing 7-10 · design plus outsourced printing (cards, stickers, banner) 10-15. The clock starts after payment and after all business details, logo, and content are received. Two design rounds are included on every kit and every design service; additional rounds are $15. Rush service is 25% with a $25 minimum, confirmed in writing before payment. No rush orders inside 5 business days of an event without written approval."
+      }
+    },
+    "portfolio": {
+      "type": "photo-showcase",
+      "blocks": {
+        "p1": { "type": "photo", "settings": { "tag": "Business work", "caption": "Coming soon" } },
+        "p2": { "type": "photo", "settings": { "tag": "Business work", "caption": "Coming soon" } },
+        "p3": { "type": "photo", "settings": { "tag": "Business work", "caption": "Coming soon" } },
+        "p4": { "type": "photo", "settings": { "tag": "Business work", "caption": "Coming soon" } }
+      },
+      "block_order": ["p1", "p2", "p3", "p4"],
+      "settings": {
+        "eyebrow": "Business work",
+        "heading": "Real pieces,",
+        "heading_accent": "landing here soon.",
+        "intro": "Business promo work is being photographed now — the frames below fill in as pieces clear.",
+        "button_label": "Request something similar",
+        "button_url": "/pages/portfolio",
+        "button2_label": "Ask about this style",
+        "button2_url": "#deptQuote"
+      }
+    },
+    "quote": {
+      "type": "quote-intake",
+      "settings": {
+        "heading": "Need something bigger?",
+        "intro": "Bigger launch, unusual quantities, multi-location, or something not listed? Tell me the moment and I will shape the right build. Full brand identity development, quantities above the published tiers, franchise work, and ongoing marketing all start here.",
+        "occasion": "Business",
+        "service": "Business Promo & Merch"
+      }
+    }
+  },
+  "order": ["hero", "builder", "alacarte", "tiers", "shirts", "addons", "always", "how", "portfolio", "quote"]
+}

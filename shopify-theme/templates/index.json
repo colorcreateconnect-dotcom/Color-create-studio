@@ -1,0 +1,127 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "eyebrow": "Sports season · now booking",
+        "heading": "Your idea does not enter a template. It enters a",
+        "heading_accent": "creative process.",
+        "subheading": "Custom apparel, celebration paper goods, sports graphics, and coordinated event pieces designed from a blank page for the person, team, or moment they belong to.",
+        "button_label": "Shop firm-price products",
+        "button_url": "",
+        "button2_label": "Shop team shirts",
+        "button2_url": "https://colorcreatestudio.com/pages/sports",
+        "fact_1": "Player cards · magazine-style spotlights",
+        "fact_2": "Roster bundles · up to 14, one look",
+        "badge": "show up loud & proud"
+      }
+    },
+    "doors": {
+      "type": "collection-doors",
+      "blocks": {
+        "d1": { "type": "door", "settings": { "subtitle": "Milestone Collection", "wordmark": "GRAD PROUD", "price": "Single items + suites from $85", "link": "/collections/graduation", "style": "grad" } },
+        "d2": { "type": "door", "settings": { "subtitle": "Baby and Family", "wordmark": "SWEET BEGINNINGS", "price": "Single items + suites from $85", "link": "/collections/sweet-beginnings", "style": "sweet" } },
+        "d3": { "type": "door", "settings": { "subtitle": "Wedding Collection", "wordmark": "BRIDAL BLISS", "price": "Single items + suites from $85", "link": "/collections/bridal-bliss", "style": "bridal" } },
+        "d4": { "type": "door", "settings": { "subtitle": "Celebration Collection", "wordmark": "MAKE A WISH", "price": "Single items + suites from $85", "link": "/collections/birthday", "style": "wish" } },
+        "d5": { "type": "door", "settings": { "subtitle": "Curated Group Orders", "wordmark": "THE FUNCTION", "price": "Buy now items + custom builds", "link": "/collections/the-function", "style": "func" } }
+      },
+      "block_order": ["d1", "d2", "d3", "d4", "d5"],
+      "settings": {
+        "eyebrow": "Your Idea. Your Moment. Designed to Connect.",
+        "heading": "Choose the collection closest to your moment.",
+        "subheading": "Each door opens its own collection page with available items, direct-checkout products, a builder, and a dedicated project inquiry."
+      }
+    },
+    "doors2": {
+      "type": "collection-doors",
+      "blocks": {
+        "s1": { "type": "door", "settings": { "subtitle": "Sports Social Studio", "wordmark": "SHOW UP LOUD", "price": "Shirts from $20", "link": "/pages/sports", "style": "sport" } },
+        "s2": { "type": "door", "settings": { "subtitle": "Business Promo & Merch", "wordmark": "LOOK READY", "price": "Kits from $95 · design from $25", "link": "/pages/business-promo", "style": "biz" } }
+      },
+      "block_order": ["s1", "s2"],
+      "settings": {
+        "eyebrow": "Beyond the celebrations",
+        "heading": "The working studios — sports and business.",
+        "subheading": "Game-day fan gear with firm-price builders and packs, and promo kits that make a business look ready to be seen. Both run on clear prices and pay-now checkout."
+      }
+    },
+    "trust": {
+      "type": "trust-strip",
+      "blocks": {
+        "t1": { "type": "item", "settings": { "number": "01", "label": "Made to Order" } },
+        "t2": { "type": "item", "settings": { "number": "02", "label": "Custom Design" } },
+        "t3": { "type": "item", "settings": { "number": "03", "label": "Photo Care" } },
+        "t4": { "type": "item", "settings": { "number": "04", "label": "Whole Skill Set" } },
+        "t5": { "type": "item", "settings": { "number": "05", "label": "Firm Prices or Clear Quotes" } }
+      },
+      "block_order": ["t1", "t2", "t3", "t4", "t5"],
+      "settings": {}
+    },
+    "proof": {
+      "type": "proof-wall",
+      "blocks": {
+        "w1": { "type": "photo", "settings": { "asset": "grad-jayvon-suite.jpg", "type": "Graduation", "title": "Jayvon · Full Ride" } },
+        "w2": { "type": "photo", "settings": { "asset": "sports-jaylen-card.jpg", "type": "Sports", "title": "Meet the Team" } },
+        "w3": { "type": "photo", "settings": { "asset": "birthday-brianna-brunch.jpg", "type": "Birthday", "title": "Birthday Brunch · 33" } },
+        "w4": { "type": "photo", "settings": { "asset": "reveal-babybee-suite.jpg", "type": "Sweet Beginnings", "title": "Baby Bee" } },
+        "w5": { "type": "photo", "settings": { "asset": "apparel-davinci.jpg", "type": "Streetwear", "title": "DaVinci Diamond" } },
+        "w6": { "type": "photo", "settings": { "asset": "party-dukes-boots.jpg", "type": "Theme Party", "title": "Dukes & Boots" } }
+      },
+      "block_order": ["w1", "w2", "w3", "w4", "w5", "w6"],
+      "settings": {
+        "eyebrow": "Proof wall",
+        "heading": "Real work,",
+        "heading_accent": "real moments.",
+        "link_label": "View full portfolio",
+        "link_url": ""
+      }
+    },
+    "how": {
+      "type": "how-it-works",
+      "blocks": {
+        "s1": { "type": "step", "settings": { "number": "01", "text": "Choose the lane." } },
+        "s2": { "type": "step", "settings": { "number": "02", "text": "Customize one product or build a coordinated suite." } },
+        "s3": { "type": "step", "settings": { "number": "03", "text": "Review every selected detail." } },
+        "s4": { "type": "step", "settings": { "number": "04", "text": "Add the customized item to your bag or send the project to the studio." } },
+        "s5": { "type": "step", "settings": { "number": "05", "text": "Approve the proof, then we produce." } }
+      },
+      "block_order": ["s1", "s2", "s3", "s4", "s5"],
+      "settings": {
+        "eyebrow": "How it works",
+        "heading": "One item shops directly. Two or more build a moment.",
+        "footnote": "One firm-price item: customize it, add it to the bag, and continue to checkout. Celebration Suites: begin with two distinct coordinated item types. Larger packages and items without an approved firm price receive a clear quote before production."
+      }
+    },
+    "manifesto": {
+      "type": "manifesto",
+      "settings": {
+        "eyebrow": "Anyone can use AI",
+        "heading": "We bring the whole creative",
+        "heading_accent": "skill set.",
+        "body_1": "Every custom design begins on a blank page. We sketch, deconstruct, recolor, rearrange, rebuild, redraw, refine, and produce.",
+        "body_2": "Canva, Procreate, AI, illustration, photo editing, and hands-on production are tools in the process. They are not substitutes for the idea, the eye, or the skill behind the design."
+      }
+    },
+    "1784821830f38c11ee": {
+      "type": "apps",
+      "blocks": {
+        "mintt_tiktok_feed_juniper_hero_product_76LDgw": {
+          "type": "shopify://apps/mintt-tiktok-feed/blocks/juniper-hero-product/fa514c33-5475-4484-b270-5f1e7eb87a9a",
+          "settings": {
+            "product": "custom-family-group-shirts-personalized-matching-shirts-for-events-celebrations",
+            "card_color": "#f5f5f5",
+            "text_color": "#333333",
+            "button_text": "SHOP NOW",
+            "button_text_color": "#ffffff",
+            "button_color": "#000000",
+            "feed_id": ""
+          }
+        }
+      },
+      "block_order": ["mintt_tiktok_feed_juniper_hero_product_76LDgw"],
+      "disabled": true,
+      "settings": {}
+    }
+  },
+  "order": ["hero", "doors", "doors2", "trust", "proof", "how", "manifesto", "1784821830f38c11ee"]
+}

@@ -1,0 +1,17 @@
+COLOR CREATE CONNECT v3.6.1 PACKAGE VALIDATION
+
+PASSED
+- TypeScript/TSX syntax transpilation across 18 source and function files.
+- Structural TypeScript check of the frontend source using local compatibility declarations.
+- Server pricing checks:
+  - Approved-team 3D Adult S-XL front: $40
+  - Approved-team 3D Adult S-XL front and back: $55
+  - New personalized 3D Adult S-XL front: $50
+  - New personalized 3D Adult S-XL front and back: $65
+  - Approved-team DTF back option does not add a fee
+  - DTF fourteen-shirt bundle: $270
+  - Printed invitation quantity 24: $78
+- Static workflow checks for direct Sports routing, two-item Suite minimum, graphic-code checkout, collection hubs, and Creator Studio Sports styling.
+
+BUILD ENVIRONMENT NOTE
+The local dependency registry returned HTTP 503 while this export was being packaged, so a fresh local npm build could not be completed. The package intentionally omits an old prebuilt dist directory. Netlify will install dependencies and run `npm run build` from the current source during deployment.

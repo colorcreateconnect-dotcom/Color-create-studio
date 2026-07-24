@@ -1,0 +1,19 @@
+{%- if section.settings.text != blank -%}
+  <div class="ticker" role="marquee" aria-label="{{ section.settings.text | escape }}">
+    <div class="track">
+      <span>{{ section.settings.text }}</span>
+      <span aria-hidden="true">{{ section.settings.text }}</span>
+      <span aria-hidden="true">{{ section.settings.text }}</span>
+      <span aria-hidden="true">{{ section.settings.text }}</span>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Ticker bar",
+  "settings": [
+    { "type": "text", "id": "text", "label": "Message", "default": "Custom Orders Welcome. Firm-Price Products. Shipping and Local Pickup. Atlanta, Georgia." }
+  ]
+}
+{% endschema %}
