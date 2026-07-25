@@ -11,6 +11,7 @@ import { PublicScreens } from './screens/public'
 import { CleanerScreens } from './screens/cleaner'
 import { OwnerScreens } from './screens/owner'
 import { SharedScreens } from './screens/shared'
+import { ConciergeScreens } from './screens/concierge'
 import { Overlays, ScreenIndex } from './screens/chrome'
 
 function readProps(): ModelProps {
@@ -28,7 +29,7 @@ function readProps(): ModelProps {
 export default function App() {
   const { v } = useModel(readProps())
 
-  const screen = PublicScreens(v) || CleanerScreens(v) || OwnerScreens(v) || SharedScreens(v)
+  const screen = PublicScreens(v) || CleanerScreens(v) || OwnerScreens(v) || ConciergeScreens(v) || SharedScreens(v)
 
   return (
     <div className="sm-stage">

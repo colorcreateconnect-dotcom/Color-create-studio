@@ -17,3 +17,4 @@ npm-debug.log*
 
 # scratch
 _shot*.mjs
+_serve.mjs

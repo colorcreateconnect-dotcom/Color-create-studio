@@ -84,11 +84,15 @@ export function OwnerScreens(v: any) {
           <div style={css('display:flex;align-items:center;justify-content:space-between;gap:12px')}>
             <div>
               <div style={css('font-size:13.5px;font-weight:var(--weight-semibold)')}>Eco finish + signature scent</div>
-              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Added to each turnover</div>
+              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Added to each turnover · your choice</div>
             </div>
-            <div style={css('font-family:var(--font-serif-display);font-size:28px;color:var(--green-deep)')}>+$8</div>
+            <div style={css('display:flex;align-items:center;gap:10px')}>
+              <div style={{ ...css('font-family:var(--font-serif-display);font-size:28px'), color: v.scentOn ? 'var(--green-deep)' : 'var(--text-muted)' }}>+$8</div>
+              <Pill selected={v.scentOn} eco onClick={v.toggleScent}>{v.scentOn ? 'On' : 'Off'}</Pill>
+            </div>
           </div>
-          <p style={css('margin:12px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>Small, transparent cost — agreed up front, no surprises. Covers the premium non-toxic products & the essential-oil scent.</p>
+          <p style={css('margin:12px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>{v.scentConsequence}</p>
+          <div style={css('margin-top:8px')}><span style={css('font-size:11.5px;color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.goReceipts}>See exactly what you’ll be billed</span></div>
         </Card>
         <Button variant="green" onClick={v.savePrefs}>Save preferences</Button>
       </div>

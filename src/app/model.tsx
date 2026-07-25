@@ -7,6 +7,7 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { Chip, MetaTag, VerifiedBadge } from '../ds/components'
 import { residentialQuote, airbnbQuote, type Staging } from '../lib/pricing'
+import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/concierge'
 
 type Any = Record<string, any>
 
@@ -182,6 +183,10 @@ function initialState(props: ModelProps): Any {
     suHood: 'Midtown', suContactPref: 'Text me', suSourcePref: 'Her card / QR',
     staffStep: 1, staffName: '', verified: {}, cert: {}, taxKind: 'Individual / sole prop',
     standardsMap: {}, setup: { verify: true },
+    // Concierge tier (v3): request form + live visit clock + at-cost expenses.
+    conciergeSvc: {}, conciergeWindow: 'Tomorrow, 10 AM – 12 PM', conciergeNote: '', conciergeSent: false,
+    visitState: 'brief', visitMinutes: 0, expenses: [], expCat: 'Groceries', expAmount: '', expPhoto: false,
+    scentOn: true,
     access: { routes: true, checklists: true, supplies: true, ownernotes: true },
     onotif: { reports: true, cleaning: true, supplies: true, summary: false },
     cnotif: { bookings: true, approvals: true, supplies: true },
@@ -1384,6 +1389,69 @@ export function useModel(props: ModelProps) {
     v.copyAddress = () => { set({ navOpen: false }); say('Address copied 🔗') }
     v.sendQuote = () => { push('lead', 'Your tailored quote for the spaces you chose: ' + '$' + final + '. Everything included — happy to walk you through it.'); go({ threadWith: 'lead', c: 'thread' }); say('Tailored quote sent 💌') }
 
+    // ---- concierge tier (v3) — $70/hr, at cost, receipt required, request→confirm ----
+    v.conciergeRateLabel = '$' + CONCIERGE_RATE + '/hr'
+    // Owner · Request concierge
+    v.oConcierge = s.role === 'owner' && s.o === 'concierge'
+    v.goConcierge = () => go({ o: 'concierge' })
+    v.conciergeSent = s.conciergeSent
+    v.conciergeServices = [
+      { id: 'receiving', icon: '📦', name: 'Product receiving & delivery', desc: 'Received on your behalf, stored, brought to the unit when needed.' },
+      { id: 'storeRun', icon: '🛍️', name: 'Store-bound run', desc: 'Last-minute shopping delivered to the property.' },
+      { id: 'guestDelivery', icon: '🎁', name: 'Guest deliveries', desc: 'Coordinated for your guests, not just you.' },
+      { id: 'grocery', icon: '🍎', name: 'Grocery concierge', desc: 'Ordered or shopped, brought inside, and put away before you land.' },
+      { id: 'coHosting', icon: '🔑', name: 'Co-hosting support', desc: 'In-person welcome, check-in help, on-call co-host.' },
+    ].map((x) => ({ ...x, on: !!s.conciergeSvc[x.id], toggle: () => setState((t: Any) => ({ ...t, conciergeSvc: { ...t.conciergeSvc, [x.id]: !t.conciergeSvc[x.id] } })) }))
+    v.conciergeWindows = ['Tomorrow, 10 AM – 12 PM', 'Tomorrow, 2 – 4 PM', 'Sat, 9 – 11 AM'].map((label) => ({ label, on: s.conciergeWindow === label, pick: () => set({ conciergeWindow: label }) }))
+    v.conciergeNote = s.conciergeNote
+    v.setConciergeNote = (e: any) => set({ conciergeNote: e.target.value })
+    v.conciergeChosen = Object.keys(s.conciergeSvc).filter((k) => s.conciergeSvc[k])
+    v.conciergeChosenLabels = v.conciergeServices.filter((x: Any) => x.on).map((x: Any) => x.name)
+    v.sendConciergeRequest = () => {
+      if (!v.conciergeChosen.length) { say('Pick at least one service she can help with'); return }
+      set({ conciergeSent: true }); say('Request sent — she’ll confirm your window 💌')
+    }
+    v.changeConciergeRequest = () => set({ conciergeSent: false })
+    // Cleaner · Concierge visit
+    v.cConcierge = s.role === 'cleaner' && s.c === 'conciergeVisit'
+    v.goConciergeVisit = () => go({ c: 'conciergeVisit', visitState: 'brief', visitMinutes: 0, expenses: [] })
+    v.visitBrief = s.visitState === 'brief'
+    v.visitOnClock = s.visitState === 'clock'
+    v.visitClosed = s.visitState === 'closed'
+    v.startClock = () => set({ visitState: 'clock', visitMinutes: 15 })
+    v.visitMinutes = s.visitMinutes
+    v.visitTimeLabel = Math.floor(s.visitMinutes / 60) + 'h ' + (s.visitMinutes % 60) + 'm'
+    v.visitCharge = '$' + conciergeTimeCharge(s.visitMinutes).toFixed(2)
+    v.addTime = (d: number) => { try { set({ visitMinutes: applyExtension(s.visitMinutes, d, 'cleaner') }) } catch { /* floor */ } }
+    v.expCats = ['Groceries', 'Linens', 'Toiletries', 'Décor', 'Other'].map((label) => ({ label, on: s.expCat === label, pick: () => set({ expCat: label }) }))
+    v.expAmount = s.expAmount
+    v.setExpAmount = (e: any) => set({ expAmount: e.target.value.replace(/[^0-9.]/g, '') })
+    v.expPhoto = s.expPhoto
+    v.attachExpPhoto = () => { set({ expPhoto: !s.expPhoto }); if (!s.expPhoto) say('Receipt photographed 📸') }
+    v.addExpense = () => {
+      const amt = parseFloat(s.expAmount || '0')
+      if (!amt) { say('Enter the receipt total first'); return }
+      // The rule, in the UI and enforced again server-side.
+      if (!s.expPhoto) { say('The photo is the owner’s proof — no receipt, no reimbursement'); return }
+      setState((t: Any) => ({ ...t, expenses: t.expenses.concat([{ cat: t.expCat, amount: amt }]), expAmount: '', expPhoto: false }))
+      say('Expense added — reimbursed at cost 🧾')
+    }
+    v.removeExpense = (i: number) => setState((t: Any) => ({ ...t, expenses: t.expenses.filter((_: any, k: number) => k !== i) }))
+    v.expenses = s.expenses.map((x: Any, i: number) => ({ ...x, amountLabel: '$' + x.amount.toFixed(2), remove: () => v.removeExpense(i) }))
+    const reimbursedSum = s.expenses.reduce((n: number, x: Any) => n + x.amount, 0)
+    const timeCharge = conciergeTimeCharge(s.visitMinutes)
+    v.visitReimbursed = '$' + reimbursedSum.toFixed(2)
+    v.visitTotal = '$' + (timeCharge + reimbursedSum).toFixed(2)
+    v.visitTimeCharge = '$' + timeCharge.toFixed(2)
+    v.closeVisit = () => { set({ visitState: 'closed' }); say('Visit closed — receipt sent 💕') }
+
+    // Products & scent — the +$8 eco finish is a working billing toggle now.
+    v.scentOn = s.scentOn
+    v.toggleScent = () => { set({ scentOn: !s.scentOn }); say(s.scentOn ? 'Scent line removed' : 'Eco finish + scent added 🌿') }
+    v.scentConsequence = s.scentOn
+      ? 'Billed as its own line — Eco finish + signature scent · $8.00 — inside the single arrival charge. Never buried in the service price.'
+      : 'Your receipts won’t show a scent line, and nothing extra is charged.'
+
     // menu — every destination, one tap away
     const item = (icon: string, name: string, sub: string, goFn: () => void) => ({ icon, name, sub, go: () => { set({ menuOpen: false }); goFn() } })
     const close = (arr: Any[]) => arr.map((x, i, a) => ({ ...x, last: i === a.length - 1, right: '›' }))
@@ -1413,6 +1481,7 @@ export function useModel(props: ModelProps) {
           item('📌', 'Assign jobs', 'Who’s taking each clean', () => go({ c: 'assign' })),
           item('🧴', 'Supplies', 'Par levels and reordering', () => go({ c: 'supplies', cTab: 2 })),
           item('👥', 'Assistant’s view', 'What Tiana sees on a shared job', () => go({ c: 'assist' })),
+          item('💫', 'Concierge visit', 'Her time & receipts — not a clean', () => go({ c: 'conciergeVisit', visitState: 'brief', visitMinutes: 0, expenses: [] })),
         ]) },
         { title: 'Getting paid', items: close([
           item('👤', 'My week', 'Cleans, earnings and schedule', () => go({ c: 'profile', cTab: 3 })),
@@ -1452,6 +1521,7 @@ export function useModel(props: ModelProps) {
         ]) },
         { title: 'Home & supplies', items: close([
           item('🌱', 'Products & scent', 'Eco products and your finish', () => go({ o: 'products' })),
+          item('💫', 'Request concierge', 'Her time — a hands-free lifestyle', () => go({ o: 'concierge' })),
           item('🧴', 'Supplies', 'Approve what your units need', () => go({ o: 'supplies', oTab: 2 })),
           item('🧮', 'Your tailored quote', 'From Ahleyia', () => go({ o: 'quote' })),
         ]) },
@@ -1499,6 +1569,7 @@ export function useModel(props: ModelProps) {
         { n: 26, label: 'Flag an issue', go: jump('cleaner', 'flag') },
         { n: 28, label: 'Luxury home clean', go: jump('cleaner', 'lux') },
         { n: 29, label: 'Assistant view', go: jump('cleaner', 'assist') },
+        { n: 63, label: 'Concierge visit', go: jump('cleaner', 'conciergeVisit', { visitState: 'brief', visitMinutes: 0, expenses: [] }) },
         { n: 30, label: 'Taking a proof photo', go: jump('cleaner', 'job', { cam: { id: 't15', kind: 'turn', title: 'Primary suite · beds made' } }) },
         { n: 33, label: 'Working offline', go: jump('cleaner', 'job', { offline: true }) },
         { n: 34, label: 'No jobs today', go: jump('cleaner', 'today', { emptyJobs: true }) },
@@ -1523,6 +1594,7 @@ export function useModel(props: ModelProps) {
         { n: 19, label: 'Message thread', go: jump('owner', 'thread') },
         { n: 20, label: 'New message', go: jump('owner', 'compose') },
         { n: 21, label: 'Products & scent', go: jump('owner', 'products') },
+        { n: 64, label: 'Request concierge', go: jump('owner', 'concierge') },
         { n: 22, label: 'Add a property (onboarding)', go: jump('owner', 'onboard') },
         { n: 23, label: 'Your account', go: jump('owner', 'account') },
         { n: 25, label: 'Quote received', go: jump('owner', 'quote', { quote: 'new' }) },
