@@ -11,7 +11,7 @@ import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/conc
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
-  sendPhoneOtp, verifyPhoneOtp, signInWithPassword, signOut as beSignOut, api, getData,
+  sendPhoneOtp, verifyPhoneOtp, signInWithPassword, signOut as beSignOut, api, getData, threadKeyForOwner,
 } from './backend'
 import { isSquareConfigured } from '../lib/config'
 
@@ -198,6 +198,7 @@ function initialState(props: ModelProps): Any {
     gatePhone: '',
     beReady: false, beSignedIn: false, beUser: null, beCard: null,
     beJobs: [], beProps: [], beClients: [], beActiveJobId: null, beBusy: false,
+    beMsgs: [], beQuotes: [], beReports: [], beCharges: [], beThreadOwner: null,
     access: { routes: true, checklists: true, supplies: true, ownernotes: true },
     onotif: { reports: true, cleaning: true, supplies: true, summary: false },
     cnotif: { bookings: true, approvals: true, supplies: true },
@@ -286,6 +287,7 @@ export function useModel(props: ModelProps) {
         const patch: Any = {
           ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
           beCard: h.card, beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beActiveJobId: h.activeJobId ?? null,
+          beMsgs: h.messages, beQuotes: h.quotes, beReports: h.reports, beCharges: h.charges,
         }
         // Land a signed-in user in their own zone — but only from the default
         // visitor landing, so a deliberate deep-link (?role=…) is respected.
@@ -635,6 +637,77 @@ export function useModel(props: ModelProps) {
       const txt = s.draft.trim(); if (!txt) { say('Add a message before sending ✏️'); return }
       push(toId, txt); set(s.role === 'cleaner' ? { threadWith: toId, c: 'thread' } : { threadWith: toId, o: 'thread' }); say('Message sent 💬')
     }
+
+    /* ---- live messaging: one real thread per client, both sides ----
+       thread_key = owner:<ownerId>. RLS lets the owner read rows where
+       owner_id = self, and staff read every row in the org, so the same rows
+       serve both sides of the conversation. */
+    const liveOwnerMsg = backendActive() && s.beSignedIn && s.beUser?.role === 'owner'
+    const liveStaffMsg = backendActive() && s.beSignedIn && !!s.beUser && s.beUser.role !== 'owner'
+    if (liveOwnerMsg || liveStaffMsg) {
+      const me = s.beUser
+      const fmt = (iso: string) => {
+        const d = new Date(iso); let h = d.getHours(); const suf = h >= 12 ? 'p' : 'a'
+        h = h % 12 || 12
+        return h + ':' + String(d.getMinutes()).padStart(2, '0') + suf
+      }
+      const rows = (s.beMsgs || []).map((m: Any) => ({
+        text: m.body, time: fmt(m.createdAt), photo: false, stamp: undefined,
+        mine: m.senderId === me.id, theirs: m.senderId !== me.id,
+      }))
+      v.threadMsgs = rows
+      v.hasMsgs = true; v.noMsgs = false
+
+      // Who the thread belongs to: the owner themself, or the client staff picked.
+      const threadOwnerId = liveOwnerMsg ? me.id : (s.beThreadOwner || null)
+      const clientOf = (id: string) => (s.beClients || []).find((c: Any) => c.id === id)
+      const nameOf = (u: Any) => u ? (u.fullName || (u.email || '').split('@')[0] || u.phone || 'Client') : 'Client'
+
+      if (liveStaffMsg) {
+        // Inbox = one row per real client; opening loads that client's thread.
+        const openClientThread = async (cid: string) => {
+          set({ beThreadOwner: cid, c: 'thread', draft: '', beBusy: true })
+          try {
+            const msgs = await getData().messages(threadKeyForOwner(cid))
+            setState((t: Any) => ({ ...t, beMsgs: msgs, beBusy: false }))
+          } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t load that conversation')) }
+        }
+        v.inboxRows = (s.beClients || []).map((c: Any, i: number, arr: Any[]) => ({
+          icon: (nameOf(c)[0] || 'C').toUpperCase(), iconStyle: v.jhTile, name: nameOf(c),
+          sub: c.email || c.phone || 'Client', right: '›', last: i === arr.length - 1,
+          onClick: () => openClientThread(c.id),
+        }))
+        v.threadTitle = nameOf(clientOf(threadOwnerId as string))
+        v.threadSub = 'Client · your conversation'
+      } else {
+        v.threadTitle = 'She’s Maid In ATL'
+        v.threadSub = 'Ahleyia & the studio'
+        const last = rows[rows.length - 1]
+        v.liveThreadPreview = last ? last.text : 'Start the conversation — she reads every message'
+        v.liveThreadWhen = last ? last.time : ''
+      }
+      v.threadBadge = chip('lm0', 'onBrand', rows.length ? rows.length + ' message' + (rows.length === 1 ? '' : 's') : 'New conversation')
+
+      const sendLive = async (text: string) => {
+        const ownerId = threadOwnerId
+        if (!me?.orgId) { say('Your account isn’t linked to the business yet'); return }
+        if (!ownerId) { say('Pick a client to write to first'); return }
+        try {
+          set({ beBusy: true })
+          await getData().sendMessage({ orgId: me.orgId, threadKey: threadKeyForOwner(ownerId), senderId: me.id, ownerId, body: text })
+          const msgs = await getData().messages(threadKeyForOwner(ownerId))
+          setState((t: Any) => ({ ...t, beMsgs: msgs, draft: '', beBusy: false }))
+          say('Message sent 💬')
+        } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t send that message')) }
+      }
+      v.sendLiveMessage = sendLive
+      v.sendDraft = () => { const t = s.draft.trim(); if (!t) { say('Write a message first ✏️'); return } sendLive(t) }
+      v.quickReplies = (liveStaffMsg
+        ? ['On my way 🚗', 'Photos sent 📸', 'All set — unit secured']
+        : ['Thank you! 💕', 'Please add extra towels', 'See you next turnover']
+      ).map((label) => ({ label, send: () => sendLive(label) }))
+      v.sendCompose = () => { const t = s.draft.trim(); if (!t) { say('Add a message before sending ✏️'); return } sendLive(t) }
+    }
     v.ownerNotifs = [
       { key: 'reports', label: 'Photo-verified report when a clean is submitted' },
       { key: 'cleaning', label: '“Cleaning now” and “guest-ready” status changes' },
@@ -714,6 +787,27 @@ export function useModel(props: ModelProps) {
       set({ quote: 'accepted' }); say('Booked — welcome aboard 🎉')
     }
     v.declineQuote = () => { go({ o: 'home', oTab: 0 }); say('No problem — the quote stays in your messages') }
+
+    /* ---- live quotes (client side) — the real quote Ahleyia sent ----
+       Quotes are staff-write only under RLS, so accepting replies on the
+       thread rather than writing the quote row from the browser. */
+    if (backendActive() && s.beSignedIn && s.beUser?.role === 'owner') {
+      const live = (s.beQuotes || [])[0]
+      v.liveQuote = live || null
+      if (live) {
+        v.quotePrice = '$' + Number(live.clientAmount).toFixed(0)
+        v.quotePriceSub = '$' + Number(live.clientAmount).toFixed(0) + ' per clean' + (live.cadence ? ' · ' + live.cadence : '')
+        v.quoteScopeAction = 'From Ahleyia'
+        v.qAccepted = live.status === 'accepted' || s.quote === 'accepted'
+        v.qNew = !v.qAccepted
+        v.acceptQuote = async () => {
+          if (!s.consent) { say('Please authorize the payment terms first'); return }
+          set({ quote: 'accepted' })
+          if (v.sendLiveMessage) await v.sendLiveMessage('I accept the quote of $' + Number(live.clientAmount).toFixed(0) + '. Ready to book.')
+          say('Accepted — Ahleyia has been notified 🎉')
+        }
+      }
+    }
 
     // 26 · flag an issue
     v.cFlag = s.role === 'cleaner' && s.c === 'flag'
@@ -1458,6 +1552,25 @@ export function useModel(props: ModelProps) {
     const wanted = ({ Recurring: 'active', 'Quotes out': 'quote', Lapsed: 'lapsed' } as Any)[s.clientFilter]
     const shownClients = wanted ? allClients.filter((c) => c.kind === wanted) : allClients
     v.clientRows = shownClients.map((c, i, arr) => ({ icon: c.icon, tile: c.tile || null, name: c.name, sub: c.sub, flag: c.flag || null, right: c.right, last: i === arr.length - 1, go: c.go || null }))
+    /* ---- live cleaner day + business numbers ----
+       Jobs are created server-side (RLS has no client INSERT for jobs), so a
+       live account with no scheduled work shows the honest empty route and
+       real counts rather than the seed showcase. */
+    if (backendActive() && s.beSignedIn && !!s.beUser && s.beUser.role !== 'owner') {
+      const ljobs = s.beJobs || []
+      v.hasJobs = ljobs.length > 0
+      v.noJobs = ljobs.length === 0
+      v.liveTodayCount = String(ljobs.length)
+      v.liveClientCount = String((s.beClients || []).length)
+      v.livePropCountAll = String((s.beProps || []).length)
+      v.liveQuoteCount = String((s.beQuotes || []).length)
+      v.todayLine = ljobs.length
+        ? ljobs.length + (ljobs.length === 1 ? ' property on today’s route' : ' properties on today’s route')
+        : 'No cleans scheduled yet'
+      const meNm = s.beUser.fullName || (s.beUser.email || '').split('@')[0] || 'there'
+      v.liveCleanerName = meNm.charAt(0).toUpperCase() + meNm.slice(1)
+    }
+
     // Live admin: real clients from the org, with each one's property count.
     v.liveAdmin = backendActive() && s.beSignedIn && (s.beUser?.role === 'org_admin' || s.beUser?.role === 'cleaner')
     if (v.liveAdmin) {
@@ -1559,6 +1672,22 @@ export function useModel(props: ModelProps) {
     ]
     v.toastEmailReceipts = () => say('Receipts emailed to ' + clientEmail + ' 💌')
 
+    /* ---- live receipts — real charge rows (or an honest empty state) ---- */
+    if (backendActive() && s.beSignedIn && s.beUser?.role === 'owner') {
+      const day = (iso: string) => { const d = new Date(iso); return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }
+      const label: Any = { service_full: 'Clean · charged in full on arrival', tip: 'Tip · 100% to Ahleyia', supplies: 'Supplies' }
+      const rows = (s.beCharges || []).map((c: Any, i: number, arr: Any[]) => ({
+        icon: c.kind === 'tip' ? '💕' : '💳',
+        name: (s.beProps || []).find((p: Any) => (s.beJobs || []).some((j: Any) => j.id === c.jobId && j.propertyId === p.id))?.name || 'Service',
+        sub: day(c.createdAt) + ' · ' + (label[c.kind] || c.kind),
+        right: money('var(--ink)', '$' + Number(c.amount).toFixed(2)),
+        last: i === arr.length - 1,
+      }))
+      v.receipts = rows
+      v.noReceipts = rows.length === 0
+      v.chipJuly = chip('rc1', 'ghost', rows.length ? rows.length + ' charge' + (rows.length === 1 ? '' : 's') : 'None yet')
+    }
+
     // rewired hand-offs
     v.navOpen = s.navOpen
     v.navStopLine = 'Stop 1 of 3 · The Hartwell Estate, 214 Tuxedo Rd NW'
@@ -1573,6 +1702,37 @@ export function useModel(props: ModelProps) {
     ].map((a, i, arr) => ({ icon: a.icon, name: a.name, sub: a.sub, last: i === arr.length - 1, right: s.navApp === a.id && s.navRemember ? chip('nv' + a.id, 'refresh', 'Default') : '›', go: () => startNav(a.id) }))
     v.copyAddress = () => { set({ navOpen: false }); say('Address copied 🔗') }
     v.sendQuote = () => { push('lead', 'Your tailored quote for the spaces you chose: ' + '$' + final + '. Everything included — happy to walk you through it.'); go({ threadWith: 'lead', c: 'thread' }); say('Tailored quote sent 💌') }
+
+    /* ---- live quotes (staff side) — send a real quote to a real client ----
+       Writes a quotes row (staff-only under RLS) and posts the number on the
+       client's thread so it lands in their messages too. */
+    if (backendActive() && s.beSignedIn && !!s.beUser && s.beUser.role !== 'owner') {
+      const me = s.beUser
+      const clients = s.beClients || []
+      const target = s.beThreadOwner || (clients[0] && clients[0].id) || null
+      v.quoteClients = clients.map((c: Any) => ({
+        label: c.fullName || (c.email || '').split('@')[0] || c.phone || 'Client',
+        on: target === c.id,
+        pick: () => set({ beThreadOwner: c.id }),
+      }))
+      v.hasQuoteClients = clients.length > 0
+      v.sendQuote = async () => {
+        if (!me?.orgId) { say('Your account isn’t linked to the business yet'); return }
+        if (!target) { say('No clients yet — they appear here once they join'); return }
+        if (!final) { say('Build the quote first'); return }
+        try {
+          set({ beBusy: true })
+          await getData().createQuote({ orgId: me.orgId, ownerId: target, clientAmount: Number(final), cadence: s.cadence })
+          await getData().sendMessage({
+            orgId: me.orgId, threadKey: threadKeyForOwner(target), senderId: me.id, ownerId: target,
+            body: 'Your tailored quote: $' + final + ' per clean. Everything included — happy to walk you through it.',
+          })
+          const msgs = await getData().messages(threadKeyForOwner(target))
+          setState((t: Any) => ({ ...t, beMsgs: msgs, beThreadOwner: target, beBusy: false, c: 'thread' }))
+          say('Quote sent to your client 💌')
+        } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t send the quote')) }
+      }
+    }
 
     // ---- concierge tier (v3) — $70/hr, at cost, receipt required, request→confirm ----
     v.conciergeRateLabel = '$' + CONCIERGE_RATE + '/hr'

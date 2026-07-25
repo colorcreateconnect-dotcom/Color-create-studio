@@ -9,7 +9,7 @@
  * getData() picks Supabase when it is configured, else the mock. The app
  * hydrates from this source on load (see src/app/backend.ts) and falls back to
  * seed data whenever the backend is absent. */
-import type { Job, Property, Quote, Report, Message, PaymentMethod, User } from './types'
+import type { Job, Property, Quote, Report, Message, PaymentMethod, User, Charge } from './types'
 import { instantiateJob, VACATION_RENTAL_EDITION, type JobStepInstance } from '../keeMethod'
 import { isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from '../config'
 import { accessToken, currentSession } from '../supabase'
@@ -35,7 +35,14 @@ export interface DataSource {
   cardOnFile(ownerId: string): Promise<PaymentMethod | null>
   messages(threadKey: string): Promise<Message[]>
   createProperty(input: NewProperty): Promise<Property>
+  sendMessage(input: { orgId: string; threadKey: string; senderId: string; ownerId: string; body: string }): Promise<Message>
+  orgQuotes(): Promise<Quote[]>
+  createQuote(input: { orgId: string; ownerId: string; propertyId?: string; clientAmount: number; cadence?: string }): Promise<Quote>
+  chargesForJobs(jobIds: string[]): Promise<Charge[]>
 }
+
+/** Shared thread key for an owner's conversation with the studio. */
+export const threadKeyForOwner = (ownerId: string) => `owner:${ownerId}`
 
 /* --------------------------------------------------- row mappers (snake→camel) -- */
 const num = (v: any): number | undefined => (v == null ? undefined : Number(v))
@@ -73,6 +80,9 @@ function mapPaymentMethod(r: any): PaymentMethod {
 }
 function mapMessage(r: any): Message {
   return { id: r.id, threadKey: r.thread_key, senderId: r.sender_id ?? undefined, body: r.body, photoKey: r.photo_key ?? undefined, createdAt: r.created_at }
+}
+function mapCharge(r: any): Charge {
+  return { id: r.id, jobId: r.job_id, kind: r.kind, amount: Number(r.amount), createdAt: r.created_at }
 }
 
 // exported for unit tests — the mapping is where a schema drift would bite
@@ -145,7 +155,29 @@ class SupabaseData implements DataSource {
     const rows = await this.rest<any[]>(`payment_methods?owner_id=eq.${ownerId}&is_default=eq.true&select=*&limit=1`)
     return rows[0] ? mapPaymentMethod(rows[0]) : null
   }
-  async messages(threadKey: string) { return (await this.rest<any[]>(`messages?thread_key=eq.${threadKey}&select=*&order=created_at`)).map(mapMessage) }
+  async messages(threadKey: string) { return (await this.rest<any[]>(`messages?thread_key=eq.${encodeURIComponent(threadKey)}&select=*&order=created_at`)).map(mapMessage) }
+  async sendMessage(i: { orgId: string; threadKey: string; senderId: string; ownerId: string; body: string }) {
+    // RLS: with check (org_id = app_org() and sender_id = auth.uid()). owner_id is
+    // the CLIENT on the thread, so the owner can still read staff replies.
+    const [row] = await this.restPost<any>('messages', {
+      org_id: i.orgId, thread_key: i.threadKey, sender_id: i.senderId, owner_id: i.ownerId, body: i.body,
+    })
+    return mapMessage(row)
+  }
+  async orgQuotes() { return (await this.rest<any[]>(`quotes?select=*&order=created_at.desc`)).map(mapQuote) }
+  async createQuote(i: { orgId: string; ownerId: string; propertyId?: string; clientAmount: number; cadence?: string }) {
+    // RLS: quotes are staff-write only.
+    const [row] = await this.restPost<any>('quotes', {
+      org_id: i.orgId, owner_id: i.ownerId, property_id: i.propertyId ?? null,
+      client_amount: i.clientAmount, cadence: i.cadence ?? null, status: 'sent',
+    })
+    return mapQuote(row)
+  }
+  async chargesForJobs(jobIds: string[]) {
+    if (!jobIds.length) return [] as Charge[]
+    const list = jobIds.map((id) => `"${id}"`).join(',')
+    return (await this.rest<any[]>(`charges?job_id=in.(${list})&select=*&order=created_at.desc`)).map(mapCharge)
+  }
 }
 
 /* ----------------------------------------------------------------- Mock -- */
@@ -164,6 +196,14 @@ class MockData implements DataSource {
   async reports() { return [] as Report[] }
   async cardOnFile() { return { id: 'pm1', brand: 'VISA', last4: '4242', cardType: 'CREDIT' } as PaymentMethod }
   async messages() { return [] as Message[] }
+  async sendMessage(i: { threadKey: string; senderId: string; body: string }) {
+    return { id: 'mock-msg', threadKey: i.threadKey, senderId: i.senderId, body: i.body, createdAt: new Date().toISOString() } as Message
+  }
+  async orgQuotes() { return [] as Quote[] }
+  async createQuote(i: { ownerId: string; clientAmount: number; cadence?: string }) {
+    return { id: 'mock-quote', status: 'sent', clientAmount: i.clientAmount, cadence: i.cadence } as Quote
+  }
+  async chargesForJobs() { return [] as Charge[] }
 }
 
 let singleton: DataSource | null = null

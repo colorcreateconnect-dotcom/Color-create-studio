@@ -8,8 +8,9 @@
  * clickable prototype never breaks. */
 import { isSupabaseConfigured } from '../lib/config'
 import { restore, verifyPhoneOtp, sendPhoneOtp, signInWithPassword, signOut } from '../lib/supabase'
-import { getData } from '../lib/data'
-import type { User, PaymentMethod, Job, Property } from '../lib/data/types'
+import { getData, threadKeyForOwner } from '../lib/data'
+import type { User, PaymentMethod, Job, Property, Message, Quote, Report, Charge } from '../lib/data/types'
+export { threadKeyForOwner }
 import { ApiError } from '../lib/api'
 export { getData }
 
@@ -28,6 +29,10 @@ export interface Hydration {
   jobs: Job[]
   properties: Property[]
   clients: User[]
+  messages: Message[]
+  quotes: Quote[]
+  reports: Report[]
+  charges: Charge[]
   activeJobId?: string
 }
 
@@ -37,13 +42,13 @@ const ACTIVE_PAYMENT_STATES = ['scheduled', 'captured', 'deposit_released', 'awa
  *  drive the money-path actions and the live screens. Safe to call when signed
  *  out (returns signedIn:false) or when the backend is absent. */
 export async function hydrate(): Promise<Hydration> {
-  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [], clients: [] }
+  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [], clients: [], messages: [], quotes: [], reports: [], charges: [] }
   if (!backendActive()) return empty
   const session = await restore().catch(() => null)
   if (!session) return empty
   const data = getData()
   const user = await data.currentUser().catch(() => null)
-  if (!user) return { signedIn: true, user: null, card: null, jobs: [], properties: [], clients: [] }
+  if (!user) return { ...empty, signedIn: true }
   const isOwner = user.role === 'owner'
   const jobs = await data
     .jobs(isOwner ? { ownerId: user.id } : { cleanerId: user.id })
@@ -52,8 +57,13 @@ export async function hydrate(): Promise<Hydration> {
   const properties = await (isOwner ? data.properties(user.id) : data.orgProperties()).catch(() => [] as Property[])
   const clients = isOwner ? [] : await data.orgClients().catch(() => [] as User[])
   const card = isOwner ? await data.cardOnFile(user.id).catch(() => null) : null
+  // Owner: their own thread, quotes, reports and receipts. Staff: the org's quotes.
+  const messages = isOwner ? await data.messages(threadKeyForOwner(user.id)).catch(() => [] as Message[]) : []
+  const quotes = await (isOwner ? data.quotes(user.id) : data.orgQuotes()).catch(() => [] as Quote[])
+  const reports = isOwner ? await data.reports(user.id).catch(() => [] as Report[]) : []
+  const charges = isOwner ? await data.chargesForJobs(jobs.map((j) => j.id)).catch(() => [] as Charge[]) : []
   const active = jobs.find((j) => ACTIVE_PAYMENT_STATES.includes(j.paymentState))
-  return { signedIn: true, user, card, jobs, properties, clients, activeJobId: active?.id }
+  return { signedIn: true, user, card, jobs, properties, clients, messages, quotes, reports, charges, activeJobId: active?.id }
 }
 
 /** Current device position — the geofence input for check-in. Rejects clearly

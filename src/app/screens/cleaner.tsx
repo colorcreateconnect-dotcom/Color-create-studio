@@ -35,11 +35,13 @@ export function CleanerScreens(v: any) {
       </div>
       <div style={css('padding:16px 22px 22px')}>
         <div style={css('font-size:13px;color:var(--text-muted)')}>Good morning,</div>
-        <div style={css('font-family:var(--font-serif-display);font-size:30px;line-height:1.1')}>Ahleyia 👋</div>
-        <div style={css('font-size:12px;color:var(--text-muted);margin-top:4px')}>Friday, July 24 &nbsp;·&nbsp; 3 properties on today’s route</div>
+        <div style={css('font-family:var(--font-serif-display);font-size:30px;line-height:1.1')}>{v.liveCleanerName || 'Ahleyia'} 👋</div>
+        <div style={css('font-size:12px;color:var(--text-muted);margin-top:4px')}>{v.todayLine || 'Friday, July 24 · 3 properties on today’s route'}</div>
         <div style={css('display:flex;gap:var(--gap-tile);margin:16px 0 4px')}>
-          <StatTile value="3" label="Cleans today" accent color="var(--orange)" style={{ flex: 1 }} />
-          <StatTile value="2" label="Turnovers before 4pm" color="var(--magenta)" style={{ flex: 1 }} />
+          <StatTile value={v.liveTodayCount ?? '3'} label="Cleans today" accent color="var(--orange)" style={{ flex: 1 }} />
+          {v.liveClientCount != null
+            ? <StatTile value={v.liveClientCount} label="Clients" color="var(--magenta)" style={{ flex: 1 }} />
+            : <StatTile value="2" label="Turnovers before 4pm" color="var(--magenta)" style={{ flex: 1 }} />}
         </div>
         {v.noJobs && (<>
           <Card tone="blush">
@@ -604,9 +606,17 @@ function Inbox({ v }: { v: any }) {
       <div style={css('padding:22px')}>
         {v.hasMsgs && (<>
           <Card flush>
-            <SupplyRow icon={v.clientInitials} iconStyle={v.jhTile} name={v.clientAddress} sub="Guest is checking in at 4 — thank you for the photos." right="11:02a" onClick={v.openHartwell} />
-            <SupplyRow icon="🌱" name="New lead · from your card link" sub="Can you quote a 3-bed Airbnb in Buckhead?" right="9:40a" onClick={v.openLead} />
-            <SupplyRow icon="SM" iconStyle={v.smTile} name="She’s Maid In ATL" sub="Your payout of $110.00 landed · Hartwell arrival" right="Wed" onClick={v.openBusiness} last />
+            {v.inboxRows ? (
+              v.inboxRows.length
+                ? v.inboxRows.map((r: any, i: number) => (
+                  <SupplyRow key={i} icon={r.icon} iconStyle={r.iconStyle} name={r.name} sub={r.sub} right={r.right} last={r.last} onClick={r.onClick} />
+                ))
+                : <SupplyRow icon="🌱" name="No clients yet" sub="Conversations appear here once a client joins" right="" last />
+            ) : (<>
+              <SupplyRow icon={v.clientInitials} iconStyle={v.jhTile} name={v.clientAddress} sub="Guest is checking in at 4 — thank you for the photos." right="11:02a" onClick={v.openHartwell} />
+              <SupplyRow icon="🌱" name="New lead · from your card link" sub="Can you quote a 3-bed Airbnb in Buckhead?" right="9:40a" onClick={v.openLead} />
+              <SupplyRow icon="SM" iconStyle={v.smTile} name="She’s Maid In ATL" sub="Your payout of $110.00 landed · Hartwell arrival" right="Wed" onClick={v.openBusiness} last />
+            </>)}
           </Card>
           <NoteCard tone="pink" icon="💌"><b>Leads from your card link land here.</b> Reply, then open the Quote Builder — the client only ever sees the final number.</NoteCard>
           <Button icon="✏️" onClick={v.goCompose}>New message</Button>
@@ -779,10 +789,17 @@ function AdminDash({ v }: { v: any }) {
         <NoteCard tone="pink" icon="👑"><b>You’re the owner and the housekeeper.</b> This side is the business — money, people, pricing. Switch back to <b>Working</b> for today’s route and your checklists.</NoteCard>
         <SectionLabel right={v.chipJulyBiz}>This month</SectionLabel>
         <div style={css('display:grid;grid-template-columns:1fr 1fr;gap:var(--gap-tile);margin-bottom:var(--stack-card)')}>
-          <StatTile value="$18,240" label="Billed to clients" color="var(--magenta)" accent />
-          <StatTile value="$14,905" label="Your take-home" color="var(--green-deep)" />
-          <StatTile value="62" label="Cleans delivered" color="var(--orange)" />
-          <StatTile value="100%" label="Photo-verified" color="var(--green-deep)" />
+          {v.liveClientCount != null ? (<>
+            <StatTile value={v.liveClientCount} label="Clients" color="var(--magenta)" accent />
+            <StatTile value={v.livePropCountAll} label="Properties" color="var(--green-deep)" />
+            <StatTile value={v.liveTodayCount} label="Cleans booked" color="var(--orange)" />
+            <StatTile value={v.liveQuoteCount} label="Quotes sent" color="var(--green-deep)" />
+          </>) : (<>
+            <StatTile value="$18,240" label="Billed to clients" color="var(--magenta)" accent />
+            <StatTile value="$14,905" label="Your take-home" color="var(--green-deep)" />
+            <StatTile value="62" label="Cleans delivered" color="var(--orange)" />
+            <StatTile value="100%" label="Photo-verified" color="var(--green-deep)" />
+          </>)}
         </div>
         <SectionLabel right={v.chipTwoOpen}>Needs you</SectionLabel>
         <Card flush>

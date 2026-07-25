@@ -352,8 +352,12 @@ function Messages({ v }: { v: any }) {
         )}
         {v.hasMsgs && (<>
           <Card flush>
-            <SupplyRow icon="AK" iconStyle={v.akTile} name="Ahleyia Kee" sub="All set for your 4 PM guest — waters & welcome note staged 🌟" right="12:31p" onClick={v.openAhleyia} />
-            <SupplyRow icon="SM" iconStyle={v.smTile} name="She’s Maid In ATL" sub="Your July service summary is ready — 8 cleans, 100% verified." right="Wed" onClick={v.openBusiness} last />
+            {v.liveOwner ? (
+              <SupplyRow icon="SM" iconStyle={v.smTile} name="She’s Maid In ATL" sub={v.liveThreadPreview} right={v.liveThreadWhen} onClick={v.openAhleyia} last />
+            ) : (<>
+              <SupplyRow icon="AK" iconStyle={v.akTile} name="Ahleyia Kee" sub="All set for your 4 PM guest — waters & welcome note staged 🌟" right="12:31p" onClick={v.openAhleyia} />
+              <SupplyRow icon="SM" iconStyle={v.smTile} name="She’s Maid In ATL" sub="Your July service summary is ready — 8 cleans, 100% verified." right="Wed" onClick={v.openBusiness} last />
+            </>)}
           </Card>
           <Button variant="ghost" icon="✏️" onClick={v.goCompose}>New message</Button>
         </>)}
@@ -860,16 +864,24 @@ function Receipts({ v }: { v: any }) {
       <div style={css('padding:22px')}>
         <NoteCard tone="money" icon="🧾"><b>One charge, on arrival.</b> Each line below is a single full-amount charge. The 50/50 split is how Ahleyia is <b>released</b> — never a second charge to you.</NoteCard>
         <SectionLabel right={v.chipJuly}>This month</SectionLabel>
-        <Card flush>{v.receipts.map((r: any, i: number) => <SupplyRow key={i} icon={r.icon} name={r.name} sub={r.sub} right={r.right} last={r.last} />)}</Card>
-        <Card>
-          <div style={css('display:flex;justify-content:space-between;align-items:baseline')}>
-            <div>
-              <div style={css('font-size:13px;font-weight:var(--weight-semibold)')}>July total</div>
-              <div style={css('font-size:11px;color:var(--text-muted);margin-top:2px')}>8 cleans · 2 tips · 2 supply orders</div>
-            </div>
-            <span style={css('font-family:var(--font-serif-display);font-size:28px')}>$1,974.75</span>
-          </div>
-        </Card>
+        {v.noReceipts ? (
+          <Card tone="dashed">
+            <p style={css('margin:0;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft);text-align:center')}>No charges yet. Every clean appears here as a single full-amount charge, the moment Ahleyia arrives.</p>
+          </Card>
+        ) : (<>
+          <Card flush>{v.receipts.map((r: any, i: number) => <SupplyRow key={i} icon={r.icon} name={r.name} sub={r.sub} right={r.right} last={r.last} />)}</Card>
+          {!v.liveOwner && (
+            <Card>
+              <div style={css('display:flex;justify-content:space-between;align-items:baseline')}>
+                <div>
+                  <div style={css('font-size:13px;font-weight:var(--weight-semibold)')}>July total</div>
+                  <div style={css('font-size:11px;color:var(--text-muted);margin-top:2px')}>8 cleans · 2 tips · 2 supply orders</div>
+                </div>
+                <span style={css('font-family:var(--font-serif-display);font-size:28px')}>$1,974.75</span>
+              </div>
+            </Card>
+          )}
+        </>)}
         <Button variant="ghost" icon="💌" onClick={v.toastEmailReceipts}>Email me these receipts</Button>
       </div>
     </>

@@ -36,4 +36,7 @@ export interface PaymentMethod { id: string; brand: string; last4: string; cardT
 export interface Quote { id: string; propertyId?: string; status: 'draft' | 'sent' | 'accepted' | 'declined'; clientAmount: number; cadence?: string }
 
 export interface Report { id: string; jobId: string; propertyId: string; stepsDone: number; stepsTotal: number; photoCount: number; referenceMatch?: boolean; createdAt: string }
+
+/** A client-visible charge line (receipts). Never carries processor internals. */
+export interface Charge { id: string; jobId: string; kind: string; amount: number; createdAt: string }
 export interface Message { id: string; threadKey: string; senderId?: string; body: string; photoKey?: string; createdAt: string }
