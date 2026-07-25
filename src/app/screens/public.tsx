@@ -9,6 +9,7 @@ import {
   DetailHeader, ProgressBar, Checkbox, SupplyRow, TextField, PriceBox,
 } from '../../ds/components'
 import { PortfolioScreen } from './portfolio'
+import { InviteScreen } from './invite'
 
 const ICON = './assets/brand/app-icon.png'
 const STICKER = './assets/brand/brand-sticker.png'
@@ -226,6 +227,7 @@ export function PublicScreens(v: any) {
     </>
   )
 
+  if (v.vInvite) return <InviteScreen v={v} />
   if (v.vPortfolio) return <PortfolioScreen v={v} />
   if (v.vStaffSetup) return <StaffSetup v={v} />
   if (v.vVerify) return (

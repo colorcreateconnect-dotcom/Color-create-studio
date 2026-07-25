@@ -69,6 +69,36 @@ export function addConciergeExpense(input: {
   return post('concierge-add-expense', input)
 }
 
+/* ---- add a client Ahleyia already works with (staff only) ---- */
+export interface CreateClientResult {
+  ok: true; clientId: string; propertyId: string; quoteId: string | null
+  inviteToken: string; inviteUrl: string; expiresAt: string
+}
+export function createClient(input: {
+  fullName: string; phone?: string; email?: string
+  propertyName: string; address?: string; neighborhood?: string
+  propertyType?: 'airbnb' | 'residential' | 'loved_one'
+  beds?: number; baths?: number
+  agreedPrice?: number; cadence?: string; notes?: string
+}): Promise<CreateClientResult> {
+  return post('create-client', input)
+}
+
+/* ---- the invitation a client opens (no sign-in: the token is the credential) ---- */
+export interface InvitePreview {
+  ok: true; studio: string; fullName: string | null; email: string | null; phone: string | null
+  properties: { name: string; neighborhood: string | null; type: string; beds: number | null; baths: number | null }[]
+  agreedPrice: number | null; cadence: string | null
+}
+export function invitePreview(token: string): Promise<InvitePreview> {
+  return post('invite-preview', { token })
+}
+
+export interface ClaimInviteResult { ok: true; email: string; message: string }
+export function claimInvite(input: { token: string; email: string; password: string }): Promise<ClaimInviteResult> {
+  return post('claim-invite', input)
+}
+
 /* ---- book a clean: creates the job + its Kee Method checklist (no charge) ---- */
 export interface BookCleanResult { ok: true; jobId: string; clientAmount: number; type: string; steps: number; charged: false }
 export function bookClean(input: {

@@ -20,7 +20,10 @@ function readProps(): ModelProps {
   const role = q.get('role')
   const chrome = q.get('chrome')
   const fill = q.get('fill')
+  // A client opening the link Ahleyia sent them.
+  const invite = q.get('invite')
   return {
+    inviteToken: invite || undefined,
     startRole: role === 'cleaner' || role === 'owner' || role === 'visitor' ? role : 'visitor',
     // The live app shows just the app. The review showcase (device switcher +
     // role pills + "Every screen" index) is opt-in with ?chrome=1.

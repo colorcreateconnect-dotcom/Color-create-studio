@@ -142,7 +142,7 @@ const ASST: Any[] = [
 ]
 
 /* ------------------------------------------------------- initial state -- */
-export interface ModelProps { startRole?: 'visitor' | 'cleaner' | 'owner'; showChrome?: boolean; autoFillMethod?: boolean }
+export interface ModelProps { startRole?: 'visitor' | 'cleaner' | 'owner'; showChrome?: boolean; autoFillMethod?: boolean; inviteToken?: string }
 
 function initialState(props: ModelProps): Any {
   const fill = !!props.autoFillMethod
@@ -150,7 +150,7 @@ function initialState(props: ModelProps): Any {
   if (fill) for (let i = 1; i <= 26; i++) checked['t' + i] = true
   return {
     role: props.startRole || 'visitor',
-    p: 'welcome', c: 'today', o: 'home',
+    p: props.inviteToken ? 'invite' : 'welcome', c: 'today', o: 'home',
     checked, photos: fill ? { t6: true, t15: true, t21: true, t24: true } : {},
     openPhase: 1, allOpen: false,
     scopes: { 'Whole home': true }, sqft: '1,500–2,500', cadence: 'Biweekly',
@@ -182,6 +182,14 @@ function initialState(props: ModelProps): Any {
     areas: {}, driveTime: 'Up to 35 min',
     assign: {}, calMonth: 0, calDay: 24,
     hist: [], menuOpen: false, acctOpen: false,
+    // Bringing her existing book of business in: her "add a client" form, and
+    // the invitation an existing client opens.
+    ncName: '', ncPhone: '', ncEmail: '', ncProperty: '', ncAddress: '',
+    ncType: 'residential', ncBeds: '', ncBaths: '', ncPrice: '', ncCadence: 'Weekly',
+    ncError: '', newClientLink: '', newClientName: '',
+    inviteToken: props.inviteToken || '', inviteLoading: !!props.inviteToken,
+    invitePreview: null, inviteError: '', inviteFormError: '', inviteDone: false,
+    inviteEmail: '', invitePw: '', invitePwShown: false, inviteBusy: false,
     adminEmail: '', adminPw: '', pwShown: false, adminRemember: true,
     suStep: 1, suName: '', suPhone: '', suEmail: '', suAddress: '', suTerms: false,
     suKind: 'Airbnb host', suScopeMap: {}, suCadenceVal: 'Weekly',
@@ -300,6 +308,27 @@ export function useModel(props: ModelProps) {
     }).catch(() => { if (alive) setState((st: Any) => ({ ...st, beReady: true })) })
     return () => { alive = false }
   }, [])
+
+  /* An invitation link was opened — load what Ahleyia already filled in. The
+     token is the credential here, so this runs before any sign-in. */
+  useEffect(() => {
+    const token = props.inviteToken
+    if (!token) return
+    let alive = true
+    if (!backendActive()) {
+      setState((st: Any) => ({
+        ...st, inviteLoading: false,
+        invitePreview: { studio: 'She’s Maid In ATL', fullName: 'Mrs. Ridgeview', email: null, phone: null,
+          properties: [{ name: 'Ridgeview Home', neighborhood: 'Sandy Springs', type: 'residential', beds: 4, baths: 3 }],
+          agreedPrice: 380, cadence: 'Weekly' },
+      }))
+      return
+    }
+    api.invitePreview(token)
+      .then((p) => { if (alive) setState((st: Any) => ({ ...st, inviteLoading: false, invitePreview: p, inviteEmail: p.email || '' })) })
+      .catch((e) => { if (alive) setState((st: Any) => ({ ...st, inviteLoading: false, inviteError: errMsg(e, 'That link isn’t valid any more.') })) })
+    return () => { alive = false }
+  }, [props.inviteToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function buildView(): Any {
     const clientFull = (s.suName || '').trim() || 'James Hartwell'
@@ -1891,6 +1920,7 @@ export function useModel(props: ModelProps) {
           item('👑', 'Business dashboard', 'Billing, people, pricing', () => go({ c: 'admin' }), 'admin'),
           item('👥', 'Team & certification', 'Splits and what they can see', () => go({ c: 'team' }), 'team'),
           item('🏡', 'Clients & properties', 'Your book of business', () => go({ c: 'clients' }), 'clients'),
+          item('➕', 'Add a client you already have', 'From before the app — send them a link', () => go({ c: 'addclient', newClientLink: '' }), 'addclient'),
           item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' }), 'template'),
           item('📍', 'Service area', 'Where you take work', () => go({ c: 'area' }), 'area'),
           item('⚙️', 'Settings', 'Your account and notifications', () => go({ c: 'settings' }), 'settings'),
@@ -1958,6 +1988,105 @@ export function useModel(props: ModelProps) {
       ...g,
       items: g.items.map((it: Any) => ({ ...it, active: !!it.key && it.key === cur })),
     }))
+    /* ---- her existing book of business: add a client, send their link ---- */
+    v.aAddClient = s.role === 'cleaner' && s.c === 'addclient'
+    v.goAddClient = () => set({ c: 'addclient', newClientLink: '', ncError: '', ncName: '', ncPhone: '', ncEmail: '', ncProperty: '', ncAddress: '', ncBeds: '', ncBaths: '', ncPrice: '' })
+    v.badgeExisting = chip('nc0', 'onBrand', 'From before the app')
+    v.badgeInviteReady = chip('nc1', 'onBrand', '💌 Link ready')
+    const ncField = (k: string) => (e: any) => set({ [k]: e.target.value })
+    v.ncName = s.ncName; v.setNcName = ncField('ncName')
+    v.ncPhone = s.ncPhone; v.setNcPhone = ncField('ncPhone')
+    v.ncEmail = s.ncEmail; v.setNcEmail = ncField('ncEmail')
+    v.ncProperty = s.ncProperty; v.setNcProperty = ncField('ncProperty')
+    v.ncAddress = s.ncAddress; v.setNcAddress = ncField('ncAddress')
+    v.ncBeds = s.ncBeds; v.setNcBeds = (e: any) => set({ ncBeds: e.target.value.replace(/[^0-9.]/g, '') })
+    v.ncBaths = s.ncBaths; v.setNcBaths = (e: any) => set({ ncBaths: e.target.value.replace(/[^0-9.]/g, '') })
+    v.ncPrice = s.ncPrice; v.setNcPrice = (e: any) => set({ ncPrice: e.target.value.replace(/[^0-9.]/g, '') })
+    v.ncError = s.ncError
+    v.ncTypes = [
+      { id: 'residential', label: '🏡 Their home' },
+      { id: 'airbnb', label: '🏠 Airbnb / rental' },
+      { id: 'loved_one', label: '👪 A loved one’s' },
+    ].map((t) => ({ label: t.label, on: s.ncType === t.id, pick: () => set({ ncType: t.id }) }))
+    v.ncCadences = ['Weekly', 'Biweekly', 'Monthly', 'One-time'].map((label) => ({ label, on: s.ncCadence === label, pick: () => set({ ncCadence: label }) }))
+    v.newClientLink = s.newClientLink
+    v.newClientName = s.newClientName
+    v.saveNewClient = async () => {
+      const name = s.ncName.trim(), home = s.ncProperty.trim()
+      if (!name) { set({ ncError: 'Their name, please.' }); return }
+      if (!s.ncPhone.trim() && !s.ncEmail.trim()) { set({ ncError: 'A phone number or an email — whichever you have.' }); return }
+      if (!home) { set({ ncError: 'What should we call their home?' }); return }
+      if (!backendActive()) { set({ ncError: '', newClientLink: window.location.origin + '/?invite=demo-link', newClientName: name }); say('Client added ✓'); return }
+      try {
+        set({ beBusy: true, ncError: '' })
+        const r = await api.createClient({
+          fullName: name,
+          phone: s.ncPhone.trim() || undefined,
+          email: s.ncEmail.trim() || undefined,
+          propertyName: home,
+          address: s.ncAddress.trim() || undefined,
+          propertyType: s.ncType,
+          beds: parseFloat(s.ncBeds) || undefined,
+          baths: parseFloat(s.ncBaths) || undefined,
+          agreedPrice: parseFloat(s.ncPrice) || undefined,
+          cadence: s.ncCadence,
+        })
+        const h = await hydrate()
+        setState((t: Any) => ({ ...t, beBusy: false, newClientLink: r.inviteUrl, newClientName: name, beClients: h.clients, beProps: h.properties }))
+        say(name + ' added ✓')
+      } catch (e) { set({ beBusy: false, ncError: errMsg(e, 'Couldn’t add that client') }) }
+    }
+    v.copyInviteLink = () => {
+      try { navigator.clipboard.writeText(s.newClientLink) } catch { /* clipboard blocked */ }
+      say('Link copied 🔗')
+    }
+    v.textInviteLink = () => {
+      const body = encodeURIComponent('Hi ' + s.newClientName + ' — your account with She’s Maid In ATL is ready. Set your sign-in here: ' + s.newClientLink)
+      try { window.open('sms:?&body=' + body, '_blank') } catch { /* blocked in preview */ }
+      say('Opening your messages 💌')
+    }
+
+    /* ---- the invitation an existing client opens (?invite=…) ---- */
+    v.vInvite = s.role === 'visitor' && s.p === 'invite'
+    v.inviteLoading = s.inviteLoading
+    v.invitePreview = s.invitePreview
+    v.inviteError = s.inviteError
+    v.inviteFormError = s.inviteFormError
+    v.inviteDone = s.inviteDone
+    v.inviteBusy = s.inviteBusy
+    v.badgeInvite = chip('iv0', 'onBrand', '💌 Your invitation')
+    v.inviteEmail = s.inviteEmail
+    v.setInviteEmail = (e: any) => set({ inviteEmail: e.target.value })
+    v.invitePw = s.invitePw
+    v.setInvitePw = (e: any) => set({ invitePw: e.target.value })
+    v.invitePwType = s.invitePwShown ? 'text' : 'password'
+    v.invitePwToggleLabel = s.invitePwShown ? 'Hide' : 'Show'
+    v.toggleInvitePw = () => set({ invitePwShown: !s.invitePwShown })
+    v.claimInvite = async () => {
+      const email = s.inviteEmail.trim().toLowerCase()
+      const pw = s.invitePw
+      if (email.indexOf('@') < 0) { set({ inviteFormError: 'Enter the email where your reports and receipts should go.' }); return }
+      if (pw.length < 8 || !/[a-zA-Z]/.test(pw) || !/[0-9]/.test(pw)) {
+        set({ inviteFormError: 'Use at least 8 characters, with letters and a number.' }); return
+      }
+      if (!backendActive()) { set({ inviteFormError: '', inviteDone: true }); say('Account created ✓'); return }
+      try {
+        set({ inviteBusy: true, inviteFormError: '' })
+        await api.claimInvite({ token: s.inviteToken, email, password: pw })
+        // Sign them straight in with the credentials they just chose.
+        await signInWithPassword(email, pw)
+        const h = await hydrate()
+        setState((t: Any) => ({
+          ...t, inviteBusy: false, inviteDone: true, invitePw: '',
+          beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs,
+          beProps: h.properties, beClients: h.clients, beMsgs: h.messages,
+          beQuotes: h.quotes, beReports: h.reports, beCharges: h.charges,
+          role: 'owner', o: 'home', oTab: 0, hist: [],
+        }))
+        say('Welcome in ✓')
+      } catch (e) { set({ inviteBusy: false, inviteFormError: errMsg(e, 'Could not finish setting up your account') }) }
+    }
+
     v.chipCurrent = chip('ac0', 'refresh', 'Current')
     const acct = ACCOUNTS.find((a) => a[0] === acctRole) || ACCOUNTS[3]
     v.acctIcon = acct[1]; v.acctName = acct[2]; v.acctSub = acct[3]
