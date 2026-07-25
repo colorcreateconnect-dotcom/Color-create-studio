@@ -1,0 +1,16 @@
+{
+  "name": "She's Maid In ATL — Luxury Housekeeping",
+  "short_name": "Maid In ATL",
+  "description": "Photo-verified luxury housekeeping on The Kee Method™. Airbnbs and luxury homes across Metro Atlanta.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#C81C7E",
+  "background_color": "#FFF9F4",
+  "categories": ["business", "lifestyle", "productivity"],
+  "icons": [
+    { "src": "/assets/brand/app-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/brand/app-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

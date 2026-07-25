@@ -3,9 +3,12 @@ import ReactDOM from 'react-dom/client'
 import './ds/styles.css'
 import './app/global.css'
 import App from './app/App'
+import { registerPwa } from './app/pwa'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,
 )
+
+registerPwa()

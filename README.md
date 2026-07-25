@@ -47,13 +47,35 @@ charge, the tailored quote.
 The app stays **light only** — the cream and pink *is* the identity. The only
 dark surfaces are the two the OS owns: the lock screen and push notifications.
 
+## Production architecture
+
+This is a full-stack build, not just the front-end clone. **See
+[`ARCHITECTURE.md`](./ARCHITECTURE.md)** for the whole picture: the Supabase
+Postgres schema + Row-Level Security + Kee Method™ seed (`supabase/`), the
+Square payment adapter and Netlify Functions for the money model
+(`netlify/functions/`), the tested financial-core logic (`src/lib/`), the
+installable PWA with offline checklist + photo sync (`public/sw.js`), and a
+**go-live checklist** for the parts that need live Supabase / Square / Netlify
+credentials (which can't be provisioned in a sandbox). Highlights:
+
+- **Money model** — one capture on arrival, 50/50 *release* schedule, 48h
+  auto-release, separate tip charge, CREDIT-cards-only, recorded consent. A
+  typed state machine makes illegal transitions impossible. `npm test` proves it.
+- **Price privacy** — enforced at the DB (internal pricing in tables owners
+  can't select), at the serializer (`stripForClient`), and in the UI.
+- **GPS geofence** gates check-in (recomputed server-side).
+- **Row-Level Security** isolates every owner's data at the database.
+- Verified in-sandbox: the schema/RLS/seed apply cleanly to real Postgres, and
+  all financial-core tests pass.
+
 ## Run it
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # production build to dist/
-npm run preview  # preview the production build
+npm run dev       # http://localhost:5173
+npm run build     # production build to dist/
+npm run preview   # preview the production build
+npm test          # financial-core unit tests (pricing, geofence, money model…)
 ```
 
 ### Deep links

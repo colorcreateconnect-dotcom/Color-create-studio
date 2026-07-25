@@ -6,6 +6,7 @@
    three-zone app is clickable end to end. */
 import React, { useMemo, useRef, useState } from 'react'
 import { Chip, MetaTag, VerifiedBadge } from '../ds/components'
+import { residentialQuote, airbnbQuote, type Staging } from '../lib/pricing'
 
 type Any = Record<string, any>
 
@@ -393,7 +394,8 @@ export function useModel(props: ModelProps) {
     v.cadenceOpts = ['One-time', 'Weekly', 'Biweekly', 'Monthly'].map((label) => ({ label, on: s.cadence === label, pick: () => set({ cadence: label }) }))
     v.scentOpts = ['Eucalyptus-mint', 'Fresh linen', 'Citrus', 'Lavender', 'Unscented'].map((label) => ({ label, on: s.scent === label, pick: () => set({ scent: label }) }))
     v.stagingOpts = ['Light', 'Standard', 'Heavy'].map((label) => ({ label, on: s.staging === label, pick: () => set({ staging: label }) }))
-    v.stagePrice = s.staging === 'Light' ? '$125' : (s.staging === 'Heavy' ? '$160' : '$142')
+    // Airbnb 2BR staging price from the tested pricing engine (125 / 142 / 160).
+    v.stagePrice = '$' + airbnbQuote(2, s.staging.toLowerCase() as Staging).clientNumber
     v.hourOpts = [2, 3, 4, 5, 6].map((h) => ({ label: h + ' hrs', on: s.hours === h, pick: () => set({ hours: h }) }))
     v.tipOpts = ['$15', '$25', '$40', 'Custom', 'No tip'].map((label) => ({ label, on: s.tip === label, pick: () => set({ tip: label }) }))
 
@@ -428,10 +430,12 @@ export function useModel(props: ModelProps) {
       set({ jobDone: true, c: 'today', cTab: 0 }); say('Owner report sent with your photos 📸')
     }
 
-    // Quote Builder
-    const rate = s.svc === 'deep' ? 65 : 50
-    const base = rate * s.hours
-    const final = Math.max(base + 10, Math.round(base * 1.12 / 5) * 5)
+    // Quote Builder — rate + comfort round-up come from the tested pricing engine
+    // (src/lib/pricing). The assistant split stays admin-configurable (30/40/50).
+    const rq = residentialQuote(s.hours, { deep: s.svc === 'deep' })
+    const rate = rq.rate
+    const base = rq.base
+    const final = rq.final
     const asstPay = s.asst ? Math.max(50, Math.round(final * s.split / 100)) : 0
     v.svcStd = s.svc === 'std'; v.svcDeep = s.svc === 'deep'
     v.pickStd = () => set({ svc: 'std' }); v.pickDeep = () => set({ svc: 'deep' })
