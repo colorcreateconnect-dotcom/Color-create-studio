@@ -2,7 +2,7 @@
    PhoneFrame with the active screen + bottom tab bar, the overlays, and the
    "Every screen" index. Reads the ?role / ?chrome query params so the app can
    be deep-linked straight into a zone (e.g. ?role=owner&chrome=0). */
-import React from 'react'
+import React, { useEffect } from 'react'
 import { css } from './css'
 import { useModel } from './model'
 import type { ModelProps } from './model'
@@ -35,6 +35,16 @@ function readProps(): ModelProps {
 export default function App() {
   const { v } = useModel(readProps())
 
+  /* Lock the document in real-app mode so only the app's own area scrolls.
+     (The review showcase below the phone still needs the page to scroll, so
+     this is applied only when that chrome is hidden.) */
+  useEffect(() => {
+    const root = document.documentElement
+    if (!v.showChrome) root.classList.add('sm-locked')
+    else root.classList.remove('sm-locked')
+    return () => root.classList.remove('sm-locked')
+  }, [v.showChrome])
+
   const screen = PublicScreens(v) || CleanerScreens(v) || OwnerScreens(v) || ConciergeScreens(v) || SharedScreens(v)
 
   return (
@@ -53,11 +63,21 @@ export default function App() {
       )}
 
       <div style={css('position:relative')}>
-        <PhoneFrame time="11:41" label={v.roleLabel} appMode={!v.showChrome} rail={!v.showChrome ? <Rail v={v} /> : null}>
+        {/* The tab bar is passed as a SIBLING of the scrolling area, not a sticky
+            element inside it: a sticky bar inside an iOS momentum scroll drifts
+            and "floats" mid-swipe. As a flex sibling it is genuinely pinned. */}
+        <PhoneFrame
+          time="11:41" label={v.roleLabel}
+          appMode={!v.showChrome}
+          rail={!v.showChrome ? <Rail v={v} /> : null}
+          tabBar={
+            v.isCleaner ? <div className="sm-tabbar-slot"><TabBar tabs={v.cleanerTabs} active={v.cTab} onSelect={v.pickCTab} /></div>
+              : v.isOwner ? <div className="sm-tabbar-slot"><TabBar tabs={v.ownerTabs} active={v.oTab} onSelect={v.pickOTab} /></div>
+                : null
+          }
+        >
           <div style={css('min-height:100%;display:flex;flex-direction:column')}>
             <div style={css('flex:1')}>{screen}</div>
-            {v.isCleaner && <div className="sm-tabbar-slot" style={css('position:sticky;bottom:0')}><TabBar tabs={v.cleanerTabs} active={v.cTab} onSelect={v.pickCTab} /></div>}
-            {v.isOwner && <div className="sm-tabbar-slot" style={css('position:sticky;bottom:0')}><TabBar tabs={v.ownerTabs} active={v.oTab} onSelect={v.pickOTab} /></div>}
           </div>
         </PhoneFrame>
         <Overlays v={v} />

@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <!-- Locked to the device width: no pinch-zoom drift, no double-tap zoom, and
+       viewport-fit=cover so the CSS safe-area insets are available. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#C81C7E" />
   <meta name="description" content="She's Maid In ATL — eco-conscious boutique luxury housekeeping for Airbnbs & luxury homes in Metro Atlanta. Photo-verified cleans on The Kee Method™." />
 
@@ -10,7 +12,10 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- "default" makes iOS reserve the status-bar area instead of running the app
+       underneath it, so the back button can never sit behind the clock. The CSS
+       safe-area insets below are belt-and-braces for devices that still overlay. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Maid In ATL" />
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
   <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167.png" />
