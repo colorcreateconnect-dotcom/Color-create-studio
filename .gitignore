@@ -18,4 +18,5 @@ npm-debug.log*
 # scratch
 _shot*.mjs
 _serve.mjs
-shes-maid-in-atl-netlify.zip
+# generated deploy bundles (rebuilt from source; never committed)
+shes-maid-in-atl-*.zip
