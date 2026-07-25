@@ -186,14 +186,36 @@ demo never breaks.
 | Receipts | Real `charges` rows with an honest empty state. |
 | Route + dashboard | Real counts; honest empty route (jobs are created server-side by design). |
 
-### Deliberately server-side only
+### Booking a clean (server-side by design)
 
-`jobs` has no client INSERT policy — scheduling a clean is a privileged action,
-so it belongs to a function with the service-role key, not the browser. The
-check-in / approve / concierge-close functions already write jobs, charges and
-payouts. Until a "book a clean" function is added, create job rows from the
-Supabase dashboard (or let the money-path functions do it) to exercise reports
-and receipts with real data.
+`jobs` has no client INSERT policy — scheduling is privileged, so it lives in
+`netlify/functions/book-clean.ts`, not the browser. It verifies the caller,
+authorizes them against the property (staff in its org, or the property's own
+owner), prices the job with the same engine the quote screens use, and
+instantiates the Kee Method checklist (26 steps / 4 photo moments for a
+turnover) so the cleaner's list exists the moment the job does. **Booking never
+charges** — the one capture still happens at geofenced check-in.
+
+The booking calendar's "Book <day>" button calls it. Verified against real
+Postgres: a 2-bed turnover prices to $142 and instantiates all 26 steps in
+Kee Method order.
+
+### Every privileged function authenticates its caller
+
+The functions hold the service-role key, which bypasses Row-Level Security, so
+each one verifies the caller's Supabase token (`_shared/auth.ts`) and then
+authorizes the specific action:
+
+| Function | Who may call it |
+|---|---|
+| `book-clean` | staff in the property's org, or the property's owner |
+| `checkin` (captures the card) | the assigned cleaner, or staff in the org |
+| `approve` (releases funds) | the job's owner, or staff in the org |
+| `save-card` | only the card's own owner |
+| `concierge-add-expense` / `concierge-close` | the assigned cleaner, or staff |
+
+The browser sends its token automatically on every function call. Isolation
+rules are unit-tested in `src/lib/authz.test.ts`.
 
 ### Still needs your input
 

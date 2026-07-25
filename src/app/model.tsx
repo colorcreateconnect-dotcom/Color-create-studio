@@ -1517,7 +1517,46 @@ export function useModel(props: ModelProps) {
         : [{ icon: '✨', name: 'Nothing booked yet', sub: 'Five two-hour windows open', right: chip('cr9', 'refresh', 'Open'), last: true, go: null }]
     }
     v.calBookLabel = dayFull ? 'Pick another day' : 'Book July ' + s.calDay + ' · ' + pickedSlot
-    v.calBook = () => { if (dayFull) { say('That day is fully booked — try another'); return } go({ o: 'schedule' }); say('Booked · July ' + s.calDay + ', ' + pickedSlot + ' 📅') }
+    v.calBook = async () => {
+      if (dayFull) { say('That day is fully booked — try another'); return }
+      const live = backendActive() && s.beSignedIn && !!s.beUser
+      // Booking creates a real job (server-side; jobs have no client INSERT).
+      // Owners book their own property; staff book for the selected client.
+      const isOwn = s.beUser?.role === 'owner'
+      const target = isOwn
+        ? (s.beProps || [])[0]
+        : (s.beProps || []).find((p: Any) => p.ownerId === s.beThreadOwner) || (s.beProps || [])[0]
+      if (!live || !target) {
+        go({ o: 'schedule' }); say('Booked · July ' + s.calDay + ', ' + pickedSlot + ' 📅'); return
+      }
+      // Turn "10 AM – 12 PM" on the chosen July day into a real window.
+      const hourOf = (txt: string) => {
+        const m = /(\d+)(?::(\d+))?\s*(AM|PM)/i.exec(txt || '')
+        if (!m) return 10
+        let h = parseInt(m[1], 10) % 12
+        if (/PM/i.test(m[3])) h += 12
+        return h
+      }
+      const parts = String(pickedSlot).split('–')
+      const y = new Date().getFullYear()
+      const startAt = new Date(y, 6, Number(s.calDay), hourOf(parts[0]), 0, 0)
+      const endAt = new Date(y, 6, Number(s.calDay), hourOf(parts[1] || parts[0]) || hourOf(parts[0]) + 2, 0, 0)
+      try {
+        set({ beBusy: true })
+        const r = await api.bookClean({
+          propertyId: target.id,
+          windowStart: startAt.toISOString(),
+          windowEnd: endAt.toISOString(),
+          staging: 'standard',
+        })
+        const h = await hydrate()
+        setState((t: Any) => ({
+          ...t, beBusy: false, beJobs: h.jobs, beProps: h.properties, beActiveJobId: h.activeJobId ?? null,
+          ...(isOwn ? { o: 'schedule' } : { c: 'today', cTab: 0 }), hist: [],
+        }))
+        say('Booked · July ' + s.calDay + ' · $' + Number(r.clientAmount).toFixed(0) + ' 📅')
+      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t book that day — try again')) }
+    }
 
     // service area
     v.aArea = s.role === 'cleaner' && s.c === 'area'

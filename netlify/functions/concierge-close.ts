@@ -5,11 +5,18 @@
  * items (her time + reimbursables passed through at cost), never a stored total. */
 import { sbSelect, sbUpdate, sbInsert, json } from './_shared/db'
 import { getAdapter } from './_shared/adapter'
+import { requireCaller, isStaff } from './_shared/auth'
 import { transition } from '../../src/lib/payments/state'
 import { conciergeTimeCharge, captureAmountFromLineItems, roundToIncrement, type LineItem } from '../../src/lib/concierge'
 
 export const handler = async (event: any) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' })
+
+  // This captures a card at close. Verify the caller first.
+  const auth = await requireCaller(event)
+  if ('error' in auth) return auth.error
+  const { caller } = auth
+
   let body: any
   try { body = JSON.parse(event.body || '{}') } catch { return json(400, { error: 'Bad JSON' }) }
   const { jobId, minutes } = body
@@ -17,6 +24,10 @@ export const handler = async (event: any) => {
 
   const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=*`)
   if (!job) return json(404, { error: 'Job not found' })
+
+  // Closing a visit is the servicing side's action, never the client's.
+  const mayClose = caller.id === job.cleaner_id || (isStaff(caller) && caller.orgId === job.org_id)
+  if (!mayClose) return json(403, { error: 'Only the assigned cleaner can close this visit', code: 'FORBIDDEN' })
   if (job.payment_state !== 'scheduled') return json(409, { error: `Cannot close from payment_state ${job.payment_state}` })
 
   // Record her time as a concierge_time line item (15-minute increments).

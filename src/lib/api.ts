@@ -4,6 +4,8 @@
  * call is a POST that returns a typed result or throws an ApiError carrying the
  * function's own message + code (so the UI can show, e.g., CARD_REJECTED). */
 
+import { accessToken } from './supabase'
+
 export class ApiError extends Error {
   code?: string
   status: number
@@ -17,9 +19,14 @@ const FN_BASE = '/.netlify/functions'
 async function post<T>(fn: string, body: unknown): Promise<T> {
   let res: Response
   try {
+    // The functions hold the service-role key, so they verify WHO is calling
+    // before acting. Send the signed-in user's token with every request.
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const tok = accessToken()
+    if (tok) headers.Authorization = `Bearer ${tok}`
     res = await fetch(`${FN_BASE}/${fn}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
     })
   } catch (e: any) {
@@ -60,6 +67,18 @@ export function addConciergeExpense(input: {
   orgId?: string; propertyId?: string; ownerId?: string
 }): Promise<AddExpenseResult> {
   return post('concierge-add-expense', input)
+}
+
+/* ---- book a clean: creates the job + its Kee Method checklist (no charge) ---- */
+export interface BookCleanResult { ok: true; jobId: string; clientAmount: number; type: string; steps: number; charged: false }
+export function bookClean(input: {
+  propertyId: string
+  windowStart?: string; windowEnd?: string
+  type?: 'turnover' | 'residential' | 'deep'
+  staging?: 'light' | 'standard' | 'heavy'
+  hours?: number; ecoFinish?: boolean; cleanerId?: string
+}): Promise<BookCleanResult> {
+  return post('book-clean', input)
 }
 
 /* ---- concierge: close the visit and capture (sum of non-tip line items) ---- */

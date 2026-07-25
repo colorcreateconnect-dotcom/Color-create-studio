@@ -3,9 +3,15 @@
  * reimbursement: it's the owner's proof and the cleaner's protection.
  * Purchases are reimbursed AT COST — this endpoint records no markup. */
 import { sbSelect, sbInsert, json } from './_shared/db'
+import { requireCaller, isStaff } from './_shared/auth'
 
 export const handler = async (event: any) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' })
+
+  const auth = await requireCaller(event)
+  if ('error' in auth) return auth.error
+  const { caller } = auth
+
   let body: any
   try { body = JSON.parse(event.body || '{}') } catch { return json(400, { error: 'Bad JSON' }) }
   const { jobId, orgId, propertyId, ownerId, label, amount, receipt } = body
@@ -16,8 +22,13 @@ export const handler = async (event: any) => {
     return json(422, { error: 'The photo is the owner’s proof. No receipt, no reimbursement — that rule protects you both.', code: 'RECEIPT_REQUIRED' })
   }
 
-  const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=id,org_id,property_id,owner_id`)
+  const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=id,org_id,property_id,owner_id,cleaner_id`)
   if (!job) return json(404, { error: 'Job not found' })
+
+  // Expenses are recorded by the servicing side — the client can't add spend to
+  // their own bill.
+  const mayAdd = caller.id === job.cleaner_id || (isStaff(caller) && caller.orgId === job.org_id)
+  if (!mayAdd) return json(403, { error: 'Only the assigned cleaner can add an expense', code: 'FORBIDDEN' })
 
   const [photo] = await sbInsert('photos', [{
     org_id: orgId ?? job.org_id,

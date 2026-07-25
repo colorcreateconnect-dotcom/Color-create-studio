@@ -5,11 +5,18 @@
  * proceeds — the cleaner never works for free. */
 import { sbSelect, sbUpdate, sbInsert, json } from './_shared/db'
 import { getAdapter } from './_shared/adapter'
+import { requireCaller, isStaff } from './_shared/auth'
 import { evaluateGeofence } from '../../src/lib/geofence'
 import { transition, releaseAmounts } from '../../src/lib/payments/state'
 
 export const handler = async (event: any) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' })
+
+  // This captures a card. Establish WHO is calling before anything else.
+  const auth = await requireCaller(event)
+  if ('error' in auth) return auth.error
+  const { caller } = auth
+
   let body: any
   try { body = JSON.parse(event.body || '{}') } catch { return json(400, { error: 'Bad JSON' }) }
   const { jobId, device } = body
@@ -17,6 +24,11 @@ export const handler = async (event: any) => {
 
   const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=*,properties(lat,lng,geofence_radius_m)`)
   if (!job) return json(404, { error: 'Job not found' })
+
+  // Only the assigned cleaner, or staff in the job's org, may check in — never
+  // the owner (checking in is what charges their card).
+  const mayCheckIn = caller.id === job.cleaner_id || (isStaff(caller) && caller.orgId === job.org_id)
+  if (!mayCheckIn) return json(403, { error: 'Only the assigned cleaner can check in on this job', code: 'FORBIDDEN' })
   if (job.payment_state !== 'scheduled' && job.payment_state !== 'capture_failed') {
     return json(409, { error: `Cannot check in from payment_state ${job.payment_state}` })
   }

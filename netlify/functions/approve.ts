@@ -3,10 +3,17 @@
  * charge, 100% to the cleaner. */
 import { sbSelect, sbUpdate, sbInsert, json } from './_shared/db'
 import { getAdapter } from './_shared/adapter'
+import { requireCaller, isStaff } from './_shared/auth'
 import { transition, releaseAmounts } from '../../src/lib/payments/state'
 
 export const handler = async (event: any) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' })
+
+  // This releases funds (and can charge a tip). Verify the caller first.
+  const auth = await requireCaller(event)
+  if ('error' in auth) return auth.error
+  const { caller } = auth
+
   let body: any
   try { body = JSON.parse(event.body || '{}') } catch { return json(400, { error: 'Bad JSON' }) }
   const { jobId, tip } = body
@@ -14,6 +21,10 @@ export const handler = async (event: any) => {
 
   const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=*`)
   if (!job) return json(404, { error: 'Job not found' })
+
+  // Approval is the OWNER's decision (staff may act on their behalf for support).
+  const mayApprove = caller.id === job.owner_id || (isStaff(caller) && caller.orgId === job.org_id)
+  if (!mayApprove) return json(403, { error: 'Only the homeowner can approve this clean', code: 'FORBIDDEN' })
   if (job.payment_state !== 'awaiting_approval') {
     return json(409, { error: `Cannot approve from payment_state ${job.payment_state}` })
   }
