@@ -159,6 +159,15 @@ Corrections (🔴) and new scope (🟡) from the follow-up handoff, all verified
   `marketing_consent` **default false**; RLS makes every photo private to the
   org + owner (no public/cross-owner policy); a DB check forbids a `before`
   photo ever carrying marketing consent. Serve only via signed, expiring URLs.
+- **Public portfolio vs private proof** — the "Her work" storefront screen
+  (`screens/portfolio.tsx`, `portfolioData.ts`) uses Ahleyia's **own published
+  after-service photography** (39 real images under `public/photos/`), the only
+  real photos in the app. Client **proof photos** — reports, the active clean,
+  the owner gallery — stay ghosted/private washes and are never surfaced here,
+  keeping the two photo streams cleanly separated. Portfolio captions are
+  verbatim from the handoff and were paired to their files **perceptually**
+  (16×16 grayscale cosine signature, optimal bijection) rather than by fragile
+  filename order, then verified against each image.
 - **Concierge tier + full catalogue** (`src/lib/concierge.ts`, migration 0004):
   - `$70/hr`, billed in 15-minute increments — the one public rate.
   - Purchases **reimbursed at cost, no markup**; a reimbursable **cannot exist

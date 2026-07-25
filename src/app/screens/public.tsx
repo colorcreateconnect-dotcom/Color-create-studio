@@ -8,6 +8,7 @@ import {
   Button, Card, Chip, Pill, Avatar, IconButton, SectionLabel, NoteCard,
   DetailHeader, ProgressBar, Checkbox, SupplyRow, TextField, PriceBox,
 } from '../../ds/components'
+import { PortfolioScreen } from './portfolio'
 
 const ICON = './assets/brand/app-icon.png'
 const STICKER = './assets/brand/brand-sticker.png'
@@ -32,6 +33,7 @@ export function PublicScreens(v: any) {
       </div>
       <div style={css('padding:22px;display:flex;flex-direction:column;gap:10px')}>
         <Button onClick={v.goServices}>Explore her services</Button>
+        <Button variant="ghost" icon="🖼️" onClick={v.goPortfolio}>See her work</Button>
         <Button variant="ghost" onClick={v.goOwnerSetup}>💌 Ahleyia sent me an invite</Button>
         <Button variant="ghost" onClick={v.goSignup}>Create my account</Button>
         <Button variant="ghost" onClick={v.goGate}>Client sign in</Button>
@@ -224,6 +226,7 @@ export function PublicScreens(v: any) {
     </>
   )
 
+  if (v.vPortfolio) return <PortfolioScreen v={v} />
   if (v.vStaffSetup) return <StaffSetup v={v} />
   if (v.vVerify) return (
     <>

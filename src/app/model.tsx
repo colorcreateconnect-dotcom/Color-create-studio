@@ -8,6 +8,7 @@ import React, { useMemo, useRef, useState } from 'react'
 import { Chip, MetaTag, VerifiedBadge } from '../ds/components'
 import { residentialQuote, airbnbQuote, type Staging } from '../lib/pricing'
 import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/concierge'
+import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 
 type Any = Record<string, any>
 
@@ -300,6 +301,7 @@ export function useModel(props: ModelProps) {
       goOwner: () => set({ role: 'owner', hist: [], menuOpen: false }),
       vWelcome: s.role === 'visitor' && s.p === 'welcome',
       vServices: s.role === 'visitor' && s.p === 'services',
+      vPortfolio: s.role === 'visitor' && s.p === 'portfolio',
       vGate: s.role === 'visitor' && s.p === 'gate',
       cToday: s.role === 'cleaner' && s.c === 'today',
       cMap: s.role === 'cleaner' && s.c === 'map',
@@ -316,6 +318,7 @@ export function useModel(props: ModelProps) {
       oMessages: s.role === 'owner' && s.o === 'messages',
       goWelcome: () => go({ p: 'welcome' }),
       goServices: () => go({ p: 'services' }),
+      goPortfolio: () => go({ p: 'portfolio' }),
       goGate: () => go({ p: 'gate' }),
       goToday: () => go({ c: 'today', cTab: 0 }),
       goMap: () => go({ c: 'map' }),
@@ -341,6 +344,8 @@ export function useModel(props: ModelProps) {
       toastCopied: () => say('Link copied 🔗'),
       toastLinens: () => { go({ c: 'supplies', cTab: 2 }); say('Linens order sent to supplier 🛏') },
       badgeNoAccount: chip('b1', 'onBrand', 'No account needed to browse'),
+      badgePortfolio: chip('bp', 'onBrand', 'No account needed to browse'),
+      portfolioCount: WORK_SHOTS.length + PORTFOLIO_SHOTS.length,
       badgeSafe: chip('b2', 'onBrand', '🔒 Accounts keep both sides safe'),
       badgeStops: chip('b3', 'onBrand', 'Today’s route · 3 stops'),
       badgeTurnover: chip('b4', 'onBrand', 'Turnover clean'),
@@ -1460,6 +1465,7 @@ export function useModel(props: ModelProps) {
         { title: 'Browse', items: close([
           item('🏠', 'Welcome', 'Her studio, at a glance', () => go({ p: 'welcome' })),
           item('🧺', 'Her services', 'Turnover tiers and residential care', () => go({ p: 'services' })),
+          item('🖼️', 'Her work', 'After-service photos from real homes', () => go({ p: 'portfolio' })),
           item('🌱', 'Products & scent', 'Eco, non-toxic, and why', () => go({ role: 'owner', o: 'products' })),
         ]) },
         { title: 'Get started', items: close([
@@ -1551,6 +1557,7 @@ export function useModel(props: ModelProps) {
       { title: 'Clients & guests', items: [
         { n: 1, label: 'Welcome / storefront', go: jump('visitor', 'welcome') },
         { n: 2, label: 'Her services + quote start', go: jump('visitor', 'services') },
+        { n: 65, label: 'Her work · portfolio', go: jump('visitor', 'portfolio') },
         { n: 3, label: 'Account gate', go: jump('visitor', 'gate') },
         { n: 31, label: 'Notifications', go: jump('visitor', 'notifs') },
         { n: 32, label: 'Icon & opening screen', go: jump('visitor', 'splash') },
