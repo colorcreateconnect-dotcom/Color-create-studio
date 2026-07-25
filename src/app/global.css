@@ -31,12 +31,12 @@ a:hover { color: var(--orange); }
   gap: 24px;
 }
 
-/* Real-app mode (no review chrome): fill the screen on phones so it feels like
-   a native app; a centered phone-width card on larger screens. */
+/* Real-app mode (no review chrome). Responsive across phone / tablet / desktop:
+   - Phone (≤640px): fills the screen edge-to-edge, like a native app.
+   - Tablet & desktop (≥641px): a centered app card that fits the viewport
+     height (only the app scrolls, never the page) on the brand backdrop. */
 .sm-stage--app { padding: 0; gap: 0; justify-content: flex-start; }
-@media (min-width: 641px) {
-  .sm-stage--app { padding: 24px 0; justify-content: center; }
-}
+
 @media (max-width: 640px) {
   .sm-stage--app { min-height: 100vh; min-height: 100dvh; }
   .sm-stage--app .sm-phone {
@@ -46,6 +46,19 @@ a:hover { color: var(--orange); }
     height: 100dvh !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+  }
+}
+
+@media (min-width: 641px) {
+  .sm-stage--app {
+    padding: clamp(16px, 4vh, 40px) 16px;
+    justify-content: center;
+    min-height: 100vh; min-height: 100dvh;
+  }
+  /* Fit the app to the window height; its own inner area scrolls, not the page. */
+  .sm-stage--app .sm-phone {
+    height: min(var(--height-phone), calc(100dvh - 48px)) !important;
+    max-height: calc(100dvh - 48px);
   }
 }
 

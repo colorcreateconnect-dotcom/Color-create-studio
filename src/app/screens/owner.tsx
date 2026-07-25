@@ -38,17 +38,23 @@ export function OwnerScreens(v: any) {
           <NoteCard tone="pink" icon="📷">Once a home is added, every clean arrives here as a photo-verified report you can keep.</NoteCard>
         </>)}
         {v.hasHomes && (<>
-          <ConsistencyCard grade="A+" title="Every clean, to your standard" sub="18 of your last 18 cleans passed the reference-photo check. Your homes look identical, guest to guest." />
-          <Card flush><SupplyRow icon="🧮" name="Your tailored quote is ready" sub="Ridgeview home · from Ahleyia, today" right={v.chipNew} onClick={v.goQuoteReceived} last /></Card>
+          {!v.liveOwner && <ConsistencyCard grade="A+" title="Every clean, to your standard" sub="18 of your last 18 cleans passed the reference-photo check. Your homes look identical, guest to guest." />}
+          {!v.liveOwner && <Card flush><SupplyRow icon="🧮" name="Your tailored quote is ready" sub="Ridgeview home · from Ahleyia, today" right={v.chipNew} onClick={v.goQuoteReceived} last /></Card>}
           <SectionLabel action="+ Add" onAction={v.goOnboard}>Your properties</SectionLabel>
-          <StatusCard state="ready" name="The Hartwell Estate" sub="Buckhead · 5 bed" badge={v.badgeReady} metas={v.metasReadyPlus} onClick={v.goReport}>
-            <PhotoStrip shots={v.proofShots} />
-          </StatusCard>
-          <StatusCard state="soon" name="Skyline Loft 12B" sub="Midtown · Airbnb · 2 bed" badge={v.badgeCleaning} metas={v.metasCleaning}>
-            <ProgressBar value={60} left="Turnover 60% · on schedule" right="60%" />
-          </StatusCard>
+          {v.liveOwner ? (
+            v.ownerHomes.map((h: any) => (
+              <StatusCard key={h.key} state="soon" name={h.name} sub={h.sub} badge={h.badge} metas={h.metas} />
+            ))
+          ) : (<>
+            <StatusCard state="ready" name="The Hartwell Estate" sub="Buckhead · 5 bed" badge={v.badgeReady} metas={v.metasReadyPlus} onClick={v.goReport}>
+              <PhotoStrip shots={v.proofShots} />
+            </StatusCard>
+            <StatusCard state="soon" name="Skyline Loft 12B" sub="Midtown · Airbnb · 2 bed" badge={v.badgeCleaning} metas={v.metasCleaning}>
+              <ProgressBar value={60} left="Turnover 60% · on schedule" right="60%" />
+            </StatusCard>
+          </>)}
           <Card flush>
-            <SupplyRow icon="📅" name="Your schedule" sub="Reschedule, add a service or cancel · 3 booked" right="›" onClick={v.goSchedule} />
+            <SupplyRow icon="📅" name="Your schedule" sub="Reschedule, add a service or cancel" right="›" onClick={v.goSchedule} />
             <SupplyRow icon="🌱" name="Products & scent" sub="Eco & non-toxic · Eucalyptus-mint" right="›" onClick={v.goProducts} last />
           </Card>
         </>)}

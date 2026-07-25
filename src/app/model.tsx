@@ -11,7 +11,7 @@ import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/conc
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
-  sendPhoneOtp, verifyPhoneOtp, signInWithPassword, api,
+  sendPhoneOtp, verifyPhoneOtp, signInWithPassword, api, getData,
 } from './backend'
 import { isSquareConfigured } from '../lib/config'
 
@@ -197,7 +197,7 @@ function initialState(props: ModelProps): Any {
     // stays empty in the sandbox/demo so every screen runs on seed data.
     gatePhone: '',
     beReady: false, beSignedIn: false, beUser: null, beCard: null,
-    beJobs: [], beActiveJobId: null, beBusy: false,
+    beJobs: [], beProps: [], beActiveJobId: null, beBusy: false,
     access: { routes: true, checklists: true, supplies: true, ownernotes: true },
     onotif: { reports: true, cleaning: true, supplies: true, summary: false },
     cnotif: { bookings: true, approvals: true, supplies: true },
@@ -285,7 +285,7 @@ export function useModel(props: ModelProps) {
       setState((st: Any) => {
         const patch: Any = {
           ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
-          beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null,
+          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beActiveJobId: h.activeJobId ?? null,
         }
         // Land a signed-in user in their own zone — but only from the default
         // visitor landing, so a deliberate deep-link (?role=…) is respected.
@@ -508,9 +508,28 @@ export function useModel(props: ModelProps) {
     v.detected = s.detected
     v.consent = s.consent
     v.setConsent = (n: boolean) => set({ consent: n })
-    v.addProperty = () => {
+    v.addProperty = async () => {
       if (!s.consent) { say('Please authorize the payment terms first'); return }
-      go({ o: 'home', oTab: 0 }); say('Property added · card saved 💳')
+      const liveOwner = backendActive() && s.beSignedIn && s.beUser?.role === 'owner'
+      if (!liveOwner) { go({ o: 'home', oTab: 0 }); say('Property added · card saved 💳'); return }
+      const u = s.beUser || {}
+      if (!u.id || !u.orgId) { say('Your account isn’t linked to the business yet — ask the studio'); return }
+      const url = (s.listingUrl || '').toLowerCase()
+      const type = /airbnb|vrbo/.test(url) ? 'airbnb' : 'residential'
+      const name = (s.manualName || '').trim() || (s.suHood ? s.suHood + ' home' : 'My home')
+      try {
+        set({ beBusy: true })
+        await getData().createProperty({
+          orgId: u.orgId, ownerId: u.id, name, type,
+          neighborhood: s.suHood || undefined,
+          beds: parseInt(s.beds, 10) || undefined, baths: parseInt(s.baths, 10) || undefined,
+          sourceUrl: s.listingUrl || undefined,
+          productPreference: s.eco ? 'eco_non_toxic' : 'standard_disinfectant',
+        })
+        const props = await getData().properties(u.id)
+        setState((t: Any) => ({ ...t, beBusy: false, beProps: props, o: 'home', oTab: 0, hist: [], listingUrl: '', manualName: '', detected: false, detectFailed: false, consent: false }))
+        say('Property added ✓')
+      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t add the property — try again')) }
     }
     v.approved = s.approved
     v.approveLabel = s.approved ? '✓ Approved · final 50% released' : 'Approve service & release payment'
@@ -751,6 +770,32 @@ export function useModel(props: ModelProps) {
     v.hasJobs = !s.emptyJobs; v.noJobs = s.emptyJobs
     v.hasHomes = !s.emptyHomes; v.noHomes = s.emptyHomes
     v.hasMsgs = !s.emptyMsgs; v.noMsgs = s.emptyMsgs
+
+    // ---- live data (owner) — real properties from the signed-in account ----
+    // When live, the Home screen reads real properties (or the empty state);
+    // otherwise it keeps the seed showcase, so the demo is unchanged.
+    v.liveOwner = backendActive() && s.beSignedIn && s.beUser?.role === 'owner'
+    if (v.liveOwner) {
+      const homes = (s.beProps || []).map((p: Any, i: number) => {
+        const bb = [p.beds ? p.beds + ' bed' : null, p.baths ? p.baths + ' bath' : null].filter(Boolean).join(' · ')
+        const typeLabel = p.type === 'airbnb' ? 'Airbnb' : (p.type === 'residential' ? 'Residential' : 'Home')
+        return {
+          key: p.id || i,
+          name: p.name,
+          sub: [p.neighborhood, typeLabel].filter(Boolean).join(' · ') || typeLabel,
+          metas: [mt('lh' + i + 'a', '🛏', bb || 'Details pending'), mt('lh' + i + 'b', '🏠', typeLabel)],
+          badge: chip('lh' + i, 'onBrand', 'No cleans yet'),
+        }
+      })
+      v.ownerHomes = homes
+      v.hasHomes = homes.length > 0
+      v.noHomes = homes.length === 0
+      v.ownerEmailReal = s.beUser?.email || ''
+      // Greet the real account, not the seed persona.
+      const en = (s.beUser?.email || '').split('@')[0].split(/[.+]/)[0]
+      if (s.beUser?.fullName) v.clientGreeting = s.beUser.fullName
+      else if (en) v.clientGreeting = en.charAt(0).toUpperCase() + en.slice(1)
+    }
 
     // listing-detect failure
     v.detectFailed = s.detectFailed

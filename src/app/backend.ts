@@ -9,8 +9,9 @@
 import { isSupabaseConfigured } from '../lib/config'
 import { restore, verifyPhoneOtp, sendPhoneOtp, signInWithPassword, signOut } from '../lib/supabase'
 import { getData } from '../lib/data'
-import type { User, PaymentMethod, Job } from '../lib/data/types'
+import type { User, PaymentMethod, Job, Property } from '../lib/data/types'
 import { ApiError } from '../lib/api'
+export { getData }
 
 export { verifyPhoneOtp, sendPhoneOtp, signInWithPassword, signOut }
 export * as api from '../lib/api'
@@ -25,28 +26,32 @@ export interface Hydration {
   user: User | null
   card: PaymentMethod | null
   jobs: Job[]
+  properties: Property[]
   activeJobId?: string
 }
 
 const ACTIVE_PAYMENT_STATES = ['scheduled', 'captured', 'deposit_released', 'awaiting_approval']
 
-/** Load the signed-in identity, card on file, and jobs — enough to drive the
- *  money-path actions with real ids. Safe to call when signed out (returns
- *  signedIn:false) or when the backend is absent. */
+/** Load the signed-in identity, card on file, jobs, and properties — enough to
+ *  drive the money-path actions and the live screens. Safe to call when signed
+ *  out (returns signedIn:false) or when the backend is absent. */
 export async function hydrate(): Promise<Hydration> {
-  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [] }
+  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [] }
   if (!backendActive()) return empty
   const session = await restore().catch(() => null)
   if (!session) return empty
   const data = getData()
   const user = await data.currentUser().catch(() => null)
-  if (!user) return { signedIn: true, user: null, card: null, jobs: [] }
+  if (!user) return { signedIn: true, user: null, card: null, jobs: [], properties: [] }
+  const isOwner = user.role === 'owner'
   const jobs = await data
-    .jobs(user.role === 'owner' ? { ownerId: user.id } : { cleanerId: user.id })
+    .jobs(isOwner ? { ownerId: user.id } : { cleanerId: user.id })
     .catch(() => [] as Job[])
-  const card = user.role === 'owner' ? await data.cardOnFile(user.id).catch(() => null) : null
+  // Owner sees their own properties; staff/admin see the whole org's.
+  const properties = await (isOwner ? data.properties(user.id) : data.orgProperties()).catch(() => [] as Property[])
+  const card = isOwner ? await data.cardOnFile(user.id).catch(() => null) : null
   const active = jobs.find((j) => ACTIVE_PAYMENT_STATES.includes(j.paymentState))
-  return { signedIn: true, user, card, jobs, activeJobId: active?.id }
+  return { signedIn: true, user, card, jobs, properties, activeJobId: active?.id }
 }
 
 /** Current device position — the geofence input for check-in. Rejects clearly

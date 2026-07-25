@@ -14,16 +14,26 @@ import { instantiateJob, VACATION_RENTAL_EDITION, type JobStepInstance } from '.
 import { isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from '../config'
 import { accessToken, currentSession } from '../supabase'
 
+/** Fields a client supplies to add a property; ids come from the session. */
+export interface NewProperty {
+  orgId: string; ownerId: string; name: string
+  type: 'airbnb' | 'residential' | 'loved_one'
+  neighborhood?: string; beds?: number; baths?: number; sourceUrl?: string
+  productPreference?: string; signatureScent?: string; baseEdition?: string
+}
+
 export interface DataSource {
   readonly name: string
   currentUser(): Promise<User | null>
   properties(ownerId: string): Promise<Property[]>
+  orgProperties(): Promise<Property[]>
   jobs(filter: { ownerId?: string; cleanerId?: string }): Promise<Job[]>
   jobSteps(jobId: string): Promise<JobStepInstance[]>
   quotes(ownerId: string): Promise<Quote[]>
   reports(ownerId: string): Promise<Report[]>
   cardOnFile(ownerId: string): Promise<PaymentMethod | null>
   messages(threadKey: string): Promise<Message[]>
+  createProperty(input: NewProperty): Promise<Property>
 }
 
 /* --------------------------------------------------- row mappers (snake→camel) -- */
@@ -73,16 +83,30 @@ class SupabaseData implements DataSource {
   private url = supabaseUrl()
   private anon = supabaseAnonKey()
 
-  private async rest<T>(path: string): Promise<T> {
+  private headers(extra: Record<string, string> = {}): Record<string, string> {
     // apikey carries the publishable/anon key. Authorization is set ONLY when a
     // real user JWT exists — PostgREST wants a JWT there, and the new
     // `sb_publishable_…` key format is not a JWT, so sending it as a bearer
     // would 401. With no session, apikey alone drives the `anon` role.
     const tok = accessToken()
-    const headers: Record<string, string> = { apikey: this.anon }
-    if (tok) headers.Authorization = `Bearer ${tok}`
-    const res = await fetch(`${this.url}/rest/v1/${path}`, { headers })
+    const h: Record<string, string> = { apikey: this.anon, ...extra }
+    if (tok) h.Authorization = `Bearer ${tok}`
+    return h
+  }
+
+  private async rest<T>(path: string): Promise<T> {
+    const res = await fetch(`${this.url}/rest/v1/${path}`, { headers: this.headers() })
     if (!res.ok) throw new Error(`Supabase ${path} ${res.status}`)
+    return res.json()
+  }
+
+  private async restPost<T>(table: string, row: unknown): Promise<T[]> {
+    const res = await fetch(`${this.url}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+      body: JSON.stringify(row),
+    })
+    if (!res.ok) throw new Error(`Supabase insert ${table} ${res.status}: ${await res.text()}`)
     return res.json()
   }
 
@@ -95,7 +119,19 @@ class SupabaseData implements DataSource {
     const rows = await this.rest<any[]>(path)
     return rows[0] ? mapUser(rows[0]) : null
   }
-  async properties(ownerId: string) { return (await this.rest<any[]>(`properties?owner_id=eq.${ownerId}&select=*`)).map(mapProperty) }
+  async properties(ownerId: string) { return (await this.rest<any[]>(`properties?owner_id=eq.${ownerId}&select=*&order=created_at`)).map(mapProperty) }
+  async orgProperties() { return (await this.rest<any[]>(`properties?select=*&order=created_at`)).map(mapProperty) }
+  async createProperty(input: NewProperty) {
+    const [row] = await this.restPost<any>('properties', {
+      org_id: input.orgId, owner_id: input.ownerId, name: input.name, type: input.type,
+      neighborhood: input.neighborhood ?? null, beds: input.beds ?? null, baths: input.baths ?? null,
+      source_url: input.sourceUrl ?? null,
+      product_preference: input.productPreference ?? 'eco_non_toxic',
+      signature_scent: input.signatureScent ?? 'eucalyptus_mint',
+      base_edition: input.baseEdition ?? 'vacation_rental',
+    })
+    return mapProperty(row)
+  }
   async jobs(f: { ownerId?: string; cleanerId?: string }) {
     const q = f.ownerId ? `owner_id=eq.${f.ownerId}` : `cleaner_id=eq.${f.cleanerId}`
     return (await this.rest<any[]>(`jobs?${q}&select=*`)).map(mapJob)
@@ -115,6 +151,10 @@ class MockData implements DataSource {
   readonly name = 'mock'
   async currentUser() { return { id: 'ahleyia', orgId: 'org1', role: 'cleaner' } as User }
   async properties() { return [] as Property[] }
+  async orgProperties() { return [] as Property[] }
+  async createProperty(input: NewProperty) {
+    return { id: 'mock-' + input.name, orgId: input.orgId, ownerId: input.ownerId, name: input.name, type: input.type, referencePhotos: [], productPreference: 'eco_non_toxic', signatureScent: 'eucalyptus_mint', baseEdition: 'vacation_rental', geofenceRadiusM: 150, beds: input.beds, baths: input.baths, neighborhood: input.neighborhood } as Property
+  }
   async jobs() { return [] as Job[] }
   async jobSteps() { return instantiateJob(VACATION_RENTAL_EDITION) }
   async quotes() { return [] as Quote[] }
