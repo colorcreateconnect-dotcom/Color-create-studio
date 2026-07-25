@@ -292,7 +292,7 @@ export function TextField({ icon, placeholder, value, onChange, width, style, in
 }
 
 /* ------------------------------------------------------------- PhoneFrame -- */
-export function PhoneFrame({ statusRight = '●●● 🔋', time = '9:41', label, appMode, className, children, tabBar, style, ...rest }: Any) {
+export function PhoneFrame({ statusRight = '●●● 🔋', time = '9:41', label, appMode, rail, className, children, tabBar, style, ...rest }: Any) {
   // appMode = the real deployed app: the CSS class `sm-phone` lets it go
   // full-screen on phones (see global.css), and the fake notch + status bar are
   // dropped (the real device shows its own). The review showcase keeps them.
@@ -302,6 +302,7 @@ export function PhoneFrame({ statusRight = '●●● 🔋', time = '9:41', labe
       borderRadius: 'var(--radius-phone)', boxShadow: 'var(--shadow-raised),var(--bezel-phone)', overflow: 'hidden',
       position: 'relative', display: 'flex', flexDirection: 'column', ...style,
     }}>
+      {rail}
       {!appMode && <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 150, height: 26, background: '#201018', borderRadius: '0 0 18px 18px', zIndex: 40 }} />}
       {!appMode && (
         <div style={{
@@ -325,9 +326,9 @@ const dhGrads: Record<string, string> = {
   report: 'var(--gradient-report)',
   magenta: 'linear-gradient(150deg,var(--magenta),var(--magenta-deep))',
 }
-export function DetailHeader({ gradient = 'brand', onBack, badge, title, subtitle, children, style, ...rest }: Any) {
+export function DetailHeader({ gradient = 'brand', onBack, badge, title, subtitle, children, style, className, ...rest }: Any) {
   return (
-    <div {...rest} style={{
+    <div {...rest} className={'sm-dhead' + (className ? ' ' + className : '')} style={{
       background: dhGrads[gradient] || gradient, color: 'var(--text-on-brand)',
       padding: '14px var(--gutter-app) 22px', borderRadius: 'var(--radius-header)', ...style,
     }}>

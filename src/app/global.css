@@ -31,13 +31,16 @@ a:hover { color: var(--orange); }
   gap: 24px;
 }
 
-/* Real-app mode (no review chrome). Responsive across phone / tablet / desktop:
-   - Phone (≤640px): fills the screen edge-to-edge, like a native app.
-   - Tablet & desktop (≥641px): a centered app card that fits the viewport
-     height (only the app scrolls, never the page) on the brand backdrop. */
+/* Real-app mode (no review chrome). Responsive per the handoff:
+   - ≤819px  phone/small tablet: fills the screen, bottom tabs + ☰ menu.
+   - ≥820px  tablet landscape / laptop / desktop: a two-pane app — navigation
+             rail on the left, a readable content column beside it.
+   The rail markup always renders; CSS decides when it is shown. */
 .sm-stage--app { padding: 0; gap: 0; justify-content: flex-start; }
+#rail { display: none; }
 
-@media (max-width: 640px) {
+@media (max-width: 819px) {
+  html, body { overflow-x: hidden; }
   .sm-stage--app { min-height: 100vh; min-height: 100dvh; }
   .sm-stage--app .sm-phone {
     width: 100vw !important;
@@ -46,21 +49,97 @@ a:hover { color: var(--orange); }
     height: 100dvh !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    border: none !important;
   }
 }
 
-@media (min-width: 641px) {
-  .sm-stage--app {
-    padding: clamp(16px, 4vh, 40px) 16px;
-    justify-content: center;
-    min-height: 100vh; min-height: 100dvh;
-  }
-  /* Fit the app to the window height; its own inner area scrolls, not the page. */
+@media (min-width: 820px) {
+  body { background: var(--surface-page); }
+  .sm-stage--app { min-height: 100vh; min-height: 100dvh; }
+  .sm-stage--app > div { width: 100%; }
   .sm-stage--app .sm-phone {
-    height: min(var(--height-phone), calc(100dvh - 48px)) !important;
-    max-height: calc(100dvh - 48px);
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: grid !important;
+    grid-template-columns: 264px 1fr;
+    overflow: hidden;
   }
+  /* The tab bar's job moves to the rail. */
+  .sm-stage--app .sm-tabbar-slot { display: none !important; }
+  .sm-stage--app .sm-scroll {
+    grid-column: 2;
+    height: 100vh; height: 100dvh;
+    overflow-y: auto;
+    background: var(--surface-page);
+    border-radius: 0;
+  }
+
+  /* A readable column: full-bleed headers, centered body content. */
+  .sm-stage--app .sm-scroll .sm-dhead {
+    border-radius: 0 !important;
+    padding-left: max(28px, calc((100% - 720px) / 2)) !important;
+    padding-right: max(28px, calc((100% - 720px) / 2)) !important;
+    padding-top: 26px !important;
+    padding-bottom: 26px !important;
+  }
+  /* The screens' own padded body wrappers become the centered column. React
+     renders inline styles as `padding: 22px`, hence the spaced selectors. */
+  .sm-stage--app .sm-scroll div[style*="padding: 22px"] {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 26px 28px 40px !important;
+  }
+  .sm-stage--app .sm-scroll div[style*="padding: 16px 22px 22px"],
+  .sm-stage--app .sm-scroll div[style*="padding: 8px 22px 0"] {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-left: 28px !important;
+    padding-right: 28px !important;
+  }
+
+  /* ---- the rail ---- */
+  .sm-stage--app #rail {
+    display: flex;
+    grid-column: 1;
+    flex-direction: column;
+    height: 100vh; height: 100dvh;
+    overflow-y: auto;
+    background: var(--surface-card);
+    border-right: 1px solid var(--border-default);
+  }
+  #rail .brandbar { padding: 22px 20px 16px; background: var(--gradient-brand-header); color: #fff; }
+  #rail .brandbar .lg { font-family: var(--font-serif-display); font-size: 21px; line-height: 1.1; }
+  #rail .brandbar .sm { font-family: var(--font-spaced); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; opacity: .92; margin-top: 4px; }
+  #rail .who { padding: 14px 20px; border-bottom: 1px solid var(--border-default); font-size: 11.5px; color: var(--text-muted); }
+  #rail .who b { display: block; font-size: 13.5px; color: var(--ink); margin-bottom: 2px; }
+  #rail .grp { padding: 16px 14px 4px; font-family: var(--font-spaced); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--magenta); }
+  #rail a { display: flex; gap: 10px; align-items: center; padding: 9px 14px; margin: 0 8px 2px; border-radius: var(--radius-md); font-size: 13px; color: var(--ink); cursor: pointer; line-height: 1.3; transition: background var(--dur-fast); }
+  #rail a:hover { background: var(--surface-sunken); }
+  #rail a.on { background: var(--tint-magenta); color: var(--magenta); font-weight: var(--weight-semibold); }
+  #rail a .ic { width: 20px; text-align: center; flex-shrink: 0; }
+  #rail .foot { margin-top: auto; padding: 14px; border-top: 1px solid var(--border-default); }
 }
+
+@media (min-width: 1280px) {
+  .sm-stage--app .sm-phone { grid-template-columns: 292px 1fr; }
+  .sm-stage--app .sm-scroll .sm-dhead {
+    padding-left: max(40px, calc((100% - 760px) / 2)) !important;
+    padding-right: max(40px, calc((100% - 760px) / 2)) !important;
+  }
+  .sm-stage--app .sm-scroll .sm-pad { max-width: 760px; padding: 30px 40px 56px !important; }
+}
+
+/* ---- account switcher button (rail footer) ---- */
+.acctbtn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--surface-card); cursor: pointer; transition: background var(--dur-fast); }
+.acctbtn:hover { background: var(--surface-sunken); }
+.acctbtn .av { width: 34px; height: 34px; border-radius: 50%; background: var(--gradient-brand); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.acctbtn b { display: block; font-size: 12.5px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acctbtn span { display: block; font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Hide scrollbars inside the phone while keeping scroll behaviour. */
 .sm-scroll::-webkit-scrollbar { width: 0; height: 0; }

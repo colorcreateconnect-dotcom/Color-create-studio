@@ -37,11 +37,42 @@ export function Overlays({ v }: { v: any }) {
         </div>
       )}
 
+      {/* Account switcher — reachable from the rail on a laptop and the ☰ menu
+          on a phone. Hops between the business, the working day, a client's
+          account, and the signed-out public view. */}
+      {v.acctOpen && (
+        <div style={css(RADIUS_WRAP)}>
+          <Sheet open onClose={v.closeAcct}>
+            <div style={css('text-align:center;margin-bottom:14px')}>
+              <div style={css('font-family:var(--font-serif-display);font-size:20px;line-height:1.2')}>Switch view</div>
+              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:4px')}>Signed in as {v.acctEmail}</div>
+            </div>
+            <Card flush>
+              {v.acctRows.map((a: any, i: number) => (
+                <SupplyRow key={i} icon={a.icon} name={a.name} sub={a.sub} last={a.last}
+                  right={a.current ? v.chipCurrent : '›'} onClick={a.use} />
+              ))}
+            </Card>
+            <div style={css('margin-top:8px')}><Button variant="ghost" onClick={v.closeAcct}>Close</Button></div>
+          </Sheet>
+        </div>
+      )}
+
       {v.menuOpen && (
         <div style={css(RADIUS_WRAP)}>
           <Sheet open onClose={v.closeMenu}>
             <div style={css('font-family:var(--font-serif-display);font-size:22px;line-height:1.1')}>{v.menuTitle}</div>
             <div style={css('font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft);margin-top:6px')}>{v.menuSub}</div>
+            <div style={css('margin-top:12px')}>
+              <div className="acctbtn" onClick={v.switchViewFromMenu}>
+                <div className="av">{v.acctIcon}</div>
+                <div style={css('flex:1;min-width:0')}>
+                  <b>{v.acctName}</b>
+                  <span>Switch view</span>
+                </div>
+                <div style={css('color:var(--text-muted);font-size:15px')}>⇅</div>
+              </div>
+            </div>
             <div style={css('margin-top:14px;max-height:400px;overflow:auto')}>
               {v.menuGroups.map((g: any, i: number) => (
                 <div key={i} style={css('margin-bottom:10px')}>

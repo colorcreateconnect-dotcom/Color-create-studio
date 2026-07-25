@@ -181,7 +181,7 @@ function initialState(props: ModelProps): Any {
     navOpen: false, navApp: 'apple', navRemember: false,
     areas: {}, driveTime: 'Up to 35 min',
     assign: {}, calMonth: 0, calDay: 24,
-    hist: [], menuOpen: false,
+    hist: [], menuOpen: false, acctOpen: false,
     adminEmail: '', adminPw: '', pwShown: false, adminRemember: true,
     suStep: 1, suName: '', suPhone: '', suEmail: '', suAddress: '', suTerms: false,
     suKind: 'Airbnb host', suScopeMap: {}, suCadenceVal: 'Weekly',
@@ -1845,84 +1845,84 @@ export function useModel(props: ModelProps) {
       : 'Your receipts won’t show a scent line, and nothing extra is charged.'
 
     // menu — every destination, one tap away
-    const item = (icon: string, name: string, sub: string, goFn: () => void) => ({ icon, name, sub, go: () => { set({ menuOpen: false }); goFn() } })
+    const item = (icon: string, name: string, sub: string, goFn: () => void, key?: string) => ({ icon, name, sub, key, go: () => { set({ menuOpen: false }); goFn() } })
     const close = (arr: Any[]) => arr.map((x, i, a) => ({ ...x, last: i === a.length - 1, right: '›' }))
     const MENUS: Any = {
       visitor: { title: 'She’s Maid In ATL', sub: 'Everything you can do before you have an account', groups: [
         { title: 'Browse', items: close([
-          item('🏠', 'Welcome', 'Her studio, at a glance', () => go({ p: 'welcome' })),
-          item('🧺', 'Her services', 'Turnover tiers and residential care', () => go({ p: 'services' })),
-          item('🖼️', 'Her work', 'After-service photos from real homes', () => go({ p: 'portfolio' })),
-          item('🌱', 'Products & scent', 'Eco, non-toxic, and why', () => go({ role: 'owner', o: 'products' })),
+          item('🏠', 'Welcome', 'Her studio, at a glance', () => go({ p: 'welcome' }), 'welcome'),
+          item('🧺', 'Her services', 'Turnover tiers and residential care', () => go({ p: 'services' }), 'services'),
+          item('🖼️', 'Her work', 'After-service photos from real homes', () => go({ p: 'portfolio' }), 'portfolio'),
+          item('🌱', 'Products & scent', 'Eco, non-toxic, and why', () => go({ role: 'owner', o: 'products' }), 'products'),
         ]) },
         { title: 'Get started', items: close([
-          item('✍️', 'Create an account', 'Two minutes, nothing charged', () => go({ p: 'signup', suStep: 1, code: '' })),
-          item('🔑', 'Client sign in', 'Your number and a texted code', () => go({ p: 'gate' })),
-          item('🧼', 'Join her team', 'For cleaners with an invite', () => go({ p: 'staffsetup', staffStep: 1 })),
+          item('✍️', 'Create an account', 'Two minutes, nothing charged', () => go({ p: 'signup', suStep: 1, code: '' }), 'signup'),
+          item('🔑', 'Client sign in', 'Your number and a texted code', () => go({ p: 'gate' }), 'gate'),
+          item('🧼', 'Join her team', 'For cleaners with an invite', () => go({ p: 'staffsetup', staffStep: 1 }), 'staffsetup'),
         ]) },
       ] },
       cleaner: { title: 'Your day & your business', sub: 'Ahleyia Kee · founder and lead housekeeper', groups: [
         { title: 'Working', items: close([
-          item('🏠', 'Today’s route', '3 properties today', () => go({ c: 'today', cTab: 0 })),
-          item('📍', 'Route map', 'Stops, drive times and windows', () => go({ c: 'map' })),
-          item('📌', 'Arrival check-in', 'Charge, then your 50% releases', () => go({ c: 'checkin', checkin: 'ready' })),
-          item('✅', 'Active clean', 'The Kee Method™, step by step', () => go({ c: 'job', cTab: 1 })),
-          item('🏡', 'Luxury home clean', 'Residential, 31 steps', () => go({ c: 'lux' })),
-          item('⚠️', 'Flag an issue', 'Damage, low supply or maintenance', () => go({ c: 'flag' })),
-          item('⏱', 'Move or hand off a job', 'No charge to the owner', () => go({ c: 'move', mv: 'form' })),
-          item('📅', 'Booking calendar', 'Every clean, and who has it', () => go({ c: 'calendar' })),
-          item('📌', 'Assign jobs', 'Who’s taking each clean', () => go({ c: 'assign' })),
-          item('🧴', 'Supplies', 'Par levels and reordering', () => go({ c: 'supplies', cTab: 2 })),
-          item('👥', 'Assistant’s view', 'What Tiana sees on a shared job', () => go({ c: 'assist' })),
-          item('💫', 'Concierge visit', 'Her time & receipts — not a clean', () => go({ c: 'conciergeVisit', visitState: 'brief', visitMinutes: 0, expenses: [] })),
+          item('🏠', 'Today’s route', '3 properties today', () => go({ c: 'today', cTab: 0 }), 'today'),
+          item('📍', 'Route map', 'Stops, drive times and windows', () => go({ c: 'map' }), 'map'),
+          item('📌', 'Arrival check-in', 'Charge, then your 50% releases', () => go({ c: 'checkin', checkin: 'ready' }), 'checkin'),
+          item('✅', 'Active clean', 'The Kee Method™, step by step', () => go({ c: 'job', cTab: 1 }), 'job'),
+          item('🏡', 'Luxury home clean', 'Residential, 31 steps', () => go({ c: 'lux' }), 'lux'),
+          item('⚠️', 'Flag an issue', 'Damage, low supply or maintenance', () => go({ c: 'flag' }), 'flag'),
+          item('⏱', 'Move or hand off a job', 'No charge to the owner', () => go({ c: 'move', mv: 'form' }), 'move'),
+          item('📅', 'Booking calendar', 'Every clean, and who has it', () => go({ c: 'calendar' }), 'calendar'),
+          item('📌', 'Assign jobs', 'Who’s taking each clean', () => go({ c: 'assign' }), 'assign'),
+          item('🧴', 'Supplies', 'Par levels and reordering', () => go({ c: 'supplies', cTab: 2 }), 'supplies'),
+          item('👥', 'Assistant’s view', 'What Tiana sees on a shared job', () => go({ c: 'assist' }), 'assist'),
+          item('💫', 'Concierge visit', 'Her time & receipts — not a clean', () => go({ c: 'conciergeVisit', visitState: 'brief', visitMinutes: 0, expenses: [] }), 'conciergeVisit'),
         ]) },
         { title: 'Getting paid', items: close([
-          item('👤', 'My week', 'Cleans, earnings and schedule', () => go({ c: 'profile', cTab: 3 })),
-          item('🏦', 'Payouts', 'Every release, in order', () => go({ c: 'payouts' })),
-          item('🧾', 'Tax documents', '1099s and yearly summaries', () => go({ c: 'tax' })),
-          item('🧮', 'Quote Builder', 'Your pricing rules, made tappable', () => go({ c: 'quote' })),
+          item('👤', 'My week', 'Cleans, earnings and schedule', () => go({ c: 'profile', cTab: 3 }), 'profile'),
+          item('🏦', 'Payouts', 'Every release, in order', () => go({ c: 'payouts' }), 'payouts'),
+          item('🧾', 'Tax documents', '1099s and yearly summaries', () => go({ c: 'tax' }), 'tax'),
+          item('🧮', 'Quote Builder', 'Your pricing rules, made tappable', () => go({ c: 'quote' }), 'quote'),
         ]) },
         { title: 'Messages', items: close([
-          item('💌', 'Inbox', 'Owners, leads and the business', () => go({ c: 'inbox' })),
-          item('✏️', 'New message', 'Write to an owner or a lead', () => go({ c: 'compose', draft: '' })),
-          item('🔗', 'Your digital card', 'QR to scan, or text the link', () => go({ c: 'share' })),
+          item('💌', 'Inbox', 'Owners, leads and the business', () => go({ c: 'inbox' }), 'inbox'),
+          item('✏️', 'New message', 'Write to an owner or a lead', () => go({ c: 'compose', draft: '' }), 'compose'),
+          item('🔗', 'Your digital card', 'QR to scan, or text the link', () => go({ c: 'share' }), 'share'),
         ]) },
         { title: 'Business', items: close([
-          item('👑', 'Business dashboard', 'Billing, people, pricing', () => go({ c: 'admin' })),
-          item('👥', 'Team & certification', 'Splits and what they can see', () => go({ c: 'team' })),
-          item('🏡', 'Clients & properties', 'Your book of business', () => go({ c: 'clients' })),
-          item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' })),
-          item('📍', 'Service area', 'Where you take work', () => go({ c: 'area' })),
-          item('⚙️', 'Settings', 'Your account and notifications', () => go({ c: 'settings' })),
-          item('🔐', 'Master login & security', 'Business email, password, two-step', () => go({ role: 'visitor', p: 'adminlogin' })),
+          item('👑', 'Business dashboard', 'Billing, people, pricing', () => go({ c: 'admin' }), 'admin'),
+          item('👥', 'Team & certification', 'Splits and what they can see', () => go({ c: 'team' }), 'team'),
+          item('🏡', 'Clients & properties', 'Your book of business', () => go({ c: 'clients' }), 'clients'),
+          item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' }), 'template'),
+          item('📍', 'Service area', 'Where you take work', () => go({ c: 'area' }), 'area'),
+          item('⚙️', 'Settings', 'Your account and notifications', () => go({ c: 'settings' }), 'settings'),
+          item('🔐', 'Master login & security', 'Business email, password, two-step', () => go({ role: 'visitor', p: 'adminlogin' }), 'adminlogin'),
         ]) },
       ] },
       owner: { title: clientFirst + '’s account', sub: 'Your homes, your standard, your proof', groups: [
         { title: 'Your homes', items: close([
-          item('🏡', 'Homes', 'Status, proof and history', () => go({ o: 'home', oTab: 0 })),
-          item('📅', 'Schedule', 'Reschedule, add a service, cancel', () => go({ o: 'schedule' })),
-          item('🗓️', 'Her open days', 'Pick a day for your next clean', () => go({ o: 'calendar' })),
-          item('➕', 'Add a property', 'Paste a listing link', () => go({ o: 'onboard' })),
-          item('✅', 'Account setup', 'Finish anything outstanding', () => go({ o: 'setup' })),
+          item('🏡', 'Homes', 'Status, proof and history', () => go({ o: 'home', oTab: 0 }), 'home'),
+          item('📅', 'Schedule', 'Reschedule, add a service, cancel', () => go({ o: 'schedule' }), 'schedule'),
+          item('🗓️', 'Her open days', 'Pick a day for your next clean', () => go({ o: 'calendar' }), 'calendar'),
+          item('➕', 'Add a property', 'Paste a listing link', () => go({ o: 'onboard' }), 'onboard'),
+          item('✅', 'Account setup', 'Finish anything outstanding', () => go({ o: 'setup' }), 'setup'),
         ]) },
         { title: 'Every clean', items: close([
-          item('📋', 'Service report', 'Photos, timeline and approval', () => go({ o: 'report', oTab: 1 })),
-          item('🖼️', 'All proof photos', 'Timestamped, kept for you', () => go({ o: 'gallery', gallery: 'clean', galleryFrom: 'report' })),
-          item('📷', 'Reference photos', 'How your rooms should look', () => go({ o: 'gallery', gallery: 'reference', galleryFrom: 'account' })),
-          item('⭐', 'Rate & thank Ahleyia', 'She reads every one', () => go({ o: 'rate', rate: 'form' })),
-          item('💬', 'Something’s not right', 'She comes back to fix it', () => go({ o: 'dispute', dispute: 'form' })),
+          item('📋', 'Service report', 'Photos, timeline and approval', () => go({ o: 'report', oTab: 1 }), 'report'),
+          item('🖼️', 'All proof photos', 'Timestamped, kept for you', () => go({ o: 'gallery', gallery: 'clean', galleryFrom: 'report' }), 'gallery'),
+          item('📷', 'Reference photos', 'How your rooms should look', () => go({ o: 'gallery', gallery: 'reference', galleryFrom: 'account' }), 'gallery'),
+          item('⭐', 'Rate & thank Ahleyia', 'She reads every one', () => go({ o: 'rate', rate: 'form' }), 'rate'),
+          item('💬', 'Something’s not right', 'She comes back to fix it', () => go({ o: 'dispute', dispute: 'form' }), 'dispute'),
         ]) },
         { title: 'Home & supplies', items: close([
-          item('🌱', 'Products & scent', 'Eco products and your finish', () => go({ o: 'products' })),
-          item('💫', 'Request concierge', 'Her time — a hands-free lifestyle', () => go({ o: 'concierge' })),
-          item('🧴', 'Supplies', 'Approve what your units need', () => go({ o: 'supplies', oTab: 2 })),
-          item('🧮', 'Your tailored quote', 'From Ahleyia', () => go({ o: 'quote' })),
+          item('🌱', 'Products & scent', 'Eco products and your finish', () => go({ o: 'products' }), 'products'),
+          item('💫', 'Request concierge', 'Her time — a hands-free lifestyle', () => go({ o: 'concierge' }), 'concierge'),
+          item('🧴', 'Supplies', 'Approve what your units need', () => go({ o: 'supplies', oTab: 2 }), 'supplies'),
+          item('🧮', 'Your tailored quote', 'From Ahleyia', () => go({ o: 'quote' }), 'quote'),
         ]) },
         { title: 'Account', items: close([
-          item('👤', 'Your account', 'Details, card and archive', () => go({ o: 'account', oTab: 0 })),
-          item('🧾', 'Receipts', 'One charge per clean', () => go({ o: 'receipts' })),
-          item('💳', 'Replace your card', 'Credit cards only', () => go({ o: 'edit', editField: 'card', editValue: '' })),
-          item('💌', 'Messages', 'Ahleyia and the studio', () => go({ o: 'messages', oTab: 3 })),
+          item('👤', 'Your account', 'Details, card and archive', () => go({ o: 'account', oTab: 0 }), 'account'),
+          item('🧾', 'Receipts', 'One charge per clean', () => go({ o: 'receipts' }), 'receipts'),
+          item('💳', 'Replace your card', 'Credit cards only', () => go({ o: 'edit', editField: 'card', editValue: '' }), 'edit'),
+          item('💌', 'Messages', 'Ahleyia and the studio', () => go({ o: 'messages', oTab: 3 }), 'messages'),
         ]) },
       ] },
     }
@@ -1930,6 +1930,55 @@ export function useModel(props: ModelProps) {
     v.menuTitle = menu.title
     v.menuSub = menu.sub
     v.menuGroups = menu.groups
+
+    /* ---- desktop rail (≥820px) + account switcher ----
+       The rail shows the SAME menu groups as the phone's ☰ sheet, with the
+       current destination marked. Admin is a view of the cleaner role here
+       (the prototype models it as a fourth account), so the switcher maps to
+       the zone each account lands in. */
+    const isAdminView = ['admin', 'team', 'clients', 'bizsettings', 'area', 'assign', 'calendar'].indexOf(s.c) >= 0
+    const acctRole = s.role === 'cleaner' ? (isAdminView ? 'admin' : 'cleaner') : s.role
+    const ACCOUNTS: Any[] = [
+      ['admin', '👑', 'She’s Maid In ATL', 'Business · owner & admin'],
+      ['cleaner', '🧹', 'Ahleyia Kee', 'Working day · housekeeper'],
+      ['owner', '🏡', v.clientFull, 'Client account'],
+      ['visitor', '🌐', 'Not signed in', 'What someone with no account sees'],
+    ]
+    const WHO: Any = {
+      visitor: ['Not signed in', 'Anyone with her card link'],
+      cleaner: [v.liveCleanerName || 'Ahleyia Kee', isAdminView ? '👑 Business side · admin' : 'Working side · today’s route'],
+      owner: [v.clientFull, v.liveOwner ? (v.livePropCount || 'Client') : 'Client · 2 properties'],
+    }
+    const who = WHO[s.role] || WHO.visitor
+    v.railWhoName = who[0]
+    v.railWhoSub = who[1]
+    const cur = s.role === 'visitor' ? s.p : (s.role === 'cleaner' ? s.c : s.o)
+    // Mark the rail's active destination by matching each item's target key.
+    v.menuGroups = menu.groups.map((g: Any) => ({
+      ...g,
+      items: g.items.map((it: Any) => ({ ...it, active: !!it.key && it.key === cur })),
+    }))
+    v.chipCurrent = chip('ac0', 'refresh', 'Current')
+    const acct = ACCOUNTS.find((a) => a[0] === acctRole) || ACCOUNTS[3]
+    v.acctIcon = acct[1]; v.acctName = acct[2]; v.acctSub = acct[3]
+    v.acctOpen = s.acctOpen
+    v.openAcct = () => set({ acctOpen: true })
+    v.closeAcct = () => set({ acctOpen: false })
+    v.switchViewFromMenu = () => set({ menuOpen: false, acctOpen: true })
+    v.acctEmail = s.beUser?.email || 'Not signed in'
+    v.acctRows = ACCOUNTS.map((a, i) => ({
+      icon: a[1], name: a[2], sub: a[3], last: i === ACCOUNTS.length - 1,
+      current: a[0] === acctRole,
+      use: () => {
+        const patch: Any = { acctOpen: false, menuOpen: false, hist: [] }
+        if (a[0] === 'admin') { patch.role = 'cleaner'; patch.c = 'admin' }
+        else if (a[0] === 'cleaner') { patch.role = 'cleaner'; patch.c = 'today'; patch.cTab = 0 }
+        else if (a[0] === 'owner') { patch.role = 'owner'; patch.o = 'home'; patch.oTab = 0 }
+        else { patch.role = 'visitor'; patch.p = 'welcome' }
+        set(patch)
+        say('Now viewing as ' + a[2])
+      },
+    }))
 
     const jump = (role: string, key: string, extra?: Any) => () => {
       const patch: Any = { role, cam: null, emptyJobs: false, emptyHomes: false, emptyMsgs: false, ...(extra || {}) }

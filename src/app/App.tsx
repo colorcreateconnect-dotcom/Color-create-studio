@@ -13,6 +13,7 @@ import { OwnerScreens } from './screens/owner'
 import { SharedScreens } from './screens/shared'
 import { ConciergeScreens } from './screens/concierge'
 import { Overlays, ScreenIndex } from './screens/chrome'
+import { Rail } from './Rail'
 
 function readProps(): ModelProps {
   const q = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
@@ -49,11 +50,11 @@ export default function App() {
       )}
 
       <div style={css('position:relative')}>
-        <PhoneFrame time="11:41" label={v.roleLabel} appMode={!v.showChrome}>
+        <PhoneFrame time="11:41" label={v.roleLabel} appMode={!v.showChrome} rail={!v.showChrome ? <Rail v={v} /> : null}>
           <div style={css('min-height:100%;display:flex;flex-direction:column')}>
             <div style={css('flex:1')}>{screen}</div>
-            {v.isCleaner && <div style={css('position:sticky;bottom:0')}><TabBar tabs={v.cleanerTabs} active={v.cTab} onSelect={v.pickCTab} /></div>}
-            {v.isOwner && <div style={css('position:sticky;bottom:0')}><TabBar tabs={v.ownerTabs} active={v.oTab} onSelect={v.pickOTab} /></div>}
+            {v.isCleaner && <div className="sm-tabbar-slot" style={css('position:sticky;bottom:0')}><TabBar tabs={v.cleanerTabs} active={v.cTab} onSelect={v.pickCTab} /></div>}
+            {v.isOwner && <div className="sm-tabbar-slot" style={css('position:sticky;bottom:0')}><TabBar tabs={v.ownerTabs} active={v.oTab} onSelect={v.pickOTab} /></div>}
           </div>
         </PhoneFrame>
         <Overlays v={v} />
