@@ -74,12 +74,14 @@ class SupabaseData implements DataSource {
   private anon = supabaseAnonKey()
 
   private async rest<T>(path: string): Promise<T> {
-    const res = await fetch(`${this.url}/rest/v1/${path}`, {
-      headers: {
-        apikey: this.anon,
-        Authorization: `Bearer ${accessToken() ?? this.anon}`,
-      },
-    })
+    // apikey carries the publishable/anon key. Authorization is set ONLY when a
+    // real user JWT exists — PostgREST wants a JWT there, and the new
+    // `sb_publishable_…` key format is not a JWT, so sending it as a bearer
+    // would 401. With no session, apikey alone drives the `anon` role.
+    const tok = accessToken()
+    const headers: Record<string, string> = { apikey: this.anon }
+    if (tok) headers.Authorization = `Bearer ${tok}`
+    const res = await fetch(`${this.url}/rest/v1/${path}`, { headers })
     if (!res.ok) throw new Error(`Supabase ${path} ${res.status}`)
     return res.json()
   }
