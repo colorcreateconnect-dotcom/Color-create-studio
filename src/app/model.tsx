@@ -4,11 +4,16 @@
    In a real build this per-domain state would move behind an API; here it is
    held in one store exactly as the design handoff describes, so the whole
    three-zone app is clickable end to end. */
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Chip, MetaTag, VerifiedBadge } from '../ds/components'
 import { residentialQuote, airbnbQuote, type Staging } from '../lib/pricing'
 import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/concierge'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
+import {
+  backendActive, hydrate, getPosition, errMsg, parseTip,
+  sendPhoneOtp, verifyPhoneOtp, signInWithPassword, api,
+} from './backend'
+import { isSquareConfigured } from '../lib/config'
 
 type Any = Record<string, any>
 
@@ -188,6 +193,11 @@ function initialState(props: ModelProps): Any {
     conciergeSvc: {}, conciergeWindow: 'Tomorrow, 10 AM – 12 PM', conciergeNote: '', conciergeSent: false,
     visitState: 'brief', visitMinutes: 0, expenses: [], expCat: 'Groceries', expAmount: '', expPhoto: false,
     scentOn: true,
+    // Live-backend slice — populated by hydrate() when Supabase is configured;
+    // stays empty in the sandbox/demo so every screen runs on seed data.
+    gatePhone: '',
+    beReady: false, beSignedIn: false, beUser: null, beCard: null,
+    beJobs: [], beActiveJobId: null, beBusy: false,
     access: { routes: true, checklists: true, supplies: true, ownernotes: true },
     onotif: { reports: true, cleaning: true, supplies: true, summary: false },
     cnotif: { bookings: true, approvals: true, supplies: true },
@@ -264,6 +274,21 @@ export function useModel(props: ModelProps) {
   const money = (t: string, val: string) => <b style={{ fontSize: '13px', color: t }}>{val}</b>
 
   const v: Any = useMemo(() => buildView(), [state]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Hydrate the signed-in identity + card + jobs from the real backend on load.
+     No-ops entirely when no backend is configured, so the demo is untouched. */
+  useEffect(() => {
+    if (!backendActive()) return
+    let alive = true
+    hydrate().then((h) => {
+      if (!alive) return
+      setState((st: Any) => ({
+        ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
+        beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null,
+      }))
+    }).catch(() => { if (alive) setState((st: Any) => ({ ...st, beReady: true })) })
+    return () => { alive = false }
+  }, [])
 
   function buildView(): Any {
     const clientFull = (s.suName || '').trim() || 'James Hartwell'
@@ -481,10 +506,21 @@ export function useModel(props: ModelProps) {
     v.approved = s.approved
     v.approveLabel = s.approved ? '✓ Approved · final 50% released' : 'Approve service & release payment'
     v.finalHalfLabel = s.approved ? '✓ Final 50% released' : 'Final 50% — release on approval'
-    v.approve = () => {
+    v.approve = async () => {
       if (s.approved) return
-      set({ approved: true })
-      say(s.tip && s.tip !== 'No tip' ? 'Approved — final 50% released + tip 💕' : 'Approved — final 50% released 💕')
+      if (!backendActive() || !s.beActiveJobId) {
+        set({ approved: true })
+        say(s.tip && s.tip !== 'No tip' ? 'Approved — final 50% released + tip 💕' : 'Approved — final 50% released 💕')
+        return
+      }
+      try {
+        set({ beBusy: true })
+        const base = s.beJobs.find((j: Any) => j.id === s.beActiveJobId)?.clientAmount ?? 0
+        const tip = parseTip(s.tip, base)
+        const r = await api.approve({ jobId: s.beActiveJobId, tip })
+        setState((st: Any) => ({ ...st, beBusy: false, approved: true }))
+        say(r.tipCharged ? 'Approved — final 50% released + tip 💕' : 'Approved — final 50% released 💕')
+      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Approval failed — try again')) }
     }
     v.maintTitle = s.maintStatus === 'self' ? 'Vanity light — you’re handling it' : (s.maintStatus === 'pro' ? 'Vanity light — handyman requested' : 'Vanity light not working')
     v.handleSelf = () => { set({ maintStatus: 'self' }); say('Noted — Ahleyia won’t re-flag it ✓') }
@@ -596,7 +632,20 @@ export function useModel(props: ModelProps) {
     v.ciDeclined = s.checkin === 'declined'
     v.checkinBadge = chip('k1', 'onBrand', s.checkin === 'declined' ? '⏳ Payment held' : (s.checkin === 'done' ? '✓ Checked in · 11:06 AM' : 'You’re within the geofence ✓'))
     v.ciRows = [{ label: 'Owner charged, in full', value: '$220.00' }, { label: 'Your 50%, released now', value: '$110.00' }]
-    v.doCheckin = () => { set({ checkin: 'done' }); say('$110 released to you 💰') }
+    v.doCheckin = async () => {
+      if (!backendActive() || !s.beActiveJobId) { set({ checkin: 'done' }); say('$110 released to you 💰'); return }
+      try {
+        set({ beBusy: true }); say('Confirming you’re at the property…')
+        const device = await getPosition()
+        const r = await api.checkIn({ jobId: s.beActiveJobId, device })
+        setState((st: Any) => ({ ...st, beBusy: false, checkin: 'done' }))
+        say('$' + r.arrivalReleased.toFixed(2) + ' released to you 💰')
+      } catch (e: any) {
+        set({ beBusy: false })
+        if (e?.code === 'CAPTURE_FAILED' || e?.code === 'NON_CREDIT') { set({ checkin: 'declined' }); say(errMsg(e)) }
+        else say(errMsg(e, 'Check-in failed — try again'))
+      }
+    }
     v.declineDemo = () => { set({ checkin: 'declined' }); say('Card declined — nothing was charged') }
     v.retryCharge = () => { set({ checkin: 'done' }); say('Cleared — $110 released to you 💰') }
     v.chipSent = chip('k2', 'refresh', 'Sent')
@@ -769,7 +818,16 @@ export function useModel(props: ModelProps) {
 
     // 39 · verify code
     v.vVerify = s.role === 'visitor' && s.p === 'verify'
-    v.goVerify = () => { go({ p: 'verify', code: '' }); say('Code sent to (404) 555-0134 📱') }
+    v.goVerify = async () => {
+      if (!backendActive()) { go({ p: 'verify', code: '' }); say('Code sent to (404) 555-0134 📱'); return }
+      const phone = (s.gatePhone || s.suPhone || '').trim()
+      if (phone.replace(/\D/g, '').length < 10) { say('Enter your mobile number first 📱'); return }
+      try { set({ beBusy: true }); await sendPhoneOtp(phone); set({ beBusy: false }); go({ p: 'verify', code: '' }); say('Code texted to ' + phone + ' 📱') }
+      catch (e) { set({ beBusy: false }); say(errMsg(e)) }
+    }
+    v.gatePhone = s.gatePhone
+    v.setGatePhone = (e: any) => set({ gatePhone: e.target.value })
+    v.beBusy = s.beBusy
     v.badgeCodeSent = chip('v1', 'onBrand', '📱 Code sent')
     v.codeBoxes = [0, 1, 2, 3].map((i) => ({ char: s.code[i] || '', bg: s.code[i] ? 'var(--pink-blush)' : 'var(--surface-cream)', border: s.code.length === i ? 'var(--magenta)' : 'var(--border-default)' }))
     v.code = s.code
@@ -777,8 +835,27 @@ export function useModel(props: ModelProps) {
     v.focusCode = () => { if (codeRef.current) codeRef.current.focus() }
     v.setCode = (e: any) => set({ code: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })
     v.verifyLabel = s.code.length === 4 ? 'Verify & continue' : 'Enter your 4-digit code'
-    v.verifyCode = () => { if (s.code.length < 4) { say('Four digits, then you’re in'); return } go({ role: 'owner', o: 'setup', oTab: 0 }); say('Verified — welcome in ✓') }
-    v.resendCode = () => { set({ code: '' }); say('New code sent 📱') }
+    v.verifyCode = async () => {
+      if (s.code.length < 4) { say('Four digits, then you’re in'); return }
+      if (!backendActive()) { go({ role: 'owner', o: 'setup', oTab: 0 }); say('Verified — welcome in ✓'); return }
+      const phone = (s.gatePhone || s.suPhone || '').trim()
+      try {
+        set({ beBusy: true })
+        await verifyPhoneOtp(phone, s.code)
+        const h = await hydrate()
+        const role = h.user?.role === 'cleaner' ? 'cleaner' : 'owner'
+        setState((st: Any) => ({ ...st, beBusy: false, beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null }))
+        if (role === 'cleaner') go({ role: 'cleaner', c: 'today', cTab: 0 })
+        else go({ role: 'owner', o: 'home', oTab: 0 })
+        say('Verified — welcome in ✓')
+      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'That code didn’t match — try again')) }
+    }
+    v.resendCode = async () => {
+      set({ code: '' })
+      if (!backendActive()) { say('New code sent 📱'); return }
+      const phone = (s.gatePhone || s.suPhone || '').trim()
+      try { await sendPhoneOtp(phone); say('New code sent 📱') } catch (e) { say(errMsg(e)) }
+    }
 
     // 44 · Kee Method template viewer
     v.cTemplate = s.role === 'cleaner' && s.c === 'template'
@@ -837,12 +914,21 @@ export function useModel(props: ModelProps) {
     v.setAdminRemember = (n: boolean) => set({ adminRemember: n })
     v.adminMaskedPhone = '(•••) •••-3242'
     v.adminEmailShown = s.adminEmail.trim() || 'ahleyia@atlluxurycleaning.com'
-    v.adminSignIn = () => {
+    v.adminSignIn = async () => {
       const em = s.adminEmail.trim().toLowerCase()
       if (em.indexOf('@') < 0) { say('Your business email, please'); return }
-      if (em.indexOf('atlluxurycleaning.com') < 0) { say('That isn’t the business account — try staff or client sign in'); return }
       if (s.adminPw.length < 6) { say('Password is at least 6 characters'); return }
-      go({ role: 'cleaner', c: 'admin' }); say('Welcome back, Ahleyia 👑')
+      if (!backendActive()) {
+        if (em.indexOf('atlluxurycleaning.com') < 0) { say('That isn’t the business account — try staff or client sign in'); return }
+        go({ role: 'cleaner', c: 'admin' }); say('Welcome back, Ahleyia 👑'); return
+      }
+      try {
+        set({ beBusy: true })
+        await signInWithPassword(em, s.adminPw)
+        const h = await hydrate()
+        setState((st: Any) => ({ ...st, beBusy: false, beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null }))
+        go({ role: 'cleaner', c: 'admin' }); say('Welcome back, Ahleyia 👑')
+      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'That sign-in didn’t work')) }
     }
     v.adminForgot = () => say('Reset link sent to your business email 💌')
     v.goStaffSignIn = () => go({ p: 'gate' })
@@ -1330,6 +1416,15 @@ export function useModel(props: ModelProps) {
     v.goEditEmail = () => go({ o: 'edit', editField: 'email', editValue: '' })
     v.goEditCard = () => go({ o: 'edit', editField: 'card', editValue: '' })
     v.saveEdit = () => { if (!s.editValue.trim()) { say('Fill in the new detail first ✏️'); return } go({ o: 'account' }); say(s.editField === 'card' ? 'New card saved 💳' : (s.editField === 'email' ? 'Email updated ✓' : 'Number updated — code sent 📱')) }
+    // Live card-on-file (Square) — replaces the prototype card fields when Square
+    // is configured and an owner is signed in with an org.
+    v.squareReady = isSquareConfigured() && backendActive() && !!(s.beUser && s.beUser.id && s.beUser.orgId)
+    v.beOwnerId = s.beUser?.id
+    v.beOrgId = s.beUser?.orgId
+    v.onCardSaved = (res: Any) => {
+      setState((st: Any) => ({ ...st, beCard: { id: res.id, brand: res.brand, last4: res.last4, cardType: 'CREDIT' } }))
+      go({ o: 'account' }); say('New card saved 💳 ····' + res.last4)
+    }
 
     // 40 · gallery
     v.oGallery = s.role === 'owner' && s.o === 'gallery'
@@ -1448,7 +1543,15 @@ export function useModel(props: ModelProps) {
     v.visitReimbursed = '$' + reimbursedSum.toFixed(2)
     v.visitTotal = '$' + (timeCharge + reimbursedSum).toFixed(2)
     v.visitTimeCharge = '$' + timeCharge.toFixed(2)
-    v.closeVisit = () => { set({ visitState: 'closed' }); say('Visit closed — receipt sent 💕') }
+    v.closeVisit = async () => {
+      if (!backendActive() || !s.beActiveJobId) { set({ visitState: 'closed' }); say('Visit closed — receipt sent 💕'); return }
+      try {
+        set({ beBusy: true })
+        const r = await api.closeConciergeVisit({ jobId: s.beActiveJobId, minutes: s.visitMinutes })
+        setState((st: Any) => ({ ...st, beBusy: false, visitState: 'closed' }))
+        say('Visit closed — $' + r.total.toFixed(2) + ' captured 💕')
+      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t close the visit — try again')) }
+    }
 
     // Products & scent — the +$8 eco finish is a working billing toggle now.
     v.scentOn = s.scentOn

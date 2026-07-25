@@ -1,0 +1,82 @@
+/* The bridge between the prototype store and the real backend.
+ *
+ * The whole app runs on in-memory seed data when no backend is configured (the
+ * sandbox, local dev, previews). When Supabase + the functions ARE configured,
+ * the money-path actions and auth call the real endpoints instead, and the app
+ * hydrates the signed-in identity + card + jobs on load. Every call site checks
+ * `backendActive()` and falls back to the demo behavior when it's false, so the
+ * clickable prototype never breaks. */
+import { isSupabaseConfigured } from '../lib/config'
+import { restore, verifyPhoneOtp, sendPhoneOtp, signInWithPassword, signOut } from '../lib/supabase'
+import { getData } from '../lib/data'
+import type { User, PaymentMethod, Job } from '../lib/data/types'
+import { ApiError } from '../lib/api'
+
+export { verifyPhoneOtp, sendPhoneOtp, signInWithPassword, signOut }
+export * as api from '../lib/api'
+
+/** Is a live backend wired? Everything gates on this. */
+export function backendActive(): boolean {
+  return isSupabaseConfigured()
+}
+
+export interface Hydration {
+  signedIn: boolean
+  user: User | null
+  card: PaymentMethod | null
+  jobs: Job[]
+  activeJobId?: string
+}
+
+const ACTIVE_PAYMENT_STATES = ['scheduled', 'captured', 'deposit_released', 'awaiting_approval']
+
+/** Load the signed-in identity, card on file, and jobs — enough to drive the
+ *  money-path actions with real ids. Safe to call when signed out (returns
+ *  signedIn:false) or when the backend is absent. */
+export async function hydrate(): Promise<Hydration> {
+  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [] }
+  if (!backendActive()) return empty
+  const session = await restore().catch(() => null)
+  if (!session) return empty
+  const data = getData()
+  const user = await data.currentUser().catch(() => null)
+  if (!user) return { signedIn: true, user: null, card: null, jobs: [] }
+  const jobs = await data
+    .jobs(user.role === 'owner' ? { ownerId: user.id } : { cleanerId: user.id })
+    .catch(() => [] as Job[])
+  const card = user.role === 'owner' ? await data.cardOnFile(user.id).catch(() => null) : null
+  const active = jobs.find((j) => ACTIVE_PAYMENT_STATES.includes(j.paymentState))
+  return { signedIn: true, user, card, jobs, activeJobId: active?.id }
+}
+
+/** Current device position — the geofence input for check-in. Rejects clearly
+ *  when the browser has no geolocation or the user denies permission. */
+export function getPosition(): Promise<{ lat: number; lng: number }> {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('Location isn’t available on this device'))
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      (e) => reject(new Error(e?.message || 'Turn on location to check in at the property')),
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
+    )
+  })
+}
+
+/** A user-facing message for any backend error, preferring the server's own text. */
+export function errMsg(e: unknown, fallback = 'Something went wrong — try again'): string {
+  if (e instanceof ApiError) return e.message
+  if (e instanceof Error && e.message) return e.message
+  return fallback
+}
+
+/** Parse a tip label ("$20", "20%", "No tip") into dollars, or undefined. */
+export function parseTip(label: string | undefined, base: number): number | undefined {
+  if (!label || /no tip/i.test(label)) return undefined
+  const pct = label.match(/(\d+(?:\.\d+)?)\s*%/)
+  if (pct) return Math.round(base * (Number(pct[1]) / 100) * 100) / 100
+  const dollars = label.match(/\$?\s*(\d+(?:\.\d+)?)/)
+  return dollars ? Number(dollars[1]) : undefined
+}

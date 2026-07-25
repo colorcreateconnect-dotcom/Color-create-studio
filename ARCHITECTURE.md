@@ -104,10 +104,53 @@ keeps working offline), never caches money/API calls, and runs a photo **outbox*
 
 ---
 
+## Backend integration (UI ↔ Supabase + Square + functions)
+
+The UI is wired to the real backend **behind config detection** (`src/lib/config.ts`).
+With no env vars it runs entirely on in-memory seed data (the sandbox/demo);
+when the env vars are present the same screens talk to live services. Nothing to
+toggle — `isSupabaseConfigured()` / `isSquareConfigured()` decide per call site,
+so the clickable prototype never breaks.
+
+- **Auth** (`src/lib/supabase.ts`) — dependency-free GoTrue over REST. Clients
+  sign in with phone + a texted OTP (client gate → verify); the business account
+  uses email + password. The session is persisted to `sb-access-token`, the key
+  the anon-key data reads carry, so **RLS always runs as the signed-in user**.
+- **Hydration** (`src/app/backend.ts`) — on load, when signed in, the store
+  pulls the real identity, card on file, and jobs, and picks the active job id
+  that the money-path actions operate on. Falls back to seed data otherwise.
+- **Money path → functions** (`src/lib/api.ts`) — the browser only ever sends
+  intent; the service-role key stays in the functions:
+  - **Save card** — `SquareCardForm` mounts Square's Web Payments field,
+    tokenizes in the browser (raw PAN never hits our servers), records consent,
+    and posts the single-use token to `save-card` (CREDIT-only enforced there).
+  - **Check-in** — the cleaner button reads `navigator.geolocation` and calls
+    `checkin`, which recomputes the geofence server-side and does the one capture.
+  - **Approve** — the owner button calls `approve` (final 50% release + a
+    separate tip charge if present, parsed from the tip label).
+  - **Concierge close** — calls `concierge-close`, capturing the sum of non-tip
+    line items at close.
+- **Data mapping** (`src/lib/data/index.ts`) — PostgREST returns snake_case;
+  typed mappers convert to the camelCase domain shapes, and the client-safe
+  `PaymentMethod` mapper drops the processor token / consent text (price-privacy).
+- **Row mappers, config, phone/tip parsing** are unit-tested
+  (`src/lib/integration.test.ts`) alongside the financial core.
+
+**Still on seed data / follow-on wiring** (same pattern, not yet bound):
+read-heavy secondary screens (homes list, reports, receipts, messages, schedule)
+still render seed data until each is pointed at `getData()`; and the concierge
+**expense receipt** needs a Supabase Storage upload to produce the `storageKey`
+the `concierge-add-expense` function already requires (server rule is enforced +
+tested). End-to-end money verification needs a live Supabase + Square sandbox
+(can't be provisioned here).
+
+---
+
 # Go-live checklist (what needs live services)
 
 This sandbox has no Supabase project, Square account, or Netlify site, so the
-end-to-end money flow can't be exercised here. To take it live:
+end-to-end money flow can't be exercised here. The UI wiring above is in place;
+what remains is provisioning + credentials:
 
 1. **Supabase**: create a project; run `supabase/migrations/0001_schema.sql`,
    `0002_rls.sql`, then `supabase/seed.sql`. Create a Storage bucket `proof`

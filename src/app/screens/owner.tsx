@@ -10,6 +10,7 @@ import {
   DetailHeader, SupplyRow, StatusCard, ConsistencyCard, PhotoStrip, ProgressBar,
   PriceBox, Timeline, Checkbox, TextField, Stepper,
 } from '../../ds/components'
+import { SquareCardForm } from '../SquareCardForm'
 
 export function OwnerScreens(v: any) {
   if (v.oHome) return (
@@ -884,18 +885,22 @@ function EditDetail({ v }: { v: any }) {
               <Chip tone="ghost">Replacing</Chip>
             </div>
           </Card>
-          <Card>
-            <SectionLabel>New card</SectionLabel>
-            <p style={css('margin:0 0 12px;font-size:12px;line-height:var(--leading-snug);color:var(--ink-soft)')}><b>Major credit card only</b> — Visa, Mastercard, Amex, Discover. Debit cards aren’t accepted (it protects both of you from fraud).</p>
-            <Field icon="💳"><NativeInput type="tel" inputMode="numeric" autoComplete="cc-number" aria-label="Card number" placeholder="Card number" value={v.editValue} onChange={v.setEditValue} /></Field>
-            <div style={css('display:flex;gap:8px;margin-top:8px')}>
-              <Field><NativeInput type="tel" inputMode="numeric" autoComplete="cc-exp" aria-label="Expiry" placeholder="MM / YY" /></Field>
-              <Field><NativeInput type="tel" inputMode="numeric" autoComplete="cc-csc" aria-label="Security code" placeholder="CVC" /></Field>
-            </div>
-          </Card>
-          <NoteCard tone="money" icon="🧾"><b>Nothing changes about how you’re billed.</b> One charge, in full, when Ahleyia arrives — never twice. Your new card takes over from the next clean.</NoteCard>
+          {v.squareReady ? (
+            <SquareCardForm ownerId={v.beOwnerId} orgId={v.beOrgId} onSaved={v.onCardSaved} />
+          ) : (<>
+            <Card>
+              <SectionLabel>New card</SectionLabel>
+              <p style={css('margin:0 0 12px;font-size:12px;line-height:var(--leading-snug);color:var(--ink-soft)')}><b>Major credit card only</b> — Visa, Mastercard, Amex, Discover. Debit cards aren’t accepted (it protects both of you from fraud).</p>
+              <Field icon="💳"><NativeInput type="tel" inputMode="numeric" autoComplete="cc-number" aria-label="Card number" placeholder="Card number" value={v.editValue} onChange={v.setEditValue} /></Field>
+              <div style={css('display:flex;gap:8px;margin-top:8px')}>
+                <Field><NativeInput type="tel" inputMode="numeric" autoComplete="cc-exp" aria-label="Expiry" placeholder="MM / YY" /></Field>
+                <Field><NativeInput type="tel" inputMode="numeric" autoComplete="cc-csc" aria-label="Security code" placeholder="CVC" /></Field>
+              </div>
+            </Card>
+            <NoteCard tone="money" icon="🧾"><b>Nothing changes about how you’re billed.</b> One charge, in full, when Ahleyia arrives — never twice. Your new card takes over from the next clean.</NoteCard>
+          </>)}
         </>)}
-        <Button variant="green" onClick={v.saveEdit}>{v.editSaveLabel}</Button>
+        {!(v.editCard && v.squareReady) && <Button variant="green" onClick={v.saveEdit}>{v.editSaveLabel}</Button>}
         <div style={css('margin-top:10px')}><Button variant="ghost" onClick={v.goAccount}>Cancel</Button></div>
       </div>
     </>

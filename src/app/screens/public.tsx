@@ -92,7 +92,7 @@ export function PublicScreens(v: any) {
       <div style={css('padding:22px')}>
         <Card>
           <SectionLabel>Verify it’s you</SectionLabel>
-          <Field icon="📱"><NativeInput type="tel" inputMode="tel" autoComplete="tel" aria-label="Mobile number" placeholder="(404) 555-0134" /></Field>
+          <Field icon="📱"><NativeInput type="tel" inputMode="tel" autoComplete="tel" aria-label="Mobile number" placeholder="(404) 555-0134" value={v.gatePhone} onChange={v.setGatePhone} /></Field>
           <p style={css('margin:10px 0 0;font-size:11.5px;color:var(--text-muted)')}>We text you a one-tap code — no password to remember.</p>
         </Card>
         <NoteCard tone="pink" icon="💌"><b>Got an invite link from Ahleyia?</b> Tap it instead — it opens your account instantly, already connected to her.</NoteCard>
