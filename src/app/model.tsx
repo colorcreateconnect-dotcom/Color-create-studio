@@ -282,10 +282,19 @@ export function useModel(props: ModelProps) {
     let alive = true
     hydrate().then((h) => {
       if (!alive) return
-      setState((st: Any) => ({
-        ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
-        beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null,
-      }))
+      setState((st: Any) => {
+        const patch: Any = {
+          ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
+          beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null,
+        }
+        // Land a signed-in user in their own zone — but only from the default
+        // visitor landing, so a deliberate deep-link (?role=…) is respected.
+        if (h.signedIn && h.user && st.role === 'visitor' && st.p === 'welcome') {
+          if (h.user.role === 'owner') { patch.role = 'owner'; patch.o = 'home'; patch.oTab = 0 }
+          else { patch.role = 'cleaner'; patch.c = 'today'; patch.cTab = 0 }
+        }
+        return patch
+      })
     }).catch(() => { if (alive) setState((st: Any) => ({ ...st, beReady: true })) })
     return () => { alive = false }
   }, [])

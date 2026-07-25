@@ -292,21 +292,26 @@ export function TextField({ icon, placeholder, value, onChange, width, style, in
 }
 
 /* ------------------------------------------------------------- PhoneFrame -- */
-export function PhoneFrame({ statusRight = '●●● 🔋', time = '9:41', label, children, tabBar, style, ...rest }: Any) {
+export function PhoneFrame({ statusRight = '●●● 🔋', time = '9:41', label, appMode, className, children, tabBar, style, ...rest }: Any) {
+  // appMode = the real deployed app: the CSS class `sm-phone` lets it go
+  // full-screen on phones (see global.css), and the fake notch + status bar are
+  // dropped (the real device shows its own). The review showcase keeps them.
   return (
-    <div {...rest} style={{
+    <div {...rest} className={'sm-phone' + (className ? ' ' + className : '')} style={{
       width: 'var(--width-phone)', maxWidth: '100%', height: 'var(--height-phone)', background: 'var(--surface-app)',
       borderRadius: 'var(--radius-phone)', boxShadow: 'var(--shadow-raised),var(--bezel-phone)', overflow: 'hidden',
       position: 'relative', display: 'flex', flexDirection: 'column', ...style,
     }}>
-      <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 150, height: 26, background: '#201018', borderRadius: '0 0 18px 18px', zIndex: 40 }} />
-      <div style={{
-        height: 46, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-        padding: '0 26px 6px', fontSize: '12px', fontWeight: 'var(--weight-semibold)' as any,
-        color: 'var(--text-body)', flexShrink: 0,
-      }}>
-        <span>{time}</span><span>{label}</span><span>{statusRight}</span>
-      </div>
+      {!appMode && <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 150, height: 26, background: '#201018', borderRadius: '0 0 18px 18px', zIndex: 40 }} />}
+      {!appMode && (
+        <div style={{
+          height: 46, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+          padding: '0 26px 6px', fontSize: '12px', fontWeight: 'var(--weight-semibold)' as any,
+          color: 'var(--text-body)', flexShrink: 0,
+        }}>
+          <span>{time}</span><span>{label}</span><span>{statusRight}</span>
+        </div>
+      )}
       <div className="sm-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>{children}</div>
       {tabBar}
     </div>

@@ -21,7 +21,9 @@ function readProps(): ModelProps {
   const fill = q.get('fill')
   return {
     startRole: role === 'cleaner' || role === 'owner' || role === 'visitor' ? role : 'visitor',
-    showChrome: chrome === '0' || chrome === 'false' ? false : true,
+    // The live app shows just the app. The review showcase (device switcher +
+    // role pills + "Every screen" index) is opt-in with ?chrome=1.
+    showChrome: chrome === '1' || chrome === 'true',
     autoFillMethod: fill === '1' || fill === 'true',
   }
 }
@@ -32,7 +34,7 @@ export default function App() {
   const screen = PublicScreens(v) || CleanerScreens(v) || OwnerScreens(v) || ConciergeScreens(v) || SharedScreens(v)
 
   return (
-    <div className="sm-stage">
+    <div className={'sm-stage' + (v.showChrome ? '' : ' sm-stage--app')}>
       {v.showChrome && (
         <div style={css('text-align:center;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:10px')}>
           <div style={css('font-family:var(--font-serif-display);font-size:38px;line-height:1;color:var(--orange)')}>She’s Maid In <span style={{ color: 'var(--magenta)' }}>ATL</span></div>
@@ -47,7 +49,7 @@ export default function App() {
       )}
 
       <div style={css('position:relative')}>
-        <PhoneFrame time="11:41" label={v.roleLabel}>
+        <PhoneFrame time="11:41" label={v.roleLabel} appMode={!v.showChrome}>
           <div style={css('min-height:100%;display:flex;flex-direction:column')}>
             <div style={css('flex:1')}>{screen}</div>
             {v.isCleaner && <div style={css('position:sticky;bottom:0')}><TabBar tabs={v.cleanerTabs} active={v.cTab} onSelect={v.pickCTab} /></div>}

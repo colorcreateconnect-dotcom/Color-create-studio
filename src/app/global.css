@@ -31,6 +31,24 @@ a:hover { color: var(--orange); }
   gap: 24px;
 }
 
+/* Real-app mode (no review chrome): fill the screen on phones so it feels like
+   a native app; a centered phone-width card on larger screens. */
+.sm-stage--app { padding: 0; gap: 0; justify-content: flex-start; }
+@media (min-width: 641px) {
+  .sm-stage--app { padding: 24px 0; justify-content: center; }
+}
+@media (max-width: 640px) {
+  .sm-stage--app { min-height: 100vh; min-height: 100dvh; }
+  .sm-stage--app .sm-phone {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
 /* Hide scrollbars inside the phone while keeping scroll behaviour. */
 .sm-scroll::-webkit-scrollbar { width: 0; height: 0; }
 .sm-scroll { scrollbar-width: none; }
