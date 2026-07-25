@@ -1,15 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { isSupabaseConfigured, isSquareConfigured, squareSdkSrc } from './config'
 import { normalizePhone } from './supabase'
 import { _mappers } from './data'
 import { ApiError } from './api'
 import { parseTip, errMsg } from '../app/backend'
 
-// Start every test from a KNOWN-empty env, so a developer's real .env.local
-// (VITE_SUPABASE_URL etc.) can't leak in and flip these assertions.
-beforeEach(() => {
-  for (const k of ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_SQUARE_APP_ID', 'VITE_SQUARE_LOCATION_ID']) vi.stubEnv(k, '')
-})
+// Under Vitest, config.env() reads process.env (not import.meta.env), and
+// vite.config's test.env blanks the VITE_* vars — so a developer's real
+// .env.local can't leak in. Value tests set their own via vi.stubEnv.
 afterEach(() => vi.unstubAllEnvs())
 
 describe('config detection — the demo/live switch', () => {

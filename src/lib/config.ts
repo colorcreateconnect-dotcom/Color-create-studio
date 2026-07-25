@@ -4,14 +4,21 @@
  * Every integration point gates on these so the demo never breaks. */
 
 export function env(key: string): string | undefined {
+  let viteEnv: any
+  try { viteEnv = typeof import.meta !== 'undefined' ? (import.meta as any).env : undefined } catch { /* no import.meta */ }
+  // process is reached via globalThis so the bare identifier isn't referenced
+  // (browser project, no @types/node).
+  const proc: any = (globalThis as any)?.process
+  // Under Vitest, prefer process.env: a developer's real .env.local is injected
+  // into import.meta.env by Vite and would otherwise leak backend creds into the
+  // hermetic config-detection tests (which set values via vi.stubEnv → process.env).
+  const underTest = !!(viteEnv?.VITEST || viteEnv?.MODE === 'test' || proc?.env?.VITEST)
   let v: unknown
-  try { v = typeof import.meta !== 'undefined' ? (import.meta as any).env?.[key] : undefined } catch { /* no import.meta */ }
-  // Fallback for non-Vite contexts (Node/Vitest, SSR): read process.env too.
-  // Reached via globalThis so the bare `process` identifier isn't referenced
-  // (this is a browser project without @types/node).
-  if (v == null || v === '') {
-    const proc = (globalThis as any)?.process
-    if (proc?.env) v = proc.env[key]
+  if (underTest) {
+    v = proc?.env?.[key]
+  } else {
+    v = viteEnv?.[key]
+    if (v == null || v === '') v = proc?.env?.[key]
   }
   return v && String(v).trim() ? String(v) : undefined
 }
