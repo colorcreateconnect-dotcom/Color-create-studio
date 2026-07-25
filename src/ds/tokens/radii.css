@@ -1,0 +1,15 @@
+:root{
+  --radius-pill:999px;
+  --radius-xs:6px;
+  --radius-sm:9px;
+  --radius-md:12px;
+  --radius-lg:14px;
+  --radius-xl:16px;
+  --radius-2xl:18px;
+  --radius-3xl:22px;
+  --radius-4xl:26px;
+  --radius-sheet:26px 26px 0 0; /* @kind radius */
+  --radius-header:0 0 26px 26px; /* @kind radius */
+  --radius-phone:44px;
+  --radius-check:8px;
+}

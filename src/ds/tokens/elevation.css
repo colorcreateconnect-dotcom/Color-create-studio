@@ -1,0 +1,11 @@
+:root{
+  --shadow-card:0 10px 26px -20px rgba(42,23,32,.5);
+  --shadow-raised:0 18px 40px -18px rgba(42,23,32,.35);
+  --shadow-page:0 26px 60px -30px rgba(42,23,32,.4);
+  --shadow-doc:0 30px 70px -30px rgba(42,23,32,.4);
+  --shadow-primary-btn:0 12px 24px -12px var(--magenta);
+  --bezel-phone:0 0 0 11px #201018,0 0 0 13px #3A2530;
+  --blur-modal:blur(3px); /* @kind other */
+  --scrim-modal:rgba(30,15,22,.55);
+  --stamp-scrim:rgba(0,0,0,.55);
+}

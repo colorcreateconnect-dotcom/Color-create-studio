@@ -1,0 +1,46 @@
+:root{
+  /* families */
+  --font-serif-display:'DM Serif Display',Georgia,serif;
+  --font-sans:'Poppins',system-ui,-apple-system,sans-serif;
+  --font-spaced:'Jost',sans-serif;
+  --font-serif-doc:'Cormorant Garamond',Georgia,serif;
+  --font-script:'Parisienne',cursive;
+
+  /* weights */
+  --weight-light:300;
+  --weight-regular:400;
+  --weight-medium:500;
+  --weight-semibold:600;
+  --weight-bold:700;
+
+  /* display (serif) */
+  --text-display-xl:46px;
+  --text-display-lg:40px;
+  --text-display:36px;
+  --text-display-sm:30px;
+  --text-h1:27px;
+  --text-h2:22px;
+  --text-numeral:44px;
+
+  /* body (sans) */
+  --text-lead:16px;
+  --text-body:14.5px;
+  --text-body-sm:13.5px;
+  --text-ui:13px;
+  --text-meta:12px;
+  --text-micro:11.5px;
+  --text-nano:10.5px;
+
+  /* line heights */
+  --leading-display:1.05; /* @kind other */
+  --leading-tight:1.2; /* @kind other */
+  --leading-snug:1.45; /* @kind other */
+  --leading-body:1.6; /* @kind other */
+  --leading-loose:1.7; /* @kind other */
+
+  /* letterspacing */
+  --tracking-eyebrow:.16em; /* @kind other */
+  --tracking-spaced:.24em; /* @kind other */
+  --tracking-spaced-wide:.28em; /* @kind other */
+  --tracking-normal:0; /* @kind other */
+}

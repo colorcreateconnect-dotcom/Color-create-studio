@@ -1,0 +1,85 @@
+:root{
+  /* ---- brand base (locked palette, from Ahleyia's cards & sticker) ---- */
+  --orange:#E9631C;
+  --orange-deep:#D0521A;
+  --orange-peach:#FFE3CE;
+  --magenta:#C81C7E;
+  --magenta-deep:#8F1560;
+  --pink:#F3BCE7;
+  --pink-soft:#FCE7F6;
+  --pink-blush:#FDE7F6;
+  --green:#33B27A;
+  --green-deep:#1F8A5B;
+  --cream:#FFF9F4;
+  --ink:#2A1720;
+  --ink-soft:#6B5560;
+  --line:#F0E2EA;
+
+  /* ---- tints (chip / note backgrounds) ---- */
+  --tint-orange:#FDECE0;
+  --tint-orange-line:#F6D3BD;
+  --tint-magenta:#F3E4F1;
+  --tint-green:#E4F5EC;
+  --tint-green-line:#BFE6CF;
+  --tint-blue:#E9F1FF;
+  --tint-neutral:#F4EEF1;
+  --tint-pink-line:#F4D3EC;
+
+  /* ---- eco / sage (Kee Method print + eco callouts) ---- */
+  --eco-bg:#EEF4E6;
+  --eco-line:#D7E6C4;
+  --eco-ink:#3F5A2E;
+  --sage-band:#8A9A7B;
+
+  /* ---- semantic status ---- */
+  --info:#2F6BD6;
+  --danger:#B23B3B;
+  --danger-bg:#FBE9E9;
+  --danger-line:#F2CCCC;
+  --instacart:#0AAD0A;
+
+  /* ---- neutral rails ---- */
+  --track:#F0E6EC;
+  --check-border:#E0CFD9;
+  --grabber:#E2D3DB;
+
+  /* ---- semantic aliases: text ---- */
+  --text-body:var(--ink);
+  --text-muted:var(--ink-soft);
+  --text-accent:var(--magenta);
+  --text-on-brand:#FFFFFF;
+  --text-price:var(--magenta);
+  --text-money:var(--green-deep);
+  --text-warn:var(--orange-deep);
+
+  /* ---- semantic aliases: surface ---- */
+  --surface-page:#F7EEF4;
+  --surface-card:#FFFFFF;
+  --surface-cream:var(--cream);
+  --surface-sunken:var(--tint-neutral);
+  --surface-inverse:var(--ink);
+  --surface-app:var(--cream);
+
+  /* ---- semantic aliases: border ---- */
+  --border-default:var(--line);
+  --border-strong:var(--check-border);
+  --border-on-brand:rgba(255,255,255,.35);
+  --surface-on-brand:rgba(255,255,255,.16);
+  --surface-on-brand-strong:rgba(255,255,255,.22);
+
+  /* ---- gradients (the brand's primary "material") ---- */
+  --gradient-brand:linear-gradient(135deg,var(--orange),var(--magenta));
+  --gradient-brand-header:linear-gradient(150deg,var(--orange),var(--magenta));
+  --gradient-brand-hero:linear-gradient(160deg,var(--orange) 0%,var(--magenta) 70%,var(--magenta-deep) 100%);
+  --gradient-eco:linear-gradient(150deg,var(--green),#2F8F66);
+  --gradient-report:linear-gradient(150deg,var(--info),var(--magenta));
+  --gradient-card-blush:linear-gradient(140deg,#FFFFFF,var(--pink-soft));
+  --gradient-page:radial-gradient(1200px 600px at 15% -10%,var(--pink-blush) 0%,transparent 55%),radial-gradient(1000px 600px at 100% 0%,var(--orange-peach) 0%,transparent 50%);
+  --gradient-ink:linear-gradient(140deg,var(--ink),#4A2C3A);
+
+  /* ---- photo placeholder washes (proof-photo stand-ins) ---- */
+  --photo-1:linear-gradient(135deg,#E9D3E4,#F6E2C9); /* @kind color */
+  --photo-2:linear-gradient(135deg,#F6DDC4,#E7F0D9); /* @kind color */
+  --photo-3:linear-gradient(135deg,#DFE7F6,#F3E2EF); /* @kind color */
+  --photo-4:linear-gradient(135deg,#E7F0D9,#F6E2C9); /* @kind color */
+}
