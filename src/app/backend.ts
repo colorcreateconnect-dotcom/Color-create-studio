@@ -27,6 +27,7 @@ export interface Hydration {
   card: PaymentMethod | null
   jobs: Job[]
   properties: Property[]
+  clients: User[]
   activeJobId?: string
 }
 
@@ -36,22 +37,23 @@ const ACTIVE_PAYMENT_STATES = ['scheduled', 'captured', 'deposit_released', 'awa
  *  drive the money-path actions and the live screens. Safe to call when signed
  *  out (returns signedIn:false) or when the backend is absent. */
 export async function hydrate(): Promise<Hydration> {
-  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [] }
+  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [], clients: [] }
   if (!backendActive()) return empty
   const session = await restore().catch(() => null)
   if (!session) return empty
   const data = getData()
   const user = await data.currentUser().catch(() => null)
-  if (!user) return { signedIn: true, user: null, card: null, jobs: [], properties: [] }
+  if (!user) return { signedIn: true, user: null, card: null, jobs: [], properties: [], clients: [] }
   const isOwner = user.role === 'owner'
   const jobs = await data
     .jobs(isOwner ? { ownerId: user.id } : { cleanerId: user.id })
     .catch(() => [] as Job[])
-  // Owner sees their own properties; staff/admin see the whole org's.
+  // Owner sees their own properties; staff/admin see the whole org's + its clients.
   const properties = await (isOwner ? data.properties(user.id) : data.orgProperties()).catch(() => [] as Property[])
+  const clients = isOwner ? [] : await data.orgClients().catch(() => [] as User[])
   const card = isOwner ? await data.cardOnFile(user.id).catch(() => null) : null
   const active = jobs.find((j) => ACTIVE_PAYMENT_STATES.includes(j.paymentState))
-  return { signedIn: true, user, card, jobs, properties, activeJobId: active?.id }
+  return { signedIn: true, user, card, jobs, properties, clients, activeJobId: active?.id }
 }
 
 /** Current device position — the geofence input for check-in. Rejects clearly

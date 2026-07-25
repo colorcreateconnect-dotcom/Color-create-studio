@@ -11,7 +11,7 @@ import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/conc
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
-  sendPhoneOtp, verifyPhoneOtp, signInWithPassword, api, getData,
+  sendPhoneOtp, verifyPhoneOtp, signInWithPassword, signOut as beSignOut, api, getData,
 } from './backend'
 import { isSquareConfigured } from '../lib/config'
 
@@ -197,7 +197,7 @@ function initialState(props: ModelProps): Any {
     // stays empty in the sandbox/demo so every screen runs on seed data.
     gatePhone: '',
     beReady: false, beSignedIn: false, beUser: null, beCard: null,
-    beJobs: [], beProps: [], beActiveJobId: null, beBusy: false,
+    beJobs: [], beProps: [], beClients: [], beActiveJobId: null, beBusy: false,
     access: { routes: true, checklists: true, supplies: true, ownernotes: true },
     onotif: { reports: true, cleaning: true, supplies: true, summary: false },
     cnotif: { bookings: true, approvals: true, supplies: true },
@@ -285,7 +285,7 @@ export function useModel(props: ModelProps) {
       setState((st: Any) => {
         const patch: Any = {
           ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
-          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beActiveJobId: h.activeJobId ?? null,
+          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beActiveJobId: h.activeJobId ?? null,
         }
         // Land a signed-in user in their own zone — but only from the default
         // visitor landing, so a deliberate deep-link (?role=…) is respected.
@@ -647,9 +647,14 @@ export function useModel(props: ModelProps) {
       { key: 'supplies', label: 'Supply approvals from owners' },
     ].map((n) => ({ label: n.label, on: !!s.cnotif[n.key], toggle: () => setState((st: Any) => ({ ...st, cnotif: { ...st.cnotif, [n.key]: !st.cnotif[n.key] } })) }))
     v.toastInvite = () => say('Invite link copied 💌')
-    v.signOut = () => {
+    v.signOut = async () => {
       const admin = ['admin', 'team', 'clients', 'bizsettings', 'area', 'assign', 'calendar'].indexOf(s.c) >= 0
-      go({ role: 'visitor', p: admin ? 'adminlogin' : 'welcome', hist: [] }); say('Signed out 👋')
+      if (backendActive()) { try { await beSignOut() } catch { /* local session already cleared */ } }
+      setState((t: Any) => ({
+        ...t, beSignedIn: false, beUser: null, beCard: null, beJobs: [], beProps: [], beActiveJobId: null,
+        role: 'visitor', p: admin ? 'adminlogin' : 'welcome', hist: [], menuOpen: false,
+      }))
+      say('Signed out 👋')
     }
 
     // 24 · arrival check-in
@@ -791,10 +796,20 @@ export function useModel(props: ModelProps) {
       v.hasHomes = homes.length > 0
       v.noHomes = homes.length === 0
       v.ownerEmailReal = s.beUser?.email || ''
-      // Greet the real account, not the seed persona.
+      // Greet + identify the real account, not the seed persona.
       const en = (s.beUser?.email || '').split('@')[0].split(/[.+]/)[0]
-      if (s.beUser?.fullName) v.clientGreeting = s.beUser.fullName
-      else if (en) v.clientGreeting = en.charAt(0).toUpperCase() + en.slice(1)
+      const liveName = s.beUser?.fullName || (en ? en.charAt(0).toUpperCase() + en.slice(1) : 'You')
+      v.clientGreeting = liveName
+      v.clientFull = liveName
+      v.clientInitials = liveName.slice(0, 2).toUpperCase()
+      v.accountTitle = liveName + '’s account'
+      if (s.beUser?.email) v.clientEmail = s.beUser.email
+      if (s.beUser?.phone) v.clientPhone = s.beUser.phone
+      v.clientTypeLine = 'Client · ' + (s.beUser?.email || '')
+      v.livePropsLine = homes.length ? homes.map((h: Any) => h.name).join(' · ') : 'None yet — add your first'
+      v.livePropCount = homes.length + (homes.length === 1 ? ' property' : ' properties')
+      // Real card on file (from save-card / hydrate), else none.
+      v.liveCard = s.beCard ? { brand: s.beCard.brand, last4: s.beCard.last4, line: (s.beCard.brand || 'Card') + ' ···· ' + s.beCard.last4 } : null
     }
 
     // listing-detect failure
@@ -1443,6 +1458,18 @@ export function useModel(props: ModelProps) {
     const wanted = ({ Recurring: 'active', 'Quotes out': 'quote', Lapsed: 'lapsed' } as Any)[s.clientFilter]
     const shownClients = wanted ? allClients.filter((c) => c.kind === wanted) : allClients
     v.clientRows = shownClients.map((c, i, arr) => ({ icon: c.icon, tile: c.tile || null, name: c.name, sub: c.sub, flag: c.flag || null, right: c.right, last: i === arr.length - 1, go: c.go || null }))
+    // Live admin: real clients from the org, with each one's property count.
+    v.liveAdmin = backendActive() && s.beSignedIn && (s.beUser?.role === 'org_admin' || s.beUser?.role === 'cleaner')
+    if (v.liveAdmin) {
+      const counts: Any = {}
+      ;(s.beProps || []).forEach((p: Any) => { counts[p.ownerId] = (counts[p.ownerId] || 0) + 1 })
+      const rows = (s.beClients || []).map((u: Any, i: number, arr: Any[]) => {
+        const nm = (u.fullName || (u.email || '').split('@')[0] || 'Client').trim()
+        const n = counts[u.id] || 0
+        return { icon: (nm[0] || 'C').toUpperCase(), tile: cTile, name: nm, sub: n + (n === 1 ? ' property' : ' properties'), flag: null, right: null, last: i === arr.length - 1, go: null }
+      })
+      v.clientRows = rows.length ? rows : [{ icon: '✨', name: 'No clients yet', sub: 'Clients appear here as they join', flag: null, right: chip('cc0', 'refresh', 'Empty'), last: true, go: null }]
+    }
 
     // 45 · tax documents
     v.cTax = s.role === 'cleaner' && s.c === 'tax'

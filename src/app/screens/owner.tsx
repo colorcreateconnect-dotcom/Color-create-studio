@@ -379,7 +379,10 @@ function Account({ v }: { v: any }) {
             <div>
               <div style={css('font-family:var(--font-serif-display);font-size:22px;line-height:1.1')}>{v.clientFull}</div>
               <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>{v.clientTypeLine}</div>
-              <div style={css('display:flex;gap:var(--gap-chip);margin-top:8px')}><Chip tone="ghost">2 properties</Chip><Chip tone="refresh">✓ 18 verified cleans</Chip></div>
+              <div style={css('display:flex;gap:var(--gap-chip);margin-top:8px')}>
+                <Chip tone="ghost">{v.liveOwner ? v.livePropCount : '2 properties'}</Chip>
+                {!v.liveOwner && <Chip tone="refresh">✓ 18 verified cleans</Chip>}
+              </div>
             </div>
           </div>
         </Card>
@@ -387,23 +390,36 @@ function Account({ v }: { v: any }) {
         <Card flush>
           <SupplyRow icon="📱" name={v.clientPhone} sub="One-tap code sign-in · no password" right="›" onClick={v.goEditPhone} />
           <SupplyRow icon="💌" name={v.clientEmail} sub="Reports & receipts are emailed here" right="›" onClick={v.goEditEmail} />
-          <SupplyRow icon="🏡" name="Your properties" sub="The Hartwell Estate · Skyline Loft 12B" right="›" onClick={v.goOwnerHome} />
+          <SupplyRow icon="🏡" name="Your properties" sub={v.liveOwner ? v.livePropsLine : 'The Hartwell Estate · Skyline Loft 12B'} right="›" onClick={v.goOwnerHome} />
           <SupplyRow icon="✅" name="Account setup" sub="Property, standard, card & reference photos" right="›" onClick={v.goSetup} last />
         </Card>
         <SectionLabel right={v.chipSecure}>Card on file</SectionLabel>
         <Card>
-          <div style={css('display:flex;align-items:center;gap:12px')}>
-            <div style={css('width:42px;height:42px;border-radius:var(--radius-md);background:var(--surface-cream);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0')}>💳</div>
-            <div style={css('flex:1')}>
-              <div style={css('font-size:14px;font-weight:var(--weight-semibold)')}>VISA ···· 4242</div>
-              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Credit · exp 04/28</div>
+          {v.liveOwner && !v.liveCard ? (
+            <div style={css('display:flex;align-items:center;gap:12px')}>
+              <div style={css('width:42px;height:42px;border-radius:var(--radius-md);background:var(--surface-cream);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0')}>💳</div>
+              <div style={css('flex:1')}>
+                <div style={css('font-size:14px;font-weight:var(--weight-semibold)')}>No card yet</div>
+                <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Add a credit card — charged once per clean, on arrival</div>
+              </div>
+              <Button size="sm" onClick={v.goEditCard}>Add card</Button>
             </div>
-            <Chip tone="refresh">Primary</Chip>
-          </div>
-          <div style={css('display:flex;gap:8px;margin-top:14px')}>
-            <Button variant="ghost" size="sm" onClick={v.goEditCard}>Replace card</Button>
-            <Button variant="ghost" size="sm" onClick={v.goReceipts}>Receipts</Button>
-          </div>
+          ) : (
+            <>
+              <div style={css('display:flex;align-items:center;gap:12px')}>
+                <div style={css('width:42px;height:42px;border-radius:var(--radius-md);background:var(--surface-cream);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0')}>💳</div>
+                <div style={css('flex:1')}>
+                  <div style={css('font-size:14px;font-weight:var(--weight-semibold)')}>{v.liveCard ? v.liveCard.line : 'VISA ···· 4242'}</div>
+                  <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>{v.liveCard ? 'Credit · on file' : 'Credit · exp 04/28'}</div>
+                </div>
+                <Chip tone="refresh">Primary</Chip>
+              </div>
+              <div style={css('display:flex;gap:8px;margin-top:14px')}>
+                <Button variant="ghost" size="sm" onClick={v.goEditCard}>Replace card</Button>
+                <Button variant="ghost" size="sm" onClick={v.goReceipts}>Receipts</Button>
+              </div>
+            </>
+          )}
         </Card>
         <NoteCard tone="money" icon="🧾"><b>One charge, on arrival.</b> Your card is charged once for the full amount when Ahleyia arrives — never twice. Tips are charged separately, 100% to her.</NoteCard>
         <SectionLabel>Notifications</SectionLabel>

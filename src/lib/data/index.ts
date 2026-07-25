@@ -25,6 +25,7 @@ export interface NewProperty {
 export interface DataSource {
   readonly name: string
   currentUser(): Promise<User | null>
+  orgClients(): Promise<User[]>
   properties(ownerId: string): Promise<Property[]>
   orgProperties(): Promise<Property[]>
   jobs(filter: { ownerId?: string; cleanerId?: string }): Promise<Job[]>
@@ -119,6 +120,7 @@ class SupabaseData implements DataSource {
     const rows = await this.rest<any[]>(path)
     return rows[0] ? mapUser(rows[0]) : null
   }
+  async orgClients() { return (await this.rest<any[]>(`users?role=eq.owner&select=*&order=created_at`)).map(mapUser) }
   async properties(ownerId: string) { return (await this.rest<any[]>(`properties?owner_id=eq.${ownerId}&select=*&order=created_at`)).map(mapProperty) }
   async orgProperties() { return (await this.rest<any[]>(`properties?select=*&order=created_at`)).map(mapProperty) }
   async createProperty(input: NewProperty) {
@@ -150,6 +152,7 @@ class SupabaseData implements DataSource {
 class MockData implements DataSource {
   readonly name = 'mock'
   async currentUser() { return { id: 'ahleyia', orgId: 'org1', role: 'cleaner' } as User }
+  async orgClients() { return [] as User[] }
   async properties() { return [] as Property[] }
   async orgProperties() { return [] as Property[] }
   async createProperty(input: NewProperty) {
