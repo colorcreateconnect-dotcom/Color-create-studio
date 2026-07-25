@@ -79,7 +79,12 @@ Or run the individual files in order if you prefer:
 3. `supabase/migrations/0003_photos.sql`  — photos (marketing_consent default false)
 4. `supabase/migrations/0004_concierge.sql` — concierge line items
 5. `supabase/migrations/0005_auth_users.sql` — **auth → app user linkage (required)**
-6. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
+6. `supabase/migrations/0006_client_invites.sql` — client invitations
+7. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
+
+**Already applied an earlier version?** Re-run `setup.sql` — it is safe. The only
+new part is 0006, which uses `if not exists` for the added column. Your existing
+data is untouched.
 
 `0005` installs a trigger so every Supabase Auth signup automatically gets a
 `public.users` row (self-signups default to role `owner`, no org). Without it,
@@ -216,6 +221,23 @@ authorizes the specific action:
 
 The browser sends its token automatically on every function call. Isolation
 rules are unit-tested in `src/lib/authz.test.ts`.
+
+### Bringing her existing clients in
+
+Ahleyia's clients from before the app are added from **Add a client you already
+have** (business menu / rail). She fills in what she knows — who they are, the
+home, the agreed price and how often — and gets a **one-time link** to send them.
+
+The account and home are created immediately, so she can schedule, price and
+message that client straight away. The client opens the link and supplies only
+what should be theirs: **their email and a password**. Their **card** is added
+afterwards from inside the app, by the same endpoint any client uses — so a card
+can only ever be saved by its own owner.
+
+Security of the link: the token is 32 random bytes, stored **only as a SHA-256
+hash** (a leaked backup cannot claim anyone's account), **single-use** (claimed
+atomically, so two people opening the same link cannot both get through), and it
+**expires after 14 days**. She can cancel one by setting `revoked_at`.
 
 ### Still needs your input
 
