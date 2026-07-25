@@ -11,10 +11,13 @@ Done and verified on the deployed site:
   (real org clients + property counts), real sign-out
 - Money-path endpoints live in functions (simulated adapter until Square keys)
 
-Still seed/sample content (bind next, same pattern): reports, receipts,
-schedule/calendar, messages, supplies, cleaner route/day. Needs your input:
-Square keys (real payments), an SMS provider in Supabase Auth (client phone
-OTP), custom domain (optional).
+Also live: messaging (both directions), quotes (admin sends → client sees and
+accepts), receipts, the cleaner route and the business dashboard numbers — see
+§7 for the full table.
+
+Still seed/sample content (same pattern when needed): service reports,
+schedule/calendar, supplies. Needs your input: Square keys (real payments), an
+SMS provider in Supabase Auth (client phone OTP), custom domain (optional).
 
 This is the runbook to take the app live on **your Supabase project** with
 payments deferred. It's written so that adding Square later is just a few env
