@@ -137,6 +137,52 @@ Late-cancellation fee · lockout/can't-access trip fee · dispute policy
 requirement · residential hours-per-scope calibration. The schema and UI leave
 room for each; none blocks launch.
 
+---
+
+# Delta updates applied (CODE-UPDATE.md)
+
+Corrections (🔴) and new scope (🟡) from the follow-up handoff, all verified:
+
+- **Token collision fixed** — `--text-body` was defined as both a color and a
+  `14.5px` size; the size won, so `color:var(--text-body)` was invalid and body
+  text rendered pure black. Renamed the size to `--text-body-base`; body text is
+  `#2A1720` again. (45 usages, all `color:`, none `font-size:`.)
+- **Authoritative PWA kit** adopted — real icons at 152/167/180/192/512 +
+  maskable-512 and the head snippet from `home-screen-kit/`.
+- **Instacart: no partnership.** The grocery handoff is the standard deep-link /
+  shopping-list path only, behind a `GroceryAdapter` (`src/lib/grocery.ts`) so a
+  real agreement can drop in later. No partner-level order placement.
+- **Price-privacy nuance** — published price ≠ exposed margin. Cleaning cost math
+  stays private; **published cleaning prices and the concierge $70/hr hourly
+  rate are public** (concierge is time-based). `privacy.ts` documents both sets.
+- **Photo privacy is a hard rule** — `photos` table with `kind` and
+  `marketing_consent` **default false**; RLS makes every photo private to the
+  org + owner (no public/cross-owner policy); a DB check forbids a `before`
+  photo ever carrying marketing consent. Serve only via signed, expiring URLs.
+- **Concierge tier + full catalogue** (`src/lib/concierge.ts`, migration 0004):
+  - `$70/hr`, billed in 15-minute increments — the one public rate.
+  - Purchases **reimbursed at cost, no markup**; a reimbursable **cannot exist
+    without a receipt photo** (enforced at the DB check *and* the add-expense
+    function — verified: the insert is rejected).
+  - **Capture at close** (not arrival) — the amount is the **sum of non-tip line
+    items**, never a stored total. New `captured → settled` transition.
+  - Live time is **additive only from the client** (`applyExtension` rejects an
+    owner-originated decrease); `added_by` on `concierge_time` keeps it auditable.
+  - `estimated_minutes` is a **plan, never a quote** — no total is derived from it.
+  - `Job.type` extended (concierge, co_hosting, store_run, delivery_receipt,
+    coaching, reset_organization, move_out, window_cleaning, laundry, commercial);
+    reset/organization has its own slower hours curve; coaching is a service line.
+  - New entities: `JobLineItem`, `ConciergeRequest`, `stored_goods` (goods-in-
+    storage, distinct from par-level supplies), with RLS.
+- **Acuity** is the incumbent booking tool (`bookatlluxury.as.me`); the
+  bedroom-based Airbnb tiers are canon (the Acuity menu is outdated). Storefront
+  may link out to Acuity until cutover — set a link-out env var at go-live.
+
+Verified in-sandbox after the deltas: **34 unit tests pass**; migrations
+0001–0004 + seed apply clean to real Postgres (**30 tables, 35 RLS policies,
+`marketing_consent` default false, receipt-required check enforced**); all
+Netlify functions bundle; `vite build` green.
+
 ## Processor swap (network phase)
 
 When the first outside cleaner joins and real third-party payouts begin, swap

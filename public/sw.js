@@ -8,10 +8,10 @@
  * - Photo outbox: IndexedDB queue + Background Sync so proof photos taken
  *   offline upload automatically on reconnect.
  */
-const VERSION = 'smia-v1'
+const VERSION = 'smia-v2'
 const SHELL = `${VERSION}-shell`
 const RUNTIME = `${VERSION}-runtime`
-const APP_SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/assets/brand/app-icon.png']
+const APP_SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/icons/icon-192.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL).then((c) => c.addAll(APP_SHELL)).then(() => self.skipWaiting()))

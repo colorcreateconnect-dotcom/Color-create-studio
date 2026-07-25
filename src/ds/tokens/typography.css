@@ -24,7 +24,7 @@
 
   /* body (sans) */
   --text-lead:16px;
-  --text-body:14.5px;
+  --text-body-base:14.5px;   /* renamed from --text-body: collided with the color alias in colors.css */
   --text-body-sm:13.5px;
   --text-ui:13px;
   --text-meta:12px;

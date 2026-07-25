@@ -19,7 +19,9 @@ export type PaymentState =
 export const PAYMENT_TRANSITIONS: Record<PaymentState, PaymentState[]> = {
   scheduled: ['captured', 'capture_failed', 'refunded'],
   capture_failed: ['captured', 'refunded'], // retry after the owner updates their card
-  captured: ['deposit_released', 'disputed', 'refunded'],
+  // 'settled' is the concierge capture-at-close path: one charge at close, no
+  // 50/50 arrival split. Cleaning jobs still go captured → deposit_released.
+  captured: ['deposit_released', 'settled', 'disputed', 'refunded'],
   deposit_released: ['awaiting_approval', 'disputed', 'refunded'],
   awaiting_approval: ['approved', 'auto_approved_48h', 'disputed'],
   approved: ['final_released', 'disputed'],
