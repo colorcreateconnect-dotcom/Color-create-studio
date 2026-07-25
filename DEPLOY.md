@@ -49,8 +49,11 @@ values are present.
 
 ## 2 · Apply the database
 
-In the Supabase dashboard → **SQL Editor**, run these files in order (paste each
-file's contents and Run):
+**Easiest:** in the Supabase dashboard → **SQL Editor → New query**, paste the
+whole of **`supabase/setup.sql`** and click **Run**. That one file is all of the
+below concatenated in the right order (verified to apply clean in one shot).
+
+Or run the individual files in order if you prefer:
 
 1. `supabase/migrations/0001_schema.sql`  — tables + types
 2. `supabase/migrations/0002_rls.sql`     — Row-Level Security
