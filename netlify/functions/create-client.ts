@@ -29,7 +29,7 @@ export const handler = async (event: any) => {
   const {
     fullName, phone, email,
     propertyName, address, neighborhood, propertyType, beds, baths,
-    agreedPrice, cadence, notes, signatureScent, productPreference,
+    agreedPrice, cadence, notes, signatureScent, productPreference, smsConsent,
   } = body
 
   if (!fullName || !String(fullName).trim()) return json(400, { error: 'Their name is required' })
@@ -60,11 +60,13 @@ export const handler = async (event: any) => {
       await sbUpdate('users', `id=eq.${authUser.id}`, {
         org_id: caller.orgId, role: 'owner', full_name: fullName,
         phone: phone ?? null, email: email ?? null, onboarding_state: 'invited',
+        sms_consent: !!smsConsent, sms_consent_at: smsConsent ? new Date().toISOString() : null,
       })
     } else {
       await sbInsert('users', [{
         id: authUser.id, org_id: caller.orgId, role: 'owner', full_name: fullName,
         phone: phone ?? null, email: email ?? null, onboarding_state: 'invited',
+        sms_consent: !!smsConsent, sms_consent_at: smsConsent ? new Date().toISOString() : null,
       }])
     }
 

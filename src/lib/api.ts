@@ -80,8 +80,18 @@ export function createClient(input: {
   propertyType?: 'airbnb' | 'residential' | 'loved_one'
   beds?: number; baths?: number
   agreedPrice?: number; cadence?: string; notes?: string
+  smsConsent?: boolean
 }): Promise<CreateClientResult> {
   return post('create-client', input)
+}
+
+/* ---- text a client their invitation link (staff only; server picks recipient) ---- */
+export interface SendInviteResult {
+  ok: true; inviteUrl: string; expiresAt: string
+  texted: boolean; smsReason: string | null; smsConfigured: boolean
+}
+export function sendInvite(clientId: string): Promise<SendInviteResult> {
+  return post('send-invite', { clientId })
 }
 
 /* ---- the invitation a client opens (no sign-in: the token is the credential) ---- */

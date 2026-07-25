@@ -4,6 +4,7 @@
 import { sbSelect, sbUpdate, sbInsert, json } from './_shared/db'
 import { getAdapter } from './_shared/adapter'
 import { requireCaller, isStaff } from './_shared/auth'
+import { notify, MSG } from './_shared/sms'
 import { transition, releaseAmounts } from '../../src/lib/payments/state'
 
 export const handler = async (event: any) => {
@@ -19,7 +20,7 @@ export const handler = async (event: any) => {
   const { jobId, tip } = body
   if (!jobId) return json(400, { error: 'jobId is required' })
 
-  const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=*`)
+  const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=*,properties(name)`)
   if (!job) return json(404, { error: 'Job not found' })
 
   // Approval is the OWNER's decision (staff may act on their behalf for support).
@@ -55,5 +56,11 @@ export const handler = async (event: any) => {
   }
 
   await sbUpdate('jobs', `id=eq.${jobId}`, { payment_state: finalReleased })
+
+  // Tell the cleaner her money moved. Best-effort: a text must never undo a release.
+  const propName = job.properties?.name || 'that clean'
+  await notify(job.cleaner_id, MSG.finalReleased(propName, final))
+  if (tipCharged > 0) await notify(job.cleaner_id, MSG.tipReceived(tipCharged))
+
   return json(200, { ok: true, finalReleased: final, tipCharged, paymentState: finalReleased })
 }

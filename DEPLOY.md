@@ -80,11 +80,14 @@ Or run the individual files in order if you prefer:
 4. `supabase/migrations/0004_concierge.sql` — concierge line items
 5. `supabase/migrations/0005_auth_users.sql` — **auth → app user linkage (required)**
 6. `supabase/migrations/0006_client_invites.sql` — client invitations
-7. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
+7. `supabase/migrations/0007_sms_consent.sql` — recorded consent to be texted
+8. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
 
-**Already applied an earlier version?** Re-run `setup.sql` — it is safe. The only
-new part is 0006, which uses `if not exists` for the added column. Your existing
-data is untouched.
+**Already ran `setup.sql` before?** Do **not** re-run it — it would stop at
+`type "user_role" already exists`. Run **`supabase/upgrade.sql`** instead: it
+contains only the newer parts (invitations + SMS consent), is safe to run more
+than once, and leaves your data untouched. Verified against a database in
+exactly that state.
 
 `0005` installs a trigger so every Supabase Auth signup automatically gets a
 `public.users` row (self-signups default to role `owner`, no org). Without it,
@@ -238,6 +241,47 @@ Security of the link: the token is 32 random bytes, stored **only as a SHA-256
 hash** (a leaked backup cannot claim anyone's account), **single-use** (claimed
 atomically, so two people opening the same link cannot both get through), and it
 **expires after 14 days**. She can cancel one by setting `revoked_at`.
+
+### Text messages (Twilio)
+
+Two independent things, both optional:
+
+**1. Client phone-code sign-in** — no code involved. Supabase → Authentication →
+Sign In / Providers → **Phone**, set the SMS provider to Twilio and paste your
+Account SID, Auth Token, and a Messaging Service SID (or a Verify Service SID —
+Verify manages the codes and expiry for you). The app's phone login starts
+working immediately; no redeploy.
+
+**2. The app texting people** — set these in Netlify:
+
+| Var | Value |
+|---|---|
+| `TWILIO_ACCOUNT_SID` | your account SID |
+| `TWILIO_AUTH_TOKEN` | your auth token |
+| `TWILIO_MESSAGING_SERVICE_SID` | preferred — handles sender selection |
+| `TWILIO_FROM` | or a single sending number instead |
+
+With none of these set, sending is a **no-op** that reports `not_configured` —
+notifications can never break a booking or a payment.
+
+What gets sent, each triggered by a real event (there is deliberately no
+"send arbitrary text" endpoint — the recipient and wording are always resolved
+server-side):
+
+| Event | Who hears |
+|---|---|
+| She sends an invitation | the client gets their link |
+| Check-in succeeds | the owner: she's arrived, and the one charge went through |
+| Card declined at check-in | the owner: nothing was charged, how to fix it |
+| Owner approves | the cleaner: final released (and the tip, separately) |
+| 48h auto-release | both sides |
+
+**Consent is enforced, not assumed.** `users.sms_consent` is recorded with a
+timestamp when Ahleyia ticks that the client agreed, and `sms_opted_out` (a STOP
+reply) **always** overrides consent. Every message carries "Reply STOP to opt
+out". Before texting US numbers at any volume you also need **A2P 10DLC brand +
+campaign registration** in the Twilio console — unregistered traffic gets
+filtered.
 
 ### Still needs your input
 

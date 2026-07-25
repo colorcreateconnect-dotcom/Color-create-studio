@@ -1,3 +1,14 @@
+-- ============================================================================
+-- She's Maid In ATL — UPGRADE an existing database
+--
+-- Use this when you have ALREADY run setup.sql before and just need the newer
+-- parts. Safe to run more than once.
+--
+-- (On a brand-new project, run setup.sql instead — it contains everything.)
+-- ============================================================================
+
+
+-- ---------- 0006_client_invites.sql ----------
 -- Bringing her existing book of business into the app.
 --
 -- Ahleyia has clients from before the app: she knows their home, their agreed
@@ -47,3 +58,23 @@ alter table users add column if not exists onboarding_state text
 
 comment on column users.onboarding_state is
   'invited = provisioned by the studio, has not claimed their login yet; active = normal account';
+
+
+-- ---------- 0007_sms_consent.sql ----------
+-- Recorded consent to be texted.
+--
+-- Business SMS to US numbers is regulated: the recipient must have agreed, and
+-- must be able to stop. Ahleyia's existing clients agreeing verbally is not
+-- enough on paper — so consent is recorded per person, with a timestamp, and
+-- every outbound message checks it. An opt-out (STOP) is honoured forever and
+-- is deliberately separate from consent, so re-adding consent cannot silently
+-- override someone who asked to stop.
+
+alter table users add column if not exists sms_consent      boolean not null default false;
+alter table users add column if not exists sms_consent_at   timestamptz;
+alter table users add column if not exists sms_opted_out    boolean not null default false;
+alter table users add column if not exists sms_opted_out_at timestamptz;
+
+comment on column users.sms_consent   is 'They agreed to be texted about their service. Recorded with sms_consent_at.';
+comment on column users.sms_opted_out is 'They replied STOP. Overrides consent, permanently, until they opt back in.';
+

@@ -6,6 +6,7 @@
 import { sbSelect, sbUpdate, sbInsert, json } from './_shared/db'
 import { getAdapter } from './_shared/adapter'
 import { requireCaller, isStaff } from './_shared/auth'
+import { notify, MSG } from './_shared/sms'
 import { evaluateGeofence } from '../../src/lib/geofence'
 import { transition, releaseAmounts } from '../../src/lib/payments/state'
 
@@ -22,7 +23,7 @@ export const handler = async (event: any) => {
   const { jobId, device } = body
   if (!jobId || !device?.lat || !device?.lng) return json(400, { error: 'jobId and device coordinates are required' })
 
-  const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=*,properties(lat,lng,geofence_radius_m)`)
+  const [job] = await sbSelect('jobs', `id=eq.${jobId}&select=*,properties(name,lat,lng,geofence_radius_m)`)
   if (!job) return json(404, { error: 'Job not found' })
 
   // Only the assigned cleaner, or staff in the job's org, may check in — never
@@ -52,6 +53,8 @@ export const handler = async (event: any) => {
 
   if (charge.status !== 'COMPLETED') {
     await sbUpdate('jobs', `id=eq.${jobId}`, { payment_state: transition(job.payment_state, 'capture_failed'), status: 'held' })
+    // Tell the owner so they can fix the card — nothing was charged.
+    await notify(job.owner_id, MSG.cardDeclined(prop?.name || 'your home'))
     return json(402, { error: 'Card declined — nothing was charged, nothing released. The job is held.', code: 'CAPTURE_FAILED' })
   }
   // Re-check CREDIT at charge; a re-classified card is refunded and held.
@@ -76,6 +79,10 @@ export const handler = async (event: any) => {
     gps_checkin_at: new Date().toISOString(),
     started_at: new Date().toISOString(),
   })
+
+  // She's on site and the one charge has gone through — tell the owner.
+  // A notification must never fail a completed payment, so this is best-effort.
+  await notify(job.owner_id, MSG.onArrival(prop?.name || 'your home', charge.amount))
 
   return json(200, { ok: true, captured: charge.amount, arrivalReleased: arrival, paymentState: released })
 }

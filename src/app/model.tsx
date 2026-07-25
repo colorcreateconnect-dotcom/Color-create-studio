@@ -186,7 +186,7 @@ function initialState(props: ModelProps): Any {
     // the invitation an existing client opens.
     ncName: '', ncPhone: '', ncEmail: '', ncProperty: '', ncAddress: '',
     ncType: 'residential', ncBeds: '', ncBaths: '', ncPrice: '', ncCadence: 'Weekly',
-    ncError: '', newClientLink: '', newClientName: '',
+    ncError: '', newClientLink: '', newClientName: '', ncConsent: false, newClientId: '', inviteTexted: null,
     inviteToken: props.inviteToken || '', inviteLoading: !!props.inviteToken,
     invitePreview: null, inviteError: '', inviteFormError: '', inviteDone: false,
     inviteEmail: '', invitePw: '', invitePwShown: false, inviteBusy: false,
@@ -2011,6 +2011,9 @@ export function useModel(props: ModelProps) {
     v.ncCadences = ['Weekly', 'Biweekly', 'Monthly', 'One-time'].map((label) => ({ label, on: s.ncCadence === label, pick: () => set({ ncCadence: label }) }))
     v.newClientLink = s.newClientLink
     v.newClientName = s.newClientName
+    v.ncConsent = s.ncConsent
+    v.setNcConsent = (n: boolean) => set({ ncConsent: n })
+    v.inviteTexted = s.inviteTexted
     v.saveNewClient = async () => {
       const name = s.ncName.trim(), home = s.ncProperty.trim()
       if (!name) { set({ ncError: 'Their name, please.' }); return }
@@ -2030,9 +2033,10 @@ export function useModel(props: ModelProps) {
           baths: parseFloat(s.ncBaths) || undefined,
           agreedPrice: parseFloat(s.ncPrice) || undefined,
           cadence: s.ncCadence,
+          smsConsent: s.ncConsent,
         })
         const h = await hydrate()
-        setState((t: Any) => ({ ...t, beBusy: false, newClientLink: r.inviteUrl, newClientName: name, beClients: h.clients, beProps: h.properties }))
+        setState((t: Any) => ({ ...t, beBusy: false, newClientLink: r.inviteUrl, newClientName: name, newClientId: r.clientId, inviteTexted: null, beClients: h.clients, beProps: h.properties }))
         say(name + ' added ✓')
       } catch (e) { set({ beBusy: false, ncError: errMsg(e, 'Couldn’t add that client') }) }
     }
@@ -2040,10 +2044,27 @@ export function useModel(props: ModelProps) {
       try { navigator.clipboard.writeText(s.newClientLink) } catch { /* clipboard blocked */ }
       say('Link copied 🔗')
     }
-    v.textInviteLink = () => {
+    // Send it from the business number when Twilio is configured; otherwise hand
+    // off to her own phone's messaging app so she is never blocked.
+    const handOffToPhoneSms = () => {
       const body = encodeURIComponent('Hi ' + s.newClientName + ' — your account with She’s Maid In ATL is ready. Set your sign-in here: ' + s.newClientLink)
       try { window.open('sms:?&body=' + body, '_blank') } catch { /* blocked in preview */ }
       say('Opening your messages 💌')
+    }
+    v.textInviteLink = async () => {
+      if (!backendActive() || !s.newClientId) { handOffToPhoneSms(); return }
+      if (!s.ncConsent) { say('Tick that they agreed to be texted first'); handOffToPhoneSms(); return }
+      try {
+        set({ beBusy: true })
+        const r = await api.sendInvite(s.newClientId)
+        setState((t: Any) => ({ ...t, beBusy: false, newClientLink: r.inviteUrl, inviteTexted: r.texted }))
+        if (r.texted) say('Texted to them 💌')
+        else if (!r.smsConfigured) { say('Texting isn’t set up yet — opening your messages'); handOffToPhoneSms() }
+        else if (r.smsReason === 'no_consent') say('They haven’t agreed to texts — send it another way')
+        else if (r.smsReason === 'opted_out') say('They asked to stop texts — send it another way')
+        else if (r.smsReason === 'no_number') say('No mobile number on file for them')
+        else say('Couldn’t text it — the link is here to copy')
+      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t send that text')) }
     }
 
     /* ---- the invitation an existing client opens (?invite=…) ---- */

@@ -4,7 +4,7 @@
 import React from 'react'
 import { css } from '../css'
 import { Field, NativeInput } from './ui'
-import { Button, Card, Chip, DetailHeader, NoteCard, SectionLabel, SupplyRow } from '../../ds/components'
+import { Button, Card, Checkbox, Chip, DetailHeader, NoteCard, SectionLabel, SupplyRow } from '../../ds/components'
 
 export function InviteScreen({ v }: { v: any }) {
   const p = v.invitePreview
@@ -118,7 +118,8 @@ export function AddClientScreen({ v }: { v: any }) {
             <Button size="sm" onClick={v.copyInviteLink}>Copy link</Button>
             <Button variant="ghost" size="sm" onClick={v.textInviteLink}>Text it to them</Button>
           </div>
-          <p style={css('margin:12px 0 0;font-size:11px;line-height:var(--leading-snug);color:var(--text-muted)')}>Send it to them directly — anyone with this link can claim the account, so don’t post it publicly.</p>
+          {v.inviteTexted === true && <p style={css('margin:12px 0 0;font-size:11.5px;color:var(--green-deep)')}>✓ Texted to them from your business number.</p>}
+          <p style={css('margin:12px 0 0;font-size:11px;line-height:var(--leading-snug);color:var(--text-muted)')}>Send it to them directly — anyone with this link can claim the account, so don’t post it publicly. Texting it again makes a fresh link and retires this one.</p>
         </Card>
         <Button variant="ghost" onClick={v.goAddClient}>Add another client</Button>
         <div style={css('margin-top:10px')}><Button variant="ghost" onClick={v.goClients}>Back to my clients</Button></div>
@@ -163,6 +164,16 @@ export function AddClientScreen({ v }: { v: any }) {
             {v.ncCadences.map((c: any, i: number) => <Chip key={i} tone={c.on ? 'refresh' : 'ghost'} onClick={c.pick} style={{ cursor: 'pointer' }}>{c.label}</Chip>)}
           </div>
           <p style={css('margin:12px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>This is the one number they see. Your rates and margins stay on your side.</p>
+        </Card>
+
+        <Card>
+          <SectionLabel>Texting them</SectionLabel>
+          <div style={css('display:flex;gap:12px;align-items:flex-start')}>
+            <Checkbox checked={v.ncConsent} onChange={v.setNcConsent} size={22} />
+            <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>
+              They’ve agreed to get texts about their service — their link, arrival and payment notices. We record the date. They can reply STOP any time.
+            </div>
+          </div>
         </Card>
 
         {v.ncError && <NoteCard tone="pink" icon="⚠️">{v.ncError}</NoteCard>}

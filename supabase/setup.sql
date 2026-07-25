@@ -1,13 +1,9 @@
 -- ============================================================================
--- She's Maid In ATL — one-shot database setup
--- Run this ONCE on a fresh Supabase project (SQL Editor → New query → paste →
--- Run). It creates every table, Row-Level Security, the auth→user trigger, and
--- seeds the organization + The Kee Method™. Safe order; the seed uses
--- "on conflict do nothing" so re-running the seed part won't duplicate.
+-- She's Maid In ATL — one-shot database setup for a NEW Supabase project.
+-- SQL Editor → New query → paste this whole file → Run.
 --
--- Already have an earlier version applied? Re-running is safe: the only new
--- part is 0006 (client invitations), which uses "if not exists" for the added
--- column. Existing data is untouched.
+-- ALREADY RAN THIS BEFORE? Do NOT re-run it — run supabase/upgrade.sql instead,
+-- which contains only the newer parts and is safe to run repeatedly.
 -- ============================================================================
 
 
@@ -749,7 +745,7 @@ create trigger on_auth_user_created
 -- therefore cannot be used to claim anyone's account. Tokens are single-use
 -- (claimed_at) and expiring (expires_at).
 
-create table client_invites (
+create table if not exists client_invites (
   id           uuid primary key default gen_random_uuid(),
   org_id       uuid not null references organizations(id) on delete cascade,
   owner_id     uuid not null references users(id) on delete cascade, -- the client
@@ -761,8 +757,8 @@ create table client_invites (
   created_at   timestamptz not null default now()
 );
 
-create index client_invites_org_idx   on client_invites (org_id);
-create index client_invites_owner_idx on client_invites (owner_id);
+create index if not exists client_invites_org_idx   on client_invites (org_id);
+create index if not exists client_invites_owner_idx on client_invites (owner_id);
 
 alter table client_invites enable row level security;
 
@@ -770,6 +766,7 @@ alter table client_invites enable row level security;
 -- organization. The claim path is deliberately NOT here: an unclaimed client is
 -- not signed in yet, so claiming runs in a function with the service-role key,
 -- which verifies the token itself.
+drop policy if exists invite_staff_all on client_invites;
 create policy invite_staff_all on client_invites for all
   using (is_staff() and org_id = app_org())
   with check (is_staff() and org_id = app_org());
@@ -785,8 +782,27 @@ comment on column users.onboarding_state is
 
 
 -- ============================================================
--- seed.sql  (organization + The Kee Method™)
+-- 0007_sms_consent.sql
 -- ============================================================
+-- Recorded consent to be texted.
+--
+-- Business SMS to US numbers is regulated: the recipient must have agreed, and
+-- must be able to stop. Ahleyia's existing clients agreeing verbally is not
+-- enough on paper — so consent is recorded per person, with a timestamp, and
+-- every outbound message checks it. An opt-out (STOP) is honoured forever and
+-- is deliberately separate from consent, so re-adding consent cannot silently
+-- override someone who asked to stop.
+
+alter table users add column if not exists sms_consent      boolean not null default false;
+alter table users add column if not exists sms_consent_at   timestamptz;
+alter table users add column if not exists sms_opted_out    boolean not null default false;
+alter table users add column if not exists sms_opted_out_at timestamptz;
+
+comment on column users.sms_consent   is 'They agreed to be texted about their service. Recorded with sms_consent_at.';
+comment on column users.sms_opted_out is 'They replied STOP. Overrides consent, permanently, until they opt back in.';
+
+
+-- ---------- seed.sql (organization + The Kee Method™) ----------
 -- Seed: the organization, The Kee Method™ (as data), and pricing rules.
 -- The Vacation Rental Edition is the 26 steps in 5 phases, VERBATIM. The 4
 -- photo steps ARE the proof system.
