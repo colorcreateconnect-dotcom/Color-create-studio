@@ -1,5 +1,21 @@
 # Deploy — Supabase now, Square later
 
+## Current status (live at Netlify)
+
+Done and verified on the deployed site:
+- Schema + RLS + seed applied to the live Supabase project; auth→user trigger in
+- Admin (org_admin) + client (owner) test accounts, routed by role at sign-in
+- Real app presentation (no prototype chrome), responsive phone/tablet/desktop
+- Live-bound screens: owner Home (real properties + add-property writes to the
+  DB), owner Account (real identity/card, add-card state), admin Clients
+  (real org clients + property counts), real sign-out
+- Money-path endpoints live in functions (simulated adapter until Square keys)
+
+Still seed/sample content (bind next, same pattern): reports, receipts,
+schedule/calendar, messages, supplies, cleaner route/day. Needs your input:
+Square keys (real payments), an SMS provider in Supabase Auth (client phone
+OTP), custom domain (optional).
+
 This is the runbook to take the app live on **your Supabase project** with
 payments deferred. It's written so that adding Square later is just a few env
 vars and a redeploy — no code change.
