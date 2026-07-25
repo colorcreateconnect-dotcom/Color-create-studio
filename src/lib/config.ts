@@ -7,7 +7,12 @@ export function env(key: string): string | undefined {
   let v: unknown
   try { v = typeof import.meta !== 'undefined' ? (import.meta as any).env?.[key] : undefined } catch { /* no import.meta */ }
   // Fallback for non-Vite contexts (Node/Vitest, SSR): read process.env too.
-  if ((v == null || v === '') && typeof process !== 'undefined' && process.env) v = process.env[key]
+  // Reached via globalThis so the bare `process` identifier isn't referenced
+  // (this is a browser project without @types/node).
+  if (v == null || v === '') {
+    const proc = (globalThis as any)?.process
+    if (proc?.env) v = proc.env[key]
+  }
   return v && String(v).trim() ? String(v) : undefined
 }
 

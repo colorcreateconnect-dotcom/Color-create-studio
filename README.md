@@ -75,8 +75,12 @@ npm install
 npm run dev       # http://localhost:5173
 npm run build     # production build to dist/
 npm run preview   # preview the production build
-npm test          # financial-core unit tests (pricing, geofence, money model…)
+npm test          # financial-core + integration unit tests
 ```
+
+**Deploying?** See [`DEPLOY.md`](./DEPLOY.md) — a step-by-step runbook for going
+live on Supabase now with Square added later (payments run in a safe simulated
+mode until the Square keys are in; the switch is env-driven, no code change).
 
 ### Deep links
 

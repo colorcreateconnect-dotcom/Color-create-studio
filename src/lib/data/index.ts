@@ -12,7 +12,7 @@
 import type { Job, Property, Quote, Report, Message, PaymentMethod, User } from './types'
 import { instantiateJob, VACATION_RENTAL_EDITION, type JobStepInstance } from '../keeMethod'
 import { isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from '../config'
-import { accessToken } from '../supabase'
+import { accessToken, currentSession } from '../supabase'
 
 export interface DataSource {
   readonly name: string
@@ -85,7 +85,12 @@ class SupabaseData implements DataSource {
   }
 
   async currentUser(): Promise<User | null> {
-    const rows = await this.rest<any[]>('users?select=*&limit=1')
+    // Filter by the signed-in uid explicitly: under the org-read policy a staff
+    // member can select every user in their org, so `limit=1` alone could return
+    // a colleague. The session carries our own id from the GoTrue verify step.
+    const uid = currentSession()?.user?.id
+    const path = uid ? `users?id=eq.${uid}&select=*` : 'users?select=*&limit=1'
+    const rows = await this.rest<any[]>(path)
     return rows[0] ? mapUser(rows[0]) : null
   }
   async properties(ownerId: string) { return (await this.rest<any[]>(`properties?owner_id=eq.${ownerId}&select=*`)).map(mapProperty) }
