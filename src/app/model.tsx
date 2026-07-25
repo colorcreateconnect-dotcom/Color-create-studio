@@ -291,7 +291,7 @@ export function useModel(props: ModelProps) {
         // visitor landing, so a deliberate deep-link (?role=…) is respected.
         if (h.signedIn && h.user && st.role === 'visitor' && st.p === 'welcome') {
           if (h.user.role === 'owner') { patch.role = 'owner'; patch.o = 'home'; patch.oTab = 0 }
-          else { patch.role = 'cleaner'; patch.c = 'today'; patch.cTab = 0 }
+          else { patch.role = 'cleaner'; patch.c = h.user.role === 'org_admin' ? 'admin' : 'today'; patch.cTab = 0 }
         }
         return patch
       })
@@ -852,10 +852,10 @@ export function useModel(props: ModelProps) {
         set({ beBusy: true })
         await verifyPhoneOtp(phone, s.code)
         const h = await hydrate()
-        const role = h.user?.role === 'cleaner' ? 'cleaner' : 'owner'
         setState((st: Any) => ({ ...st, beBusy: false, beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null }))
-        if (role === 'cleaner') go({ role: 'cleaner', c: 'today', cTab: 0 })
-        else go({ role: 'owner', o: 'home', oTab: 0 })
+        const r = h.user?.role
+        if (r === 'owner') go({ role: 'owner', o: 'home', oTab: 0 })
+        else go({ role: 'cleaner', c: r === 'org_admin' ? 'admin' : 'today', cTab: 0 })
         say('Verified — welcome in ✓')
       } catch (e) { set({ beBusy: false }); say(errMsg(e, 'That code didn’t match — try again')) }
     }
@@ -936,7 +936,11 @@ export function useModel(props: ModelProps) {
         await signInWithPassword(em, s.adminPw)
         const h = await hydrate()
         setState((st: Any) => ({ ...st, beBusy: false, beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null }))
-        go({ role: 'cleaner', c: 'admin' }); say('Welcome back, Ahleyia 👑')
+        // Route by the user's real role: a client (owner) who signs in here still
+        // lands in the client view, not the admin one.
+        const r = h.user?.role
+        if (r === 'owner') { go({ role: 'owner', o: 'home', oTab: 0 }); say('Welcome back 💕') }
+        else { go({ role: 'cleaner', c: r === 'org_admin' ? 'admin' : 'today', cTab: 0 }); say('Welcome back 👑') }
       } catch (e) { set({ beBusy: false }); say(errMsg(e, 'That sign-in didn’t work')) }
     }
     v.adminForgot = () => say('Reset link sent to your business email 💌')
