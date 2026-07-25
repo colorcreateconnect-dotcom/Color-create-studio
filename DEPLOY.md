@@ -160,3 +160,41 @@ Sign in from the app's **Business sign in** screen with that email + password.
    **sandbox** first (`SQUARE_ENV=sandbox`) before flipping to `production`.
 
 No application code changes — the switch is entirely env-driven.
+
+---
+
+## 7 · What is live now (Supabase phase complete)
+
+Everything that does not depend on Square is wired to the database. Signed in,
+these screens read and write real rows under Row-Level Security; signed out (or
+with no backend configured) every screen falls back to the seed showcase, so the
+demo never breaks.
+
+| Area | Live behavior |
+|---|---|
+| Sign-in | Email + password (business) routes by real role: `org_admin` → admin dashboard, `cleaner` → route, `owner` → client home. Phone OTP works once an SMS provider is enabled in Supabase Auth. |
+| Sign out | Clears the real Supabase session. |
+| Client home | Real properties, real empty state, greets the real account. |
+| Add a property | Writes a `properties` row (RLS: `owner_id = auth.uid()`), then refreshes. |
+| Client account | Real identity, property list, and card-on-file (incl. "No card yet"). |
+| Admin clients | The org's real clients with each one's property count. |
+| Messaging | One real thread per client (`thread_key = owner:<id>`), both directions, RLS-scoped. |
+| Quotes | Admin writes a real `quotes` row + posts it on the client's thread; the client sees the real amount and accepts by replying. |
+| Receipts | Real `charges` rows with an honest empty state. |
+| Route + dashboard | Real counts; honest empty route (jobs are created server-side by design). |
+
+### Deliberately server-side only
+
+`jobs` has no client INSERT policy — scheduling a clean is a privileged action,
+so it belongs to a function with the service-role key, not the browser. The
+check-in / approve / concierge-close functions already write jobs, charges and
+payouts. Until a "book a clean" function is added, create job rows from the
+Supabase dashboard (or let the money-path functions do it) to exercise reports
+and receipts with real data.
+
+### Still needs your input
+
+1. **Square keys** — payments run on the mock adapter until then (see §6). Real
+   DB rows are written with mock processor refs; **no money moves**.
+2. **SMS provider** in Supabase Auth for client phone-code login.
+3. **Custom domain** (optional) — Netlify → Domain settings.
