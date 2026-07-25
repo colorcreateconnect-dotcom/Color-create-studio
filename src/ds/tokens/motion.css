@@ -1,0 +1,11 @@
+:root{
+  --dur-fast:.15s; /* @kind other */
+  --dur-base:.2s; /* @kind other */
+  --dur-slow:.3s; /* @kind other */
+  --ease-standard:ease; /* @kind other */
+  --toast-life:2200ms; /* @kind other */
+  --press-scale:.99; /* @kind other */
+  --press-shift:translateY(1px); /* @kind other */
+}
+@keyframes sm-sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes sm-toast-in{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}

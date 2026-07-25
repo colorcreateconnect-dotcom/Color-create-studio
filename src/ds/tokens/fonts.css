@@ -1,0 +1,6 @@
+/* Webfonts. No vendor font binaries were supplied in the handoff bundle;
+   the locked prototype uses these Google families, so we load them from Google Fonts.
+   DM Serif Display stands in for the Canva fashion serif on Ahleyia's business card.
+   Cormorant Garamond + Parisienne stand in for the letterspaced serif + script on
+   The Kee Method(TM) printed checklist pages. See readme.md > Typography. */
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Poppins:wght@300;400;500;600;700&family=Jost:wght@400;500;600&family=Cormorant+Garamond:wght@300;400;500;600&family=Parisienne&display=swap");

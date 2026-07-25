@@ -1,0 +1,45 @@
+/* App-level global styles. Mirrors the reference prototype's body + page wash.
+   The design-system token files (imported via ds/styles.css) own every color,
+   font, radius and shadow value — nothing here re-defines a token. */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--surface-page);
+  font-family: var(--font-sans);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-osx-font-smoothing: grayscale;
+}
+
+a { color: var(--magenta); text-decoration: none; }
+a:hover { color: var(--orange); }
+
+/* The stage the phone floats on — two soft radial washes over #F7EEF4. */
+.sm-stage {
+  min-height: 100vh;
+  background-image: var(--gradient-page);
+  padding: 36px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Hide scrollbars inside the phone while keeping scroll behaviour. */
+.sm-scroll::-webkit-scrollbar { width: 0; height: 0; }
+.sm-scroll { scrollbar-width: none; }
+
+/* Native input reset used by the keyboard-typed fields. */
+input, textarea {
+  font-family: var(--font-sans);
+  -webkit-appearance: none;
+}
+input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; }
+
+button { font-family: var(--font-sans); }

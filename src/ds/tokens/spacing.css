@@ -1,0 +1,26 @@
+:root{
+  --space-1:4px;
+  --space-2:6px;
+  --space-3:8px;
+  --space-4:10px;
+  --space-5:12px;
+  --space-6:14px;
+  --space-7:16px;
+  --space-8:20px;
+  --space-9:22px;
+  --space-10:26px;
+  --space-11:32px;
+  --space-12:40px;
+
+  /* layout rules */
+  --gutter-app:22px;        /* phone screen side padding */
+  --gutter-page:48px;       /* print / desktop page padding */
+  --stack-card:14px;        /* vertical rhythm between cards */
+  --gap-chip:8px;           /* chips, pills, meta tags */
+  --gap-tile:12px;
+  --width-phone:414px;
+  --height-phone:860px;
+  --width-card-page:600px;  /* digital business card */
+  --width-doc-page:820px;   /* eco one-pager */
+  --tap-min:44px;
+}

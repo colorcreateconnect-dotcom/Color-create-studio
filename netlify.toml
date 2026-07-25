@@ -1,0 +1,32 @@
+# Netlify build + Functions config.
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# The 48h auto-release worker runs on a schedule (also declared in-file).
+[functions."auto-release"]
+  schedule = "@hourly"
+
+# SPA fallback so client routes resolve to index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers. The service worker + PWA need HTTPS (Netlify provides it).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+
+# The service worker must not be cached, so updates ship immediately.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
