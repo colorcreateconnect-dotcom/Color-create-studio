@@ -48,7 +48,10 @@ function Thread({ v }: { v: any }) {
         ))}
         <NoteCard tone="pink" icon="🔒">This thread is stored to the property record — every message, photo and report kept together.</NoteCard>
       </div>
-      <div style={css('position:sticky;bottom:62px;z-index:5;background:var(--surface-page);border-top:1px solid var(--border-default);padding:12px 22px 14px;box-shadow:0 -10px 26px -20px rgba(42,23,32,.5)')}>
+      {/* Sits on the bottom of the scrolling area, which now ends exactly at the
+          tab bar — so the composer and the bar meet with no gap. (This used to
+          be offset by 62px to clear a tab bar that lived inside the scroll.) */}
+      <div style={css('position:sticky;bottom:0;z-index:5;background:var(--surface-page);border-top:1px solid var(--border-default);padding:12px 22px 14px;box-shadow:0 -10px 26px -20px rgba(42,23,32,.5)')}>
         <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap;margin-bottom:10px')}>
           {v.quickReplies.map((q: any, i: number) => <Pill key={i} onClick={q.send}>{q.label}</Pill>)}
         </div>
