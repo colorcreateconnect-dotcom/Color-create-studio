@@ -79,11 +79,18 @@ a:hover { color: var(--orange); }
   }
 
   /* The bar's background runs all the way down — flush to the screen edge, no
-     gap — while its icons are lifted clear of the home indicator. */
+     gap — while its icons stay clear of the home indicator.
+     The full 34pt inset plus the bar's own padding left ~48px of dead space
+     under the labels, which reads as the bar sitting too high. We reclaim most
+     of it: the bar's own bottom padding goes, and the inset is trimmed to just
+     what the indicator actually occupies (never below 6px on devices with no
+     indicator at all). */
   .sm-stage--app .sm-tabbar-slot {
     background: var(--surface-card);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: max(env(safe-area-inset-bottom, 0px) - 16px, 6px);
   }
+  .sm-stage--app .sm-tabbar-slot > div { padding-bottom: 0 !important; }
+  .sm-stage--app .sm-tabbar-slot button { padding-bottom: 2px !important; }
 
   /* Momentum scrolling stays inside the app area and never chains to the page. */
   .sm-stage--app .sm-scroll {
