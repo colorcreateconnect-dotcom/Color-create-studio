@@ -20,13 +20,33 @@ export const handler = async (event: any) => {
     return json(410, { error: INVITE_MESSAGE[state], code: state.toUpperCase() })
   }
 
-  const [client] = await sbSelect('users', `id=eq.${invite.owner_id}&select=full_name,email,phone`)
+  const [person] = await sbSelect('users', `id=eq.${invite.owner_id}&select=full_name,email,phone,role`)
+  const [org] = await sbSelect('organizations', `id=eq.${invite.org_id}&select=name`)
+  const isCleaner = person?.role === 'cleaner' || person?.role === 'org_admin'
+
+  // A cleaner is joining the team: they have no home and no price of their own,
+  // so none of that is looked up or returned for them.
+  if (isCleaner) {
+    return json(200, {
+      ok: true,
+      kind: 'staff',
+      studio: org?.name || 'She’s Maid In ATL',
+      fullName: person?.full_name || null,
+      email: person?.email || null,
+      phone: person?.phone || null,
+      properties: [],
+      agreedPrice: null,
+      cadence: null,
+    })
+  }
+
+  const client = person
   const props = await sbSelect('properties', `owner_id=eq.${invite.owner_id}&select=name,neighborhood,type,beds,baths&order=created_at`)
   const [quote] = await sbSelect('quotes', `owner_id=eq.${invite.owner_id}&select=client_amount,cadence&order=created_at.desc&limit=1`)
-  const [org] = await sbSelect('organizations', `id=eq.${invite.org_id}&select=name`)
 
   return json(200, {
     ok: true,
+    kind: 'client',
     studio: org?.name || 'She’s Maid In ATL',
     fullName: client?.full_name || null,
     // Whether we already know an email decides what the form asks for.

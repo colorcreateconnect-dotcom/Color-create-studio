@@ -85,6 +85,16 @@ export function createClient(input: {
   return post('create-client', input)
 }
 
+/* ---- add someone to the team (business owner only) ---- */
+export interface CreateStaffResult {
+  ok: true; staffId: string; inviteToken: string; inviteUrl: string; expiresAt: string
+}
+export function createStaff(input: {
+  fullName: string; phone?: string; email?: string; smsConsent?: boolean
+}): Promise<CreateStaffResult> {
+  return post('create-staff', input)
+}
+
 /* ---- text a client their invitation link (staff only; server picks recipient) ---- */
 export interface SendInviteResult {
   ok: true; inviteUrl: string; expiresAt: string
@@ -96,7 +106,10 @@ export function sendInvite(clientId: string): Promise<SendInviteResult> {
 
 /* ---- the invitation a client opens (no sign-in: the token is the credential) ---- */
 export interface InvitePreview {
-  ok: true; studio: string; fullName: string | null; email: string | null; phone: string | null
+  ok: true
+  /** 'client' = a homeowner claiming their account; 'staff' = joining the team. */
+  kind?: 'client' | 'staff'
+  studio: string; fullName: string | null; email: string | null; phone: string | null
   properties: { name: string; neighborhood: string | null; type: string; beds: number | null; baths: number | null }[]
   agreedPrice: number | null; cadence: string | null
 }

@@ -61,12 +61,22 @@ async function admin<T>(path: string, init: RequestInit): Promise<T> {
   return data as T
 }
 
-/** Create the auth account for a client Ahleyia already works with. They set
- *  their own password later by claiming the invitation. */
-export function createAuthUser(input: { email?: string; phone?: string; fullName?: string }): Promise<{ id: string }> {
+/** Create the auth account for someone the studio already works with — a client
+ *  or a cleaner. They set their own password later by claiming the invitation.
+ *  The role goes in user metadata because the signup trigger reads it there. */
+export function createAuthUser(input: {
+  email?: string; phone?: string; fullName?: string
+  role?: 'owner' | 'cleaner'
+  orgId?: string
+}): Promise<{ id: string }> {
   const body: any = {
     password: randomBytes(24).toString('base64url'), // replaced when they claim
-    user_metadata: { role: 'owner', full_name: input.fullName || null, provisioned_by_studio: true },
+    user_metadata: {
+      role: input.role || 'owner',
+      org_id: input.orgId || null,
+      full_name: input.fullName || null,
+      provisioned_by_studio: true,
+    },
   }
   if (input.email) { body.email = input.email; body.email_confirm = true }
   if (input.phone) { body.phone = input.phone; body.phone_confirm = true }

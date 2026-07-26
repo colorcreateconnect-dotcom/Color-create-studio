@@ -10,7 +10,7 @@ import {
   DetailHeader, JobCard, ProgressRing, PhaseAccordion, ChecklistTask, SupplyRow,
   PriceBox, Stepper, TextField, Checkbox,
 } from '../../ds/components'
-import { AddClientScreen } from './invite'
+import { AddClientScreen, AddStaffScreen } from './invite'
 
 const ICON = './assets/brand/app-icon.png'
 const QR = './assets/brand/share-card-qr.png'
@@ -153,6 +153,7 @@ export function CleanerScreens(v: any) {
   if (v.aDash) return <AdminDash v={v} />
   if (v.aTeam) return <Team v={v} />
   if (v.aAddClient) return <AddClientScreen v={v} />
+  if (v.aAddStaff) return <AddStaffScreen v={v} />
   if (v.aClients) return <Clients v={v} />
   if (v.aSettings) return <BizSettings v={v} />
   if (v.aArea) return <Area v={v} />

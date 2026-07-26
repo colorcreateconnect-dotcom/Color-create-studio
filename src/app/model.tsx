@@ -187,6 +187,8 @@ function initialState(props: ModelProps): Any {
     ncName: '', ncPhone: '', ncEmail: '', ncProperty: '', ncAddress: '',
     ncType: 'residential', ncBeds: '', ncBaths: '', ncPrice: '', ncCadence: 'Weekly',
     ncError: '', newClientLink: '', newClientName: '', ncConsent: false, newClientId: '', inviteTexted: null,
+    nsName: '', nsPhone: '', nsEmail: '', nsConsent: false, nsError: '',
+    newStaffLink: '', newStaffName: '', newStaffId: '',
     inviteToken: props.inviteToken || '', inviteLoading: !!props.inviteToken,
     invitePreview: null, inviteError: '', inviteFormError: '', inviteDone: false,
     inviteEmail: '', invitePw: '', invitePwShown: false, inviteBusy: false,
@@ -1919,6 +1921,7 @@ export function useModel(props: ModelProps) {
         { title: 'Business', items: close([
           item('👑', 'Business dashboard', 'Billing, people, pricing', () => go({ c: 'admin' }), 'admin'),
           item('👥', 'Team & certification', 'Splits and what they can see', () => go({ c: 'team' }), 'team'),
+          item('🧽', 'Add someone to your team', 'They set their own sign-in', () => go({ c: 'addstaff', newStaffLink: '' }), 'addstaff'),
           item('🏡', 'Clients & properties', 'Your book of business', () => go({ c: 'clients' }), 'clients'),
           item('➕', 'Add a client you already have', 'From before the app — send them a link', () => go({ c: 'addclient', newClientLink: '' }), 'addclient'),
           item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' }), 'template'),
@@ -2067,6 +2070,55 @@ export function useModel(props: ModelProps) {
       } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t send that text')) }
     }
 
+    /* ---- add someone to the team: same invitation, cleaner side ---- */
+    v.aAddStaff = s.role === 'cleaner' && s.c === 'addstaff'
+    v.goAddStaff = () => set({ c: 'addstaff', newStaffLink: '', nsError: '', nsName: '', nsPhone: '', nsEmail: '' })
+    v.goTeam = () => go({ c: 'team' })
+    v.badgeTeamAdd = chip('ns0', 'onBrand', '🧽 New team member')
+    v.nsName = s.nsName; v.setNsName = (e: any) => set({ nsName: e.target.value })
+    v.nsPhone = s.nsPhone; v.setNsPhone = (e: any) => set({ nsPhone: e.target.value })
+    v.nsEmail = s.nsEmail; v.setNsEmail = (e: any) => set({ nsEmail: e.target.value })
+    v.nsConsent = s.nsConsent; v.setNsConsent = (n: boolean) => set({ nsConsent: n })
+    v.nsError = s.nsError
+    v.newStaffLink = s.newStaffLink
+    v.newStaffName = s.newStaffName
+    v.saveNewStaff = async () => {
+      const name = s.nsName.trim()
+      if (!name) { set({ nsError: 'Their name, please.' }); return }
+      if (!s.nsPhone.trim() && !s.nsEmail.trim()) { set({ nsError: 'A phone number or an email — whichever you have.' }); return }
+      if (!backendActive()) { set({ nsError: '', newStaffLink: window.location.origin + '/?invite=demo-link', newStaffName: name }); say('Added to your team ✓'); return }
+      try {
+        set({ beBusy: true, nsError: '' })
+        const r = await api.createStaff({
+          fullName: name,
+          phone: s.nsPhone.trim() || undefined,
+          email: s.nsEmail.trim() || undefined,
+          smsConsent: s.nsConsent,
+        })
+        setState((t: Any) => ({ ...t, beBusy: false, newStaffLink: r.inviteUrl, newStaffName: name, newStaffId: r.staffId }))
+        say(name + ' added to your team ✓')
+      } catch (e) { set({ beBusy: false, nsError: errMsg(e, 'Couldn’t add them') }) }
+    }
+    v.copyStaffLink = () => {
+      try { navigator.clipboard.writeText(s.newStaffLink) } catch { /* clipboard blocked */ }
+      say('Link copied 🔗')
+    }
+    v.textStaffLink = async () => {
+      const handOff = () => {
+        const body = encodeURIComponent('Hi ' + s.newStaffName + ' — welcome to She’s Maid In ATL. Set up your sign-in here: ' + s.newStaffLink)
+        try { window.open('sms:?&body=' + body, '_blank') } catch { /* blocked in preview */ }
+        say('Opening your messages 💌')
+      }
+      if (!backendActive() || !s.newStaffId || !s.nsConsent) { handOff(); return }
+      try {
+        set({ beBusy: true })
+        const r = await api.sendInvite(s.newStaffId)
+        setState((t: Any) => ({ ...t, beBusy: false, newStaffLink: r.inviteUrl }))
+        if (r.texted) say('Texted to them 💌')
+        else { say(r.smsConfigured ? 'Couldn’t text it — the link is here to copy' : 'Texting isn’t set up yet — opening your messages'); if (!r.smsConfigured) handOff() }
+      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t send that text')) }
+    }
+
     /* ---- the invitation an existing client opens (?invite=…) ---- */
     v.vInvite = s.role === 'visitor' && s.p === 'invite'
     v.inviteLoading = s.inviteLoading
@@ -2102,7 +2154,11 @@ export function useModel(props: ModelProps) {
           beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs,
           beProps: h.properties, beClients: h.clients, beMsgs: h.messages,
           beQuotes: h.quotes, beReports: h.reports, beCharges: h.charges,
-          role: 'owner', o: 'home', oTab: 0, hist: [],
+          // Land them where they belong: a cleaner starts on their route.
+          ...(h.user?.role === 'owner'
+            ? { role: 'owner', o: 'home', oTab: 0 }
+            : { role: 'cleaner', c: 'today', cTab: 0 }),
+          hist: [],
         }))
         say('Welcome in ✓')
       } catch (e) { set({ inviteBusy: false, inviteFormError: errMsg(e, 'Could not finish setting up your account') }) }
