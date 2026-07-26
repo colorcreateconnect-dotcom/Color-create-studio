@@ -69,12 +69,20 @@ a:hover { color: var(--orange); }
     border-radius: 0 !important;
     box-shadow: none !important;
     border: none !important;
-    /* Keep every edge clear of the clock, notch and home indicator. Zero on
-       devices without insets, so nothing shifts elsewhere. */
+    /* Clear the clock/notch at the top and the rounded corners at the sides.
+       NOT the bottom: the tab bar must reach the physical bottom edge, so it
+       absorbs that inset itself (below) rather than being pushed up off it. */
     padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: 0;
+  }
+
+  /* The bar's background runs all the way down — flush to the screen edge, no
+     gap — while its icons are lifted clear of the home indicator. */
+  .sm-stage--app .sm-tabbar-slot {
+    background: var(--surface-card);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* Momentum scrolling stays inside the app area and never chains to the page. */
