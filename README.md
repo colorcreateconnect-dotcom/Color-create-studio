@@ -44,7 +44,7 @@ Open **http://localhost:3000**. Make your Sim and start living.
 | 🧍 Sim | Your **3D character** + ✨ Style Studio, needs, skills, traits, XP |
 | 🗺️ World | 11 worlds; locked ones show how to unlock them |
 | 💼 Life | Careers (10 ladders) + School (6 majors) |
-| 💞 Social | NPCs, relationships, and their memories of you |
+| 💞 Social | NPCs as **rendered 3D characters**, relationships, memories |
 | 🐾 Pets | Adopt & care for dogs/cats/bunnies |
 | 🗒️ Quests | Active objectives, progress, rewards |
 | 📰 Feed | Your life's activity log |
@@ -95,9 +95,13 @@ Open **http://localhost:3000**. Make your Sim and start living.
     lighting, soft cast shadows, and micro-surface fabric/skin detail. Customization swaps meshes and materials — nothing is
     rebuilt from primitives. Assets are authored by
     `tools/build-character-assets.mjs` and live in `assets/characters/`;
-    studio-authored GLBs can replace them with no code changes. The
-    ✨ Style Studio customizes skin tone (6), hair (6 styles, 7 colors) and
-    outfit presets — all data-driven, all saved.
+    studio-authored GLBs can replace them with no code changes — the artist
+    handoff contract is [`docs/CHARACTER-ASSET-SPEC.md`](docs/CHARACTER-ASSET-SPEC.md).
+    NPCs share the same pipeline: every cast member has a defined look (body
+    type, skin, hair, outfit, facial hair, eye color) rendered to Social-tab
+    portraits by `src/render/npc-portraits.js`. The ✨ Style Studio customizes
+    skin tone (6), hair (6 styles, 7 colors) and outfit presets — all
+    data-driven, all saved.
 
 ---
 

@@ -42,6 +42,11 @@ CCS.ui.init = function init() {
   // Re-render on any state change.
   const rerender = () => CCS.ui.render();
   ['state-changed', 'feed-changed', 'quests-changed', 'worlds-changed', 'packs-changed', 'time-changed'].forEach((e) => CCS.events.on(e, rerender));
+  // NPC portraits arrive async; refresh the Social tab as they finish.
+  CCS.events.on('portraits-changed', () => {
+    if (CCS.ui.state.tab === 'social' || CCS.ui.state.modal?.type === 'interact') CCS.ui.render();
+  });
+  setTimeout(() => CCS.portraits?.ensureAll(), 2500);   // warm the cast after boot
 
   // Tapping the lot view — the renderer raycasts, we identify the hit.
   CCS.events.on('renderer-select', (hit) => {
@@ -316,6 +321,14 @@ RENDER.life = function () {
   return `<section><h2>💼 Career & School</h2>${career}${school}</section>`;
 };
 
+// NPC portrait (rendered 3D character) with emoji fallback while it renders.
+function npcFace(d, size = '') {
+  const url = CCS.portraits?.get(d.id);
+  return url
+    ? `<img class="npc-portrait ${size}" src="${url}" alt="${esc(d.name)}" />`
+    : `<span class="npc-portrait ${size} ph">${d.emoji}</span>`;
+}
+
 RENDER.social = function () {
   const s = CCS.state;
   // Who can we see? Discovered NPCs + anyone whose home world is unlocked.
@@ -325,13 +338,13 @@ RENDER.social = function () {
     const n = CCS.sim.npc.ensure(d.id);
     if (!n.discovered) {
       return `<div class="card npc">
-        <div class="obj-h">${d.emoji} <b>${esc(d.name)}</b><small>${d.role}</small></div>
+        <div class="obj-h">${npcFace(d)} <b>${esc(d.name)}</b><small>${d.role}</small></div>
         <p class="sub">${esc(d.bio)}</p>
         <button class="act" data-act="meet" data-id="${d.id}">👋 Say hi</button></div>`;
     }
     const mem = n.memories[0];
     return `<div class="card npc">
-      <div class="obj-h">${d.emoji} <b>${esc(d.name)}</b><small>${d.role}</small><span class="score">${CCS.sim.npc.friendLabel(n)}</span></div>
+      <div class="obj-h">${npcFace(d)} <b>${esc(d.name)}</b><small>${d.role}</small><span class="score">${CCS.sim.npc.friendLabel(n)}</span></div>
       <div class="rel"><span>💛 Friend</span>${bar(n.friendship, '#8bffcf')}<em>${Math.round(n.friendship)}</em></div>
       ${n.romance > 0 ? `<div class="rel"><span>${CCS.sim.npc.romanceLabel(n) || '💗 Romance'}</span>${bar(n.romance, '#ff8fd0')}<em>${Math.round(n.romance)}</em></div>` : ''}
       <div class="rel"><span>🤝 Trust</span>${bar(n.trust, '#9dd0ff')}<em>${Math.round(n.trust)}</em></div>
@@ -473,7 +486,7 @@ const MODAL = {
       return `<button class="pick ${gate.ok ? '' : 'dis'}" ${gate.ok ? `data-act="interact" data-id="${m.id}" data-int="${it.id}"` : ''}>
         ${it.emoji} ${it.label}${gate.ok ? '' : `<small>🔒 ${gate.hint}</small>`}</button>`;
     }).join('');
-    return `<h2>${d.emoji} ${esc(d.name)} <small style="font-weight:400">${CCS.sim.npc.friendLabel(n)}</small></h2>
+    return `<h2 style="display:flex;align-items:center;gap:10px">${npcFace(d, 'lg')} ${esc(d.name)} <small style="font-weight:400">${CCS.sim.npc.friendLabel(n)}</small></h2>
       <div class="sub">Mood: ${n.mood > 60 ? '🙂' : n.mood > 35 ? '😐' : '☹️'} · Trust ${Math.round(n.trust)}${n.romance ? ` · Romance ${Math.round(n.romance)}` : ''}</div>
       <div class="picks scroll">${list}</div>
       <button class="btn ghost" data-act="closeModal">Done</button>`;
