@@ -57,9 +57,28 @@ function microBump() {
   return _microBump;
 }
 
+// Bone-name canonicalization: external rigs (Mixamo auto-rig, Meshy, Tripo,
+// most AI 3D generators) use Mixamo-style names. Map them onto our canonical
+// skeleton so third-party character files work without re-rigging.
+const MIXAMO_MAP = {
+  Hips: 'Hips', Spine: 'Spine', Spine2: 'Chest', Spine3: 'Chest',
+  Neck: 'Neck', Head: 'Head',
+  LeftShoulder: 'L_Shoulder', LeftArm: 'L_UpperArm', LeftForeArm: 'L_LowerArm', LeftHand: 'L_Hand',
+  RightShoulder: 'R_Shoulder', RightArm: 'R_UpperArm', RightForeArm: 'R_LowerArm', RightHand: 'R_Hand',
+  LeftUpLeg: 'L_UpperLeg', LeftLeg: 'L_LowerLeg', LeftFoot: 'L_Foot',
+  RightUpLeg: 'R_UpperLeg', RightLeg: 'R_LowerLeg', RightFoot: 'R_Foot',
+};
+export function canonicalBoneName(raw) {
+  if (!raw) return null;
+  const bare = raw.replace(/^mixamorig\d*[:_]?/i, '');
+  return MIXAMO_MAP[bare] || bare;
+}
+
 export class CharacterRig {
-  static async create({ bodyType = 'female' } = {}) {
-    const gltf = await loadBase(bodyType);
+  // `url` loads any character GLB (artist delivery, AI-generated export)
+  // instead of the built-in bases — for previewing and integration.
+  static async create({ bodyType = 'female', url = null } = {}) {
+    const gltf = url ? await loader.loadAsync(url) : await loadBase(bodyType);
     const root = SkeletonUtils.clone(gltf.scene);
     return new CharacterRig(root, gltf.animations, bodyType);
   }
@@ -71,9 +90,20 @@ export class CharacterRig {
     this.bones = {};
     this.meshes = {};
     root.traverse((o) => {
-      if (o.isBone) this.bones[o.name] = o;
+      if (o.isBone) {
+        const canon = canonicalBoneName(o.name);
+        if (canon && !this.bones[canon]) this.bones[canon] = o;
+        if (!this.bones[o.name]) this.bones[o.name] = o;
+      }
       if (o.isSkinnedMesh) { o.frustumCulled = false; this.meshes[o.name] = o; }
     });
+    // Auto-normalize scale: external exports are often in centimeters.
+    const bbox = new THREE.Box3().setFromObject(root);
+    const height = bbox.max.y - bbox.min.y;
+    if (height > 3 && isFinite(height)) {
+      root.scale.setScalar(1.72 / height);
+      root.updateMatrixWorld(true);
+    }
     this.mixer = new THREE.AnimationMixer(root);
     this._actions = {};
     this._attachments = [];

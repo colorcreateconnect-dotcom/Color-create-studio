@@ -56,13 +56,30 @@ const nodes = json.nodes || [];
 const nodeNames = new Set(nodes.map((n) => n.name).filter(Boolean));
 
 // --- skeleton ---------------------------------------------------------------
+// External auto-rigs (Mixamo/Meshy/Tripo) are accepted via name mapping —
+// the runtime canonicalizes these at load (see character-rig.js).
+const MIXAMO_MAP = {
+  Hips: 'Hips', Spine: 'Spine', Spine2: 'Chest', Spine3: 'Chest', Neck: 'Neck', Head: 'Head',
+  LeftShoulder: 'L_Shoulder', LeftArm: 'L_UpperArm', LeftForeArm: 'L_LowerArm', LeftHand: 'L_Hand',
+  RightShoulder: 'R_Shoulder', RightArm: 'R_UpperArm', RightForeArm: 'R_LowerArm', RightHand: 'R_Hand',
+  LeftUpLeg: 'L_UpperLeg', LeftLeg: 'L_LowerLeg', LeftFoot: 'L_Foot',
+  RightUpLeg: 'R_UpperLeg', RightLeg: 'R_LowerLeg', RightFoot: 'R_Foot',
+};
+const canon = (raw) => {
+  if (!raw) return null;
+  const bare = raw.replace(/^mixamorig\d*[:_]?/i, '');
+  return MIXAMO_MAP[bare] || bare;
+};
+
 const skins = json.skins || [];
 if (!skins.length) fails.push('no skin (skeleton) in file');
 else {
-  const jointNames = new Set(skins.flatMap((s) => s.joints.map((j) => nodes[j]?.name)));
+  const rawNames = skins.flatMap((s) => s.joints.map((j) => nodes[j]?.name));
+  const jointNames = new Set(rawNames.map(canon));
   const missing = REQUIRED_BONES.filter((b) => !jointNames.has(b));
-  if (missing.length) fails.push(`missing required bones: ${missing.join(', ')}`);
-  else infos.push(`skeleton: all ${REQUIRED_BONES.length} required bones present (${skins[0].joints.length} joints total)`);
+  const mixamo = rawNames.some((n) => /^mixamorig/i.test(n || '') || MIXAMO_MAP[n]);
+  if (missing.length) fails.push(`missing required bones (after alias mapping): ${missing.join(', ')}`);
+  else infos.push(`skeleton: all ${REQUIRED_BONES.length} required bones present${mixamo ? ' (Mixamo-style names, auto-mapped)' : ''} (${skins[0].joints.length} joints total)`);
 }
 
 // --- Body mesh ----------------------------------------------------------------
@@ -81,8 +98,9 @@ if (bodyNode && json.meshes?.[bodyNode.mesh]) {
   }
   if (isFinite(minY)) {
     const h = maxY - minY;
-    if (h < 1.3 || h > 2.3) fails.push(`body height ${h.toFixed(2)}m out of range (1.3–2.3; 1 unit = 1 meter, Y-up)`);
-    else infos.push(`scale: body height ${h.toFixed(2)}m ✓`);
+    if (h >= 1.3 && h <= 2.3) infos.push(`scale: body height ${h.toFixed(2)}m ✓`);
+    else if (h >= 100 && h <= 260) warns.push(`body height ${h.toFixed(0)} — looks like centimeter scale; the runtime auto-rescales, but meter scale is preferred`);
+    else fails.push(`body height ${h.toFixed(2)} out of range (1 unit = 1 meter, Y-up, height 1.3–2.3)`);
   }
 }
 
