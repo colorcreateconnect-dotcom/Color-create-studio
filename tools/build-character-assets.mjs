@@ -147,7 +147,7 @@ function setWeights(geo, weightFn) {
 function tube(a, b, rA, rB, S, bone, prevBone, nextBone, seg = 10) {
   const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b);
   const dir = vb.clone().sub(va), len = dir.length();
-  const geo = new THREE.CylinderGeometry(rB, rA, len, 14, seg, false);
+  const geo = new THREE.CylinderGeometry(rB, rA, len, 22, seg, false);
   const m = new THREE.Matrix4().makeRotationFromQuaternion(
     new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize()));
   m.setPosition(va.clone().add(vb).multiplyScalar(0.5));
@@ -156,20 +156,20 @@ function tube(a, b, rA, rB, S, bone, prevBone, nextBone, seg = 10) {
   return setWeights(geo, (x, y, z) => {
     const t = new THREE.Vector3(x, y, z).sub(va).dot(axis) / len;   // 0 at a, 1 at b
     const bi = S.index[bone];
-    if (prevBone != null && t < 0.16) {
-      const f = t / 0.16;
+    if (prevBone != null && t < 0.24) {
+      const f = t / 0.24;
       return [[S.index[prevBone], 1 - f * 0.5 - 0.5], [bi, 0.5 + f * 0.5]];
     }
-    if (nextBone != null && t > 0.84) {
-      const f = (t - 0.84) / 0.16;
+    if (nextBone != null && t > 0.76) {
+      const f = (t - 0.76) / 0.24;
       return [[bi, 1 - f * 0.5], [S.index[nextBone], f * 0.5]];
     }
     return [[bi, 1]];
   });
 }
 
-function capSphere(at, r, S, weights, widthSeg = 14, scale = null) {
-  const geo = new THREE.SphereGeometry(r, widthSeg, 10);
+function capSphere(at, r, S, weights, widthSeg = 20, scale = null) {
+  const geo = new THREE.SphereGeometry(r, widthSeg, 14);
   if (scale) geo.applyMatrix4(new THREE.Matrix4().makeScale(...scale));
   geo.translate(...at);
   return setWeights(geo, () => weights.map(([n, w]) => [S.index[n], w]));
@@ -181,7 +181,7 @@ function torsoLathe(pts, S, zSquash = 0.88, offset = 0, yMin = -1, yMax = 99) {
   if (yMin > 0) use.unshift([profileRadiusAt(pts, yMin) + offset, yMin]);
   if (yMax < 10) use.push([profileRadiusAt(pts, yMax) + offset, yMax]);
   const curve = new THREE.SplineCurve(use.map(([r, y]) => new THREE.Vector2(Math.max(r, 0.001), y)));
-  const geo = new THREE.LatheGeometry(curve.getPoints(28), 24);
+  const geo = new THREE.LatheGeometry(curve.getPoints(40), 30);
   geo.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, zSquash));
   const bandY = { hips: 1.16, spine: 1.35 };
   return setWeights(geo, (x, y) => {
@@ -372,35 +372,95 @@ function buildWardrobe(M, S) {
 // ============================================================================
 // Baked animation clips (subtle idle + groovier sway for blending demos)
 // ============================================================================
-function makeClips() {
-  const qTrack = (bone, axis, amp, freq, phase = 0, dur = 4, steps = 24) => {
+function makeClips(M) {
+  // Generic sampled tracks: fn(u) with u in [0,1) over the loop.
+  const qT = (bone, dur, steps, fn) => {
     const times = [], values = [];
     const e = new THREE.Euler(), q = new THREE.Quaternion();
     for (let i = 0; i <= steps; i++) {
-      const t = (i / steps) * dur;
-      times.push(t);
-      const a = Math.sin((t / dur) * Math.PI * 2 * freq + phase) * amp;
-      e.set(axis === 'x' ? a : 0, axis === 'y' ? a : 0, axis === 'z' ? a : 0);
+      const u = i / steps;
+      times.push(u * dur);
+      const [x, y, z] = fn(u);
+      e.set(x, y, z);
       q.setFromEuler(e);
       values.push(q.x, q.y, q.z, q.w);
     }
     return new THREE.QuaternionKeyframeTrack(`${bone}.quaternion`, times, values);
   };
-  const idle = new THREE.AnimationClip('idle', 4, [
-    qTrack('Spine', 'x', 0.022, 1),
-    qTrack('Chest', 'z', 0.012, 1, 0.8),
-    qTrack('Neck', 'z', 0.015, 1, 1.6),
-    qTrack('Head', 'y', 0.03, 0.5, 0.4),
-    qTrack('L_UpperArm', 'z', 0.02, 1, 0.2),
-    qTrack('R_UpperArm', 'z', 0.02, 1, 1.1),
+  const pT = (bone, dur, steps, base, fn) => {
+    const times = [], values = [];
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      times.push(u * dur);
+      const [x, y, z] = fn(u);
+      values.push(base[0] + x, base[1] + y, base[2] + z);
+    }
+    return new THREE.VectorKeyframeTrack(`${bone}.position`, times, values);
+  };
+  const TAU = Math.PI * 2;
+  const hipsBase = [0, M.hipY - 0.005, 0];
+
+  // --- idle: breathing + slow weight shift + arm micro-motion (additive) ---
+  const idle = new THREE.AnimationClip('idle', 6, [
+    qT('Spine', 6, 48, (u) => [Math.sin(u * TAU * 1.5) * 0.022, 0, Math.sin(u * TAU) * 0.02]),
+    qT('Chest', 6, 48, (u) => [Math.sin(u * TAU * 1.5 + 0.8) * 0.014, 0, Math.sin(u * TAU + 0.6) * 0.012]),
+    qT('Hips', 6, 48, (u) => [0, 0, Math.sin(u * TAU) * 0.018]),
+    qT('Neck', 6, 48, (u) => [0, Math.sin(u * TAU * 0.5 + 1.1) * 0.03, Math.sin(u * TAU + 1.6) * 0.015]),
+    qT('L_UpperArm', 6, 48, (u) => [Math.sin(u * TAU + 0.2) * 0.018, 0, Math.sin(u * TAU * 1.5) * 0.02]),
+    qT('R_UpperArm', 6, 48, (u) => [Math.sin(u * TAU + 1.1) * 0.018, 0, Math.sin(u * TAU * 1.5 + 0.9) * 0.02]),
   ]);
-  const groove = new THREE.AnimationClip('groove', 2, [
-    qTrack('Hips', 'z', 0.06, 1, 0, 2),
-    qTrack('Spine', 'z', 0.05, 1, 0.7, 2),
-    qTrack('Chest', 'z', 0.05, 1, 1.2, 2),
-    qTrack('Head', 'z', 0.05, 1, 1.9, 2),
+
+  // --- walk: full-body in-place walk cycle (base clip) ---
+  const W = 1.05, ws = 40;
+  const swing = 0.52, knee = 0.85;
+  const walk = new THREE.AnimationClip('walk', W, [
+    qT('L_UpperLeg', W, ws, (u) => [swing * Math.sin(u * TAU), 0.04, 0]),
+    qT('R_UpperLeg', W, ws, (u) => [swing * Math.sin(u * TAU + Math.PI), -0.04, 0]),
+    qT('L_LowerLeg', W, ws, (u) => [Math.max(0.06, knee * Math.sin(u * TAU + 2.4)), 0, 0]),
+    qT('R_LowerLeg', W, ws, (u) => [Math.max(0.06, knee * Math.sin(u * TAU + 2.4 + Math.PI)), 0, 0]),
+    qT('L_Foot', W, ws, (u) => [-0.28 * Math.sin(u * TAU + 0.5), 0, 0]),
+    qT('R_Foot', W, ws, (u) => [-0.28 * Math.sin(u * TAU + 0.5 + Math.PI), 0, 0]),
+    qT('L_UpperArm', W, ws, (u) => [0.4 * Math.sin(u * TAU + Math.PI), 0, 0.08]),
+    qT('R_UpperArm', W, ws, (u) => [0.4 * Math.sin(u * TAU), 0, -0.08]),
+    qT('L_LowerArm', W, ws, (u) => [-0.3 + 0.14 * Math.sin(u * TAU + Math.PI), 0, 0]),
+    qT('R_LowerArm', W, ws, (u) => [-0.3 + 0.14 * Math.sin(u * TAU), 0, 0]),
+    qT('Hips', W, ws, (u) => [0, 0.09 * Math.sin(u * TAU), 0.03 * Math.sin(u * TAU * 2 + 1.2)]),
+    qT('Spine', W, ws, (u) => [0.03, -0.08 * Math.sin(u * TAU), 0]),
+    qT('Chest', W, ws, (u) => [0.02, -0.05 * Math.sin(u * TAU), 0]),
+    qT('Head', W, ws, (u) => [-0.03, 0.04 * Math.sin(u * TAU), 0]),
+    pT('Hips', W, ws, hipsBase, (u) => [0, 0.024 * Math.sin(u * TAU * 2 + Math.PI / 2) - 0.012, 0]),
   ]);
-  return [idle, groove];
+
+  // --- dance: hip sway, alternating arm raises, head bounce (base clip) ---
+  const D = 1.9, ds = 40;
+  const dance = new THREE.AnimationClip('dance', D, [
+    qT('Hips', D, ds, (u) => [0, 0.18 * Math.sin(u * TAU * 0.5), 0.14 * Math.sin(u * TAU)]),
+    qT('Spine', D, ds, (u) => [0.05 * Math.sin(u * TAU * 2), 0, -0.11 * Math.sin(u * TAU)]),
+    qT('Chest', D, ds, (u) => [0.04 * Math.sin(u * TAU * 2 + 0.6), 0, -0.08 * Math.sin(u * TAU + 0.4)]),
+    qT('Head', D, ds, (u) => [0.09 * Math.sin(u * TAU * 2 + 1.2), 0, 0.06 * Math.sin(u * TAU + 1)]),
+    qT('L_UpperArm', D, ds, (u) => [0.15 * Math.sin(u * TAU * 2), 0, 0.55 + 0.75 * Math.sin(u * TAU)]),
+    qT('R_UpperArm', D, ds, (u) => [0.15 * Math.sin(u * TAU * 2 + Math.PI), 0, -0.55 - 0.75 * Math.sin(u * TAU + Math.PI)]),
+    qT('L_LowerArm', D, ds, (u) => [-1.05 + 0.25 * Math.sin(u * TAU * 2), 0, 0]),
+    qT('R_LowerArm', D, ds, (u) => [-1.05 + 0.25 * Math.sin(u * TAU * 2 + Math.PI), 0, 0]),
+    qT('L_UpperLeg', D, ds, (u) => [0.06 * Math.sin(u * TAU), 0, 0.05 * Math.sin(u * TAU)]),
+    qT('R_UpperLeg', D, ds, (u) => [0.06 * Math.sin(u * TAU + Math.PI), 0, 0.05 * Math.sin(u * TAU)]),
+    pT('Hips', D, ds, hipsBase, (u) => [0, 0.03 * Math.sin(u * TAU * 2 + Math.PI / 2) - 0.015, 0]),
+  ]);
+
+  // --- wave: right arm raised, forearm waving (base clip) ---
+  const V = 1.6, vs = 32;
+  const wave = new THREE.AnimationClip('wave', V, [
+    qT('R_UpperArm', V, vs, () => [-0.35, 0, -1.9]),
+    qT('R_LowerArm', V, vs, (u) => [-0.5, 0, -0.45 * Math.sin(u * TAU * 2)]),
+    qT('R_Hand', V, vs, (u) => [0, 0, -0.25 * Math.sin(u * TAU * 2)]),
+    qT('L_UpperArm', V, vs, () => [0.08, 0, 0.12]),
+    qT('L_LowerArm', V, vs, () => [-0.3, 0, 0]),
+    qT('Hips', V, vs, (u) => [0, 0, 0.04 + 0.015 * Math.sin(u * TAU)]),
+    qT('Spine', V, vs, (u) => [0, 0, -0.03 + 0.01 * Math.sin(u * TAU + 1)]),
+    qT('Head', V, vs, (u) => [0, -0.08, 0.05 + 0.02 * Math.sin(u * TAU)]),
+  ]);
+
+  return [idle, walk, dance, wave];
 }
 
 // ============================================================================
@@ -454,7 +514,7 @@ async function exportBody(bodyType) {
     ], 'MAT_bottom_shorts', skeleton, 0x445566, true));
   }
 
-  const clips = makeClips();
+  const clips = makeClips(M);
   const exporter = new GLTFExporter();
   const glb = await new Promise((resolve, reject) =>
     exporter.parse(scene, resolve, reject, { binary: true, animations: clips, onlyVisible: false }));

@@ -89,8 +89,10 @@ Open **http://localhost:3000**. Make your Sim and start living.
 17. **Rigged 3D character + Style Studio** — your Sim is a fully rigged
     humanoid: a skinned GLB body (female + male bases) on a 19-bone skeleton,
     with modular clothing/shoes as named mesh slots, face + hair modules on
-    the Head bone, and an AnimationMixer blending a baked pose with additive
-    idle layers. Customization swaps meshes and materials — nothing is
+    the Head bone, and an AnimationMixer with a real motion suite — walk,
+    dance, wave, and a breathing idle — crossfaded over the signature pose
+    (Motion chips in Style Studio). The stage uses image-based environment
+    lighting, soft cast shadows, and micro-surface fabric/skin detail. Customization swaps meshes and materials — nothing is
     rebuilt from primitives. Assets are authored by
     `tools/build-character-assets.mjs` and live in `assets/characters/`;
     studio-authored GLBs can replace them with no code changes. The

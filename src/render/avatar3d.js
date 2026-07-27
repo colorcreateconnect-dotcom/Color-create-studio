@@ -18,6 +18,7 @@
 
 import * as THREE from 'three';
 import { CharacterRig } from './character-rig.js';
+import { RoomEnvironment } from '../../vendor/environments/RoomEnvironment.js';
 
 const CCS = window.CCS;
 
@@ -67,7 +68,9 @@ function ensureRenderer() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   } catch (e) {
     console.warn('[avatar3d] WebGL unavailable', e);
     available = false;
@@ -77,6 +80,17 @@ function ensureRenderer() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x120b1c);
   scene.fog = new THREE.Fog(0x120b1c, 6, 14);
+
+  // Image-based lighting: a PMREM-filtered room environment gives every PBR
+  // material (skin sheen, fabric, gold, gloss) something real to reflect.
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environmentIntensity = 0.4;
+    pmrem.dispose();
+  } catch (e) {
+    console.warn('[avatar3d] environment map unavailable', e);
+  }
 
   camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
   camera.position.set(0, 1.42, 4.7);
@@ -146,11 +160,13 @@ function buildStage() {
   const floor = new THREE.Mesh(new THREE.CircleGeometry(7, 48),
     new THREE.MeshStandardMaterial({ color: 0x18101f, roughness: 0.35, metalness: 0.4 }));
   floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
   stage.add(floor);
 
   const platform = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.25, 0.09, 48),
     new THREE.MeshStandardMaterial({ color: 0x241631, roughness: 0.3, metalness: 0.5 }));
   platform.position.y = 0.045;
+  platform.receiveShadow = true;
   stage.add(platform);
 
   const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.022, 12, 64),
@@ -194,10 +210,14 @@ function buildStage() {
     stage.add(dot);
   }
 
-  scene.add(new THREE.AmbientLight(0x8a6faf, 0.55));
-  const key = new THREE.SpotLight(0xfff0f6, 55, 0, 0.55, 0.5, 1.6);
+  scene.add(new THREE.AmbientLight(0x8a6faf, 0.3));
+  const key = new THREE.SpotLight(0xfff0f6, 44, 0, 0.55, 0.5, 1.6);
   key.position.set(1.6, 4.4, 3.6);
   key.target.position.set(0, 1, 0);
+  key.castShadow = true;                       // real contact shadow on the stage
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.bias = -0.0006;
+  key.shadow.radius = 4;
   scene.add(key, key.target);
   const pink = new THREE.PointLight(0xff4fa0, 26, 12, 1.7);
   pink.position.set(-2.4, 2.2, -1.2);
@@ -234,6 +254,7 @@ function buildCharacter() {
     swayers = [];
     rig = newRig;
     charGroup.add(rig.root);
+    rig.root.traverse((o) => { if (o.isSkinnedMesh) o.castShadow = true; });
 
     applyLookToRig(look);
     rig.pose(POSE);
@@ -298,6 +319,7 @@ function buildHeadModule(look) {
   const gold = () => mat(0xd4af37, { metalness: 0.85, roughness: 0.25 });
   buildFace(headModule, M, look, skin, hairM, gold);
   buildHair(headModule, look.hairStyle, hairM, M);
+  headModule.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 }
 
 // --- Face ---------------------------------------------------------------------
@@ -647,8 +669,11 @@ CCS.avatar3d = {
     buildHeadModule(look);
   },
 
-  // Animation blending demo/API: crossfade additive layers ('idle', 'groove').
-  play(name, fade = 0.5) { return rig?.blendTo(name, fade); },
+  // Full-body motions ('pose', 'walk', 'dance', 'wave'): crossfaded base
+  // clips with the additive idle breathing layered on top.
+  play(name = 'pose', fade = 0.45) { return rig?.setMotion(name, fade); },
+  get motions() { return rig ? rig.motions() : []; },
+  get motion() { return rig?._baseName || 'pose'; },
 
   focus(mode = 'full') {
     if (!camera) return;
@@ -665,7 +690,7 @@ CCS.avatar3d = {
   get _debug() {
     return {
       blinks: anim.blink.count, expression: anim.exprId || 'neutral', focus: camFocus,
-      rigged: !!rig, bodyType: rig?.bodyType,
+      rigged: !!rig, bodyType: rig?.bodyType, motion: rig?._baseName || 'pose',
       bones: rig ? Object.keys(rig.bones).length : 0,
       slots: rig ? rig.slotNames() : [],
       playing: rig ? Object.entries(rig._actions).filter(([, a]) => a.isRunning()).map(([n]) => n) : [],

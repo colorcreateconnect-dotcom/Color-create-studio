@@ -448,10 +448,15 @@ const MODAL = {
     const skins = CCS.data.skinTones.map((sk) =>
       `<button class="swatch ${a.skin === sk.id ? 'on' : ''}" data-act="setSkin" data-id="${sk.id}"
         style="background:${sk.css}" title="${sk.name}"></button>`).join('');
+    const curMotion = (CCS.avatar3d && CCS.avatar3d.motion) || 'pose';
+    const motions = [['pose', '✨ Pose'], ['walk', '🚶‍♀️ Walk'], ['dance', '💃 Dance'], ['wave', '👋 Wave']];
     return `<h2>✨ Style Studio</h2>
       <div id="avatar3d-modal" class="avatar3d tall"></div>
       <p class="sub" style="text-align:center;margin-top:6px">Drag to spin · your look saves automatically</p>
-      <div class="row-h">Outfits</div>
+      <div class="row-h">Motion</div>
+      <div class="chips">${motions.map(([id, label]) =>
+        `<button class="chipbtn ${curMotion === id ? 'on' : ''}" data-act="setMotion" data-id="${id}">${label}</button>`).join('')}</div>
+      <div class="row-h" style="margin-top:10px">Outfits</div>
       <div class="lookrow">${outfits}</div>
       <div class="row-h" style="margin-top:10px">Hair</div>
       <div class="chips">${hairs}</div>
@@ -504,6 +509,7 @@ function onClick(e) {
     case 'cycleWall': CCS.sim.lots.cycleRoomStyle(d.room, 'wallpaper'); break;
     case 'cycleFloor': CCS.sim.lots.cycleRoomStyle(d.room, 'flooring'); break;
     case 'openStyle': CCS.ui.openModal('style'); break;
+    case 'setMotion': CCS.avatar3d?.play(d.id); renderModal(); renderAvatarView(); break;
     case 'eqOutfit': CCS.sim.avatar.equipOutfit(d.id); renderModal(); renderAvatarView(); break;
     case 'setHair': CCS.sim.avatar.set({ hairStyle: d.id }); renderModal(); renderAvatarView(); break;
     case 'setHairColor': CCS.sim.avatar.set({ hairColor: d.id }); renderModal(); renderAvatarView(); break;
