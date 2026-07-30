@@ -22,3 +22,4 @@ _serve.mjs
 # generated deploy bundles (rebuilt from source; never committed)
 shes-maid-in-atl-*.zip
 dist-mock/
+dist-live/

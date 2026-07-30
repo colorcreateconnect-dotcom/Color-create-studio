@@ -1,0 +1,15 @@
+# Headers for a manual (zip / folder) deploy.
+#
+# Same reasoning as _redirects: netlify.toml is only read when Netlify builds
+# from the repository, so a zip upload would otherwise ship with none of these.
+# Kept in step with the [[headers]] blocks in netlify.toml.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+
+# The service worker must never be cached, or an update can't reach a phone that
+# already has the app on its home screen — it would keep serving the old one.
+/sw.js
+  Cache-Control: no-cache

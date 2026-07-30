@@ -1,0 +1,13 @@
+# SPA fallback: every client route resolves to index.html.
+#
+# This duplicates the redirect in netlify.toml on purpose. netlify.toml is only
+# read when Netlify BUILDS the site from the repository; a manual zip or folder
+# upload ignores it entirely. Files in the publish directory — this one and
+# _headers — are honoured either way, so the app routes correctly however it got
+# deployed.
+#
+# The function path is listed first and left alone so it can never be swallowed
+# by the catch-all. (Netlify matches functions before redirects, so this is
+# belt-and-braces, not load-bearing.)
+/.netlify/functions/*  /.netlify/functions/:splat  200
+/*                     /index.html                 200
