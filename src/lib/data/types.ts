@@ -17,6 +17,8 @@ export interface User {
   fullName?: string; phone?: string; email?: string
   /** 'invited' = provisioned by the studio, hasn't claimed their login yet. */
   onboardingState?: 'invited' | 'active'
+  /** Per-kind notification opt-outs. A missing key means "send it". */
+  notifyPrefs?: Record<string, boolean>
 }
 
 export interface Property {

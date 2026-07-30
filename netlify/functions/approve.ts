@@ -4,7 +4,8 @@
 import { sbSelect, sbUpdate, sbInsert, json } from './_shared/db'
 import { getAdapter } from './_shared/adapter'
 import { requireCaller, isStaff } from './_shared/auth'
-import { notify, MSG } from './_shared/sms'
+import { notify as notifySms, MSG } from './_shared/sms'
+import { sendNotice } from './_shared/notify'
 import { transition, releaseAmounts } from '../../src/lib/payments/state'
 
 export const handler = async (event: any) => {
@@ -59,8 +60,11 @@ export const handler = async (event: any) => {
 
   // Tell the cleaner her money moved. Best-effort: a text must never undo a release.
   const propName = job.properties?.name || 'that clean'
-  await notify(job.cleaner_id, MSG.finalReleased(propName, final))
-  if (tipCharged > 0) await notify(job.cleaner_id, MSG.tipReceived(tipCharged))
+  await notifySms(job.cleaner_id, MSG.finalReleased(propName, final))
+  if (tipCharged > 0) await notifySms(job.cleaner_id, MSG.tipReceived(tipCharged))
+  if (job.cleaner_id) {
+    await sendNotice('payout', { orgId: job.org_id, userId: job.cleaner_id }, { subject: propName, link: 'payouts', jobId })
+  }
 
   return json(200, { ok: true, finalReleased: final, tipCharged, paymentState: finalReleased })
 }

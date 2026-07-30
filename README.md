@@ -64,6 +64,13 @@ credentials (which can't be provisioned in a sandbox). Highlights:
 - **Price privacy** — enforced at the DB (internal pricing in tables owners
   can't select), at the serializer (`stripForClient`), and in the UI.
 - **GPS geofence** gates check-in (recomputed server-side).
+- **One way in** — email + password for every role. A client Ahleyia added sets
+  their own password on the single-use invite link she sends them. No texted
+  codes, so getting into the app needs no SMS provider and costs nothing.
+- **Notifications** — every notice is a row the recipient owns (so it survives a
+  missed push and a new phone), with Web Push on top when a VAPID keypair is
+  set: no provider, no per-message cost. Notices never carry an amount or an
+  address, because a push can sit on a lock screen someone else is holding.
 - **Row-Level Security** isolates every owner's data at the database.
 - Verified in-sandbox: the schema/RLS/seed apply cleanly to real Postgres, and
   all financial-core tests pass.

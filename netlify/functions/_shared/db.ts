@@ -41,6 +41,14 @@ export async function sbUpdate<T = any>(table: string, query: string, patch: unk
   return res.json()
 }
 
+export async function sbDelete(table: string, query: string): Promise<void> {
+  const res = await fetch(`${URL}/rest/v1/${table}?${query}`, {
+    method: 'DELETE',
+    headers: headers({ Prefer: 'return=minimal' }),
+  })
+  if (!res.ok) throw new Error(`Supabase delete ${table} ${res.status}: ${await res.text()}`)
+}
+
 export const dbConfigured = () => !!URL && !!SERVICE_KEY
 
 export function json(statusCode: number, body: unknown) {

@@ -19,8 +19,13 @@ accepts), receipts, the cleaner route and the business dashboard numbers — see
 §7 for the full table.
 
 Still seed/sample content (same pattern when needed): service reports, supplies,
-payouts, My Week. Needs your input: Square keys (real payments), an SMS provider
-in Supabase Auth (client phone OTP), custom domain (optional).
+payouts, My Week. Needs your input: Square keys (real payments), a VAPID keypair
+for phone notifications (§8 — two commands, free), custom domain (optional).
+
+**Texting is no longer part of signing in.** Everyone — client, cleaner,
+business — signs in with an email and a password, and a client Ahleyia added
+sets their password on the invite link she sends. Nothing about getting into the
+app depends on an SMS provider or costs per message.
 
 This is the runbook to take the app live on **your Supabase project** with
 payments deferred. It's written so that adding Square later is just a few env
@@ -31,12 +36,12 @@ vars and a redeploy — no code change.
 | | Supabase only (now) | + Square (later) |
 |---|---|---|
 | Business/admin sign-in (email + password) | ✅ real | ✅ real |
-| Client sign-in (phone OTP) | ✅ real¹ | ✅ real |
+| Client sign-in (email + password) | ✅ real | ✅ real |
 | Data + Row-Level Security (homes, jobs, reports…) | ✅ real | ✅ real |
 | Save card on file | ⚠️ simulated² | ✅ real (Square) |
 | Check-in capture · approve release · concierge close | ⚠️ simulated² | ✅ real charges |
 
-¹ Phone OTP needs an **SMS provider configured in Supabase Auth** (Twilio,
+¹ (was: phone OTP needs an **SMS provider configured in Supabase Auth** (Twilio,
 MessageBird, etc.). Until then, use the **email + password** business login to
 verify the deploy — it needs no SMS.
 
@@ -85,12 +90,14 @@ Or run the individual files in order if you prefer:
 6. `supabase/migrations/0006_client_invites.sql` — client invitations
 7. `supabase/migrations/0007_sms_consent.sql` — recorded consent to be texted
 8. `supabase/migrations/0008_job_steps_phase.sql` — the phase on each checklist step
-9. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
+9. `supabase/migrations/0009_notifications.sql` — notices + push subscriptions
+10. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
 
 **Already ran `setup.sql` before?** Do **not** re-run it — it would stop at
 `type "user_role" already exists`. Run **`supabase/upgrade.sql`** instead: it
-contains only the newer parts (invitations, SMS consent, and the checklist's
-phase columns), is safe to run more than once, and leaves your data untouched.
+contains only the newer parts (invitations, SMS consent, the checklist's phase
+columns, and notifications), is safe to run more than once, and leaves your data
+untouched.
 Verified against a database in exactly that state — applied, then applied again
 with no errors.
 
@@ -188,7 +195,7 @@ demo never breaks.
 
 | Area | Live behavior |
 |---|---|
-| Sign-in | Email + password (business) routes by real role: `org_admin` → admin dashboard, `cleaner` → route, `owner` → client home. Phone OTP works once an SMS provider is enabled in Supabase Auth. |
+| Sign-in | Email + password for every role, routed by the real role: `org_admin` → admin dashboard, `cleaner` → route, `owner` → client home. Public sign-up creates a real auth user (three steps, no code to wait for). |
 | Sign out | Clears the real Supabase session. |
 | Client home | Real properties, real empty state, greets the real account. |
 | Add a property | Writes a `properties` row (RLS: `owner_id = auth.uid()`), then refreshes. |
@@ -203,6 +210,9 @@ demo never breaks.
 | Owner schedule | The client's real upcoming cleans, with window and price. Reschedule / add / cancel open the real thread with the ask written for them. |
 | Add a home for a client | Staff write a `properties` row for an existing client (RLS: their own org only). It's bookable immediately. |
 | Business dashboard | Real month, real counts, and a "Needs you" list built from what's actually outstanding — unassigned cleans, unclaimed invitations, open quotes. |
+| Notifications | Real `notifications` rows: a feed per person, unread count, mark-read, and a nudge on Home when something is waiting. Written by the functions (arrival, booking, payout, invite claimed) and by Ahleyia ("on my way", "report ready"). |
+| Notification settings | The toggles write `users.notify_prefs` — the same map the server checks before it sends anything. |
+| Phone notifications | Web Push, once a VAPID keypair is set (§8). Per device, opt-in, and never required: a notice is a database row first and a phone buzz second. |
 
 ### Booking a clean (server-side by design)
 
@@ -260,17 +270,70 @@ hash** (a leaked backup cannot claim anyone's account), **single-use** (claimed
 atomically, so two people opening the same link cannot both get through), and it
 **expires after 14 days**. She can cancel one by setting `revoked_at`.
 
-### Text messages (Twilio)
+### Notifications
 
-Two independent things, both optional:
+Notices reach people in two layers, and the first one always works.
 
-**1. Client phone-code sign-in** — no code involved. Supabase → Authentication →
-Sign In / Providers → **Phone**, set the SMS provider to Twilio and paste your
-Account SID, Auth Token, and a Messaging Service SID (or a Verify Service SID —
-Verify manages the codes and expiry for you). The app's phone login starts
-working immediately; no redeploy.
+**1. In the app (always on).** Every notice is a row in `notifications` that its
+recipient owns. That is the record of record — it survives a missed push, a new
+phone, and permission never being granted at all. Each person has a
+**Notifications** screen (menu → Notifications, or the card that appears on Home
+when something is unread) with a real unread count and mark-as-read.
 
-**2. The app texting people** — set these in Netlify:
+Who writes them:
+
+| Event | Who hears | Raised by |
+|---|---|---|
+| A clean is booked for a client | the client | `book-clean` |
+| Check-in succeeds | the client: she's arrived | `checkin` |
+| Ahleyia taps "on my way" | the client | `notify` (staff action) |
+| A clean is closed out | the client: the report is ready | `notify` (staff action) |
+| Owner approves | the cleaner: a payout is on its way | `approve` |
+| A client claims their invite link | every staff member | `claim-invite` |
+
+`users.notify_prefs` decides what gets sent. It's a small JSON map of
+**opt-outs** — a missing key means "send it", so a new kind of notice reaches
+people instead of being silently withheld until they find a toggle. The
+Notifications section of Settings writes it, and the server reads the same map
+before sending anything.
+
+**Nothing in a notice carries an amount or an address.** A push payload is
+delivered by a third-party push service and can sit on the lock screen of a
+phone somebody else is holding, so the wording lives server-side in
+`netlify/functions/_shared/notify.ts` and is unit-tested for it. The browser
+picks a `kind`, never the text — otherwise the endpoint would be a way to put
+arbitrary words on a client's lock screen under Ahleyia's name.
+
+**2. On the phone (Web Push — optional, free, no provider).** The browser's own
+push service delivers it. The only credential is a VAPID keypair you generate
+once:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Set in Netlify:
+
+| Var | Value |
+|---|---|
+| `VAPID_PUBLIC_KEY` | the public key it printed |
+| `VAPID_PRIVATE_KEY` | the private key it printed |
+| `VAPID_SUBJECT` | `mailto:ahleyia@atlluxurycleaning.com` |
+
+With none of these set, the app never offers to turn phone notifications on and
+notices stay in-app. Nothing breaks.
+
+Each person turns it on per device on the Notifications screen. **On iPhone, push
+only works once the app is on the home screen** — the app detects that and says
+so rather than firing a permission prompt that can never succeed. A subscription
+the push service reports as gone (404/410) is deleted automatically, so a stale
+device doesn't fail forever.
+
+### Text messages (Twilio) — optional, and not part of signing in
+
+Signing in never involves a text. The only thing Twilio adds is the app being
+able to text an invitation link or an arrival notice **in addition** to the
+notification above. Set these in Netlify to enable it:
 
 | Var | Value |
 |---|---|
@@ -279,20 +342,10 @@ working immediately; no redeploy.
 | `TWILIO_MESSAGING_SERVICE_SID` | preferred — handles sender selection |
 | `TWILIO_FROM` | or a single sending number instead |
 
-With none of these set, sending is a **no-op** that reports `not_configured` —
-notifications can never break a booking or a payment.
-
-What gets sent, each triggered by a real event (there is deliberately no
-"send arbitrary text" endpoint — the recipient and wording are always resolved
-server-side):
-
-| Event | Who hears |
-|---|---|
-| She sends an invitation | the client gets their link |
-| Check-in succeeds | the owner: she's arrived, and the one charge went through |
-| Card declined at check-in | the owner: nothing was charged, how to fix it |
-| Owner approves | the cleaner: final released (and the tip, separately) |
-| 48h auto-release | both sides |
+With none of these set, sending is a **no-op** that reports `not_configured`, and
+"text it to them" hands off to Ahleyia's own Messages app so she is never
+blocked. There is deliberately no "send arbitrary text" endpoint — the recipient
+and wording are always resolved server-side.
 
 **Consent is enforced, not assumed.** `users.sms_consent` is recorded with a
 timestamp when Ahleyia ticks that the client agreed, and `sms_opted_out` (a STOP
@@ -305,5 +358,6 @@ filtered.
 
 1. **Square keys** — payments run on the mock adapter until then (see §6). Real
    DB rows are written with mock processor refs; **no money moves**.
-2. **SMS provider** in Supabase Auth for client phone-code login.
+2. **VAPID keypair** (two commands, free, no provider) so notices also reach
+   phones. Without it they're in-app only, which still works.
 3. **Custom domain** (optional) — Netlify → Domain settings.

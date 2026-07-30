@@ -22,8 +22,13 @@ function readProps(): ModelProps {
   const fill = q.get('fill')
   // A client opening the link Ahleyia sent them.
   const invite = q.get('invite')
+  // Opened by tapping a notification while the app was closed. The service
+  // worker puts the notice's route key here; the store resolves it once the
+  // signed-in identity is known (it decides differently for a client and staff).
+  const open = q.get('open')
   return {
     inviteToken: invite || undefined,
+    openLink: open || undefined,
     startRole: role === 'cleaner' || role === 'owner' || role === 'visitor' ? role : 'visitor',
     // The live app shows just the app. The review showcase (device switcher +
     // role pills + "Every screen" index) is opt-in with ?chrome=1.

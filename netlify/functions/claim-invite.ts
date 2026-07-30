@@ -9,6 +9,7 @@
  * Reachable without a session, because the whole point is that they do not have
  * one yet: the token is the credential, and it is verified here. */
 import { sbSelect, sbUpdate, json } from './_shared/db'
+import { sendNotice } from './_shared/notify'
 import {
   hashToken, inviteState, INVITE_MESSAGE,
   updateAuthUser, passwordProblem, emailLooksValid,
@@ -58,6 +59,14 @@ export const handler = async (event: any) => {
   }
 
   await sbUpdate('users', `id=eq.${invite.owner_id}`, { email, onboarding_state: 'active' })
+
+  // Ahleyia sent this link by hand; she should hear when it lands.
+  const [claimant] = await sbSelect('users', `id=eq.${invite.owner_id}&select=full_name`)
+  const staff = await sbSelect('users', `org_id=eq.${invite.org_id}&role=in.(org_admin,cleaner)&select=id`)
+  await Promise.all(staff.map((u: any) =>
+    sendNotice('invite_claimed', { orgId: invite.org_id, userId: u.id }, {
+      subject: claimant?.full_name || undefined, link: 'clients',
+    })))
 
   return json(200, {
     ok: true,

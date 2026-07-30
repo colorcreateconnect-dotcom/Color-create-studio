@@ -44,6 +44,15 @@ export function CleanerScreens(v: any) {
             ? <StatTile value={v.liveClientCount} label="Clients" color="var(--magenta)" style={{ flex: 1 }} />
             : <StatTile value="2" label="Turnovers before 4pm" color="var(--magenta)" style={{ flex: 1 }} />}
         </div>
+        {v.unreadNudge && (
+          <Card onClick={v.unreadNudge.go} style={{ cursor: 'pointer' }}>
+            <div style={css('display:flex;align-items:center;gap:12px')}>
+              <div style={css('width:38px;height:38px;border-radius:50%;background:var(--gradient-brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0')}>🔔</div>
+              <div style={css('flex:1;font-size:13px;font-weight:var(--weight-semibold)')}>{v.unreadNudge.label}</div>
+              <div style={css('font-size:16px;color:var(--text-muted)')}>›</div>
+            </div>
+          </Card>
+        )}
         {v.noJobs && (<>
           <Card tone="blush">
             <div style={css('text-align:center;padding:6px 4px')}>
@@ -279,6 +288,9 @@ function LiveClean({ v }: { v: any }) {
             <div style={css('margin-top:10px')}><Button variant="ghost" size="sm" onClick={v.buildChecklist}>Build it from the Kee Method™</Button></div>
           </NoteCard>
         )}
+        <Card flush>
+          <SupplyRow icon="🚗" name="Tell them you’re on your way" sub="Lands on their phone, and in the app" right="›" onClick={v.liveOnMyWay} last />
+        </Card>
         {!!v.liveTotal && (<>
           <NoteCard tone="eco" icon="🌱"><b>The Kee Method™.</b> Work top to bottom — it’s built so you finish with only the floors left. Each tick saves the moment you make it.</NoteCard>
           <SectionLabel right={v.liveDone + ' of ' + v.liveTotal}>Today’s checklist</SectionLabel>
@@ -752,6 +764,13 @@ function Settings({ v }: { v: any }) {
           <SupplyRow icon="👤" name="Assistant split" sub="40% with a $50 minimum" right="›" onClick={v.goQuote} last />
         </Card>
         <SectionLabel>Notifications</SectionLabel>
+        {v.pushOffered && (
+          <Card flush>
+            <SupplyRow icon="🔔" name={v.pushLabel} sub={v.pushSub}
+              right={v.pushNeedsInstall || v.pushBlocked ? '›' : (v.pushOn ? 'On' : 'Off')}
+              onClick={v.pushNeedsInstall || v.pushBlocked ? v.goNotices : v.togglePush} last />
+          </Card>
+        )}
         <Card>
           {v.cleanerNotifs.map((n: any, i: number) => (
             <div key={i} style={css('display:flex;gap:12px;align-items:flex-start;padding:9px 0')}>

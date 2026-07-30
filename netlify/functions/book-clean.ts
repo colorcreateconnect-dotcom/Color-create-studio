@@ -11,6 +11,7 @@
  * money moves at check-in (one capture on arrival), never at booking. */
 import { sbSelect, sbInsert, json } from './_shared/db'
 import { requireCaller, isStaff } from './_shared/auth'
+import { sendNotice } from './_shared/notify'
 import { airbnbQuote, residentialQuote, type Staging } from '../../src/lib/pricing'
 
 const EDITION_FOR: Record<string, 'vacation_rental' | 'luxury_home'> = {
@@ -105,6 +106,15 @@ export const handler = async (event: any) => {
     } catch (e: any) {
       stepsError = e?.message || 'Checklist could not be created'
     }
+  }
+
+  // Tell the client it's on the calendar — unless they booked it themselves,
+  // in which case they were just looking at the confirmation.
+  if (!ownsIt) {
+    const [named] = await sbSelect('properties', `id=eq.${prop.id}&select=name`)
+    await sendNotice('booked', { orgId: prop.org_id, userId: prop.owner_id }, {
+      subject: named?.name, link: 'schedule', jobId: job.id,
+    })
   }
 
   return json(200, {

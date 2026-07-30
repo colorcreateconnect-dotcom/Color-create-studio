@@ -7,8 +7,10 @@
  * - API + Netlify Functions: never cached (money-critical; always live).
  * - Photo outbox: IndexedDB queue + Background Sync so proof photos taken
  *   offline upload automatically on reconnect.
+ * - Push: shows the studio's notices when the app is closed, and focuses an
+ *   already-open tab instead of piling up new ones.
  */
-const VERSION = 'smia-v4'
+const VERSION = 'smia-v5'
 const SHELL = `${VERSION}-shell`
 const RUNTIME = `${VERSION}-runtime`
 const APP_SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/icons/icon-192.png']
@@ -118,4 +120,48 @@ self.addEventListener('sync', (event) => {
 // not on every browser, so this is the always-available fallback).
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'flush-photos') event.waitUntil(flushOutbox())
+})
+
+/* --------------------------------------------------------------- push -- */
+/* A notice arrives even with the app closed. The payload is written by
+   netlify/functions/_shared/notify.ts and deliberately carries no money and no
+   address — a notification can sit on a lock screen someone else is holding. */
+self.addEventListener('push', (event) => {
+  let d = {}
+  try { d = event.data ? event.data.json() : {} } catch { d = {} }
+  const title = d.title || 'She’s Maid In ATL'
+  event.waitUntil(self.registration.showNotification(title, {
+    body: d.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    // One notice per kind replaces the previous one of that kind rather than
+    // stacking five "on her way" cards.
+    tag: d.kind || 'smia',
+    renotify: true,
+    data: { link: d.link || '', kind: d.kind || '' },
+  }).then(async () => {
+    // If a tab is open, tell it to refresh the feed so the badge and the list
+    // agree with what just landed on the phone.
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    all.forEach((c) => c.postMessage({ type: 'push-received', kind: d.kind || '' }))
+  }))
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const link = (event.notification.data && event.notification.data.link) || ''
+  const target = link ? `/?open=${encodeURIComponent(link)}` : '/'
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    // Reuse the tab they already have open — a PWA that opens a second window
+    // every time you tap a notice feels broken.
+    for (const c of all) {
+      if (c.url.indexOf(self.location.origin) === 0) {
+        await c.focus()
+        c.postMessage({ type: 'open-link', link })
+        return
+      }
+    }
+    await self.clients.openWindow(target)
+  })())
 })

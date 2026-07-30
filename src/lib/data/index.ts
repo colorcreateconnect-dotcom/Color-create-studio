@@ -51,6 +51,24 @@ export interface DataSource {
   setJobStatus(jobId: string, patch: JobProgress): Promise<void>
   /** Instantiate the Kee Method for a job whose checklist is missing. */
   buildJobSteps(jobId: string): Promise<number>
+  /** This person's notices, newest first. */
+  notifications(limit?: number): Promise<Notice[]>
+  /** Mark notices read. No ids = everything unread. */
+  markNotificationsRead(ids?: string[]): Promise<void>
+  /** Save which notices this person wants. */
+  saveNotifyPrefs(userId: string, prefs: Record<string, boolean>): Promise<void>
+}
+
+/** A notice as the app shows it. */
+export interface Notice {
+  id: string
+  kind: string
+  title: string
+  body: string | null
+  link: string | null
+  jobId: string | null
+  read: boolean
+  createdAt: string
 }
 
 /** The working-state fields a cleaner moves as she does the job. Money state
@@ -76,7 +94,11 @@ export const threadKeyForOwner = (ownerId: string) => `owner:${ownerId}`
 const num = (v: any): number | undefined => (v == null ? undefined : Number(v))
 
 function mapUser(r: any): User {
-  return { id: r.id, orgId: r.org_id ?? null, role: r.role, fullName: r.full_name, phone: r.phone, email: r.email, onboardingState: r.onboarding_state ?? undefined }
+  return {
+    id: r.id, orgId: r.org_id ?? null, role: r.role, fullName: r.full_name,
+    phone: r.phone, email: r.email, onboardingState: r.onboarding_state ?? undefined,
+    notifyPrefs: (r.notify_prefs && typeof r.notify_prefs === 'object') ? r.notify_prefs : undefined,
+  }
 }
 function mapProperty(r: any): Property {
   return {
@@ -108,6 +130,12 @@ function mapPaymentMethod(r: any): PaymentMethod {
 }
 function mapMessage(r: any): Message {
   return { id: r.id, threadKey: r.thread_key, senderId: r.sender_id ?? undefined, body: r.body, photoKey: r.photo_key ?? undefined, createdAt: r.created_at }
+}
+function mapNotice(r: any): Notice {
+  return {
+    id: r.id, kind: r.kind, title: r.title, body: r.body ?? null, link: r.link ?? null,
+    jobId: r.job_id ?? null, read: !!r.read_at, createdAt: r.created_at,
+  }
 }
 function mapCharge(r: any): Charge {
   return { id: r.id, jobId: r.job_id, kind: r.kind, amount: Number(r.amount), createdAt: r.created_at }
@@ -263,6 +291,29 @@ class SupabaseData implements DataSource {
     })))
     return ordered.length
   }
+  async notifications(limit = 40) {
+    const rows = await this.rest<any[]>(`notifications?select=id,kind,title,body,link,job_id,read_at,created_at&order=created_at.desc&limit=${limit}`)
+    return rows.map(mapNotice)
+  }
+  async markNotificationsRead(ids?: string[]) {
+    // RLS scopes this to the caller's own rows, so an unfiltered "all unread"
+    // can only ever touch theirs.
+    const q = ids?.length ? `id=in.(${ids.map((i) => `"${i}"`).join(',')})` : 'read_at=is.null'
+    const res = await fetch(`${this.url}/rest/v1/notifications?${q}`, {
+      method: 'PATCH',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+      body: JSON.stringify({ read_at: new Date().toISOString() }),
+    })
+    if (!res.ok) throw new Error(`Could not mark those read (${res.status})`)
+  }
+  async saveNotifyPrefs(userId: string, prefs: Record<string, boolean>) {
+    const res = await fetch(`${this.url}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+      body: JSON.stringify({ notify_prefs: prefs }),
+    })
+    if (!res.ok) throw new Error(`Could not save that setting (${res.status})`)
+  }
   async chargesForJobs(jobIds: string[]) {
     if (!jobIds.length) return [] as Charge[]
     const list = jobIds.map((id) => `"${id}"`).join(',')
@@ -300,6 +351,9 @@ class MockData implements DataSource {
   async createPropertyFor(input: NewProperty) { return this.createProperty(input) }
   async setJobStatus() { /* demo: nothing to persist */ }
   async buildJobSteps() { return 0 }
+  async notifications() { return [] as Notice[] }
+  async markNotificationsRead() { /* demo: nothing to persist */ }
+  async saveNotifyPrefs() { /* demo: nothing to persist */ }
 }
 
 let singleton: DataSource | null = null

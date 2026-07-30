@@ -112,10 +112,24 @@ when the env vars are present the same screens talk to live services. Nothing to
 toggle — `isSupabaseConfigured()` / `isSquareConfigured()` decide per call site,
 so the clickable prototype never breaks.
 
-- **Auth** (`src/lib/supabase.ts`) — dependency-free GoTrue over REST. Clients
-  sign in with phone + a texted OTP (client gate → verify); the business account
-  uses email + password. The session is persisted to `sb-access-token`, the key
-  the anon-key data reads carry, so **RLS always runs as the signed-in user**.
+- **Auth** (`src/lib/supabase.ts`) — dependency-free GoTrue over REST.
+  **Everyone signs in with an email and a password** — client, cleaner and
+  business alike. Texted one-time codes were removed deliberately: they made
+  getting into the app depend on an SMS provider and a per-message cost, and a
+  client Ahleyia added already sets their own password on the invite link she
+  sends them. The session is persisted to `sb-access-token`, the key the
+  anon-key data reads carry, so **RLS always runs as the signed-in user**.
+- **Notifications** (`src/lib/push.ts`, `netlify/functions/_shared/notify.ts`) —
+  two layers, and the first always works. Every notice is a row in
+  `notifications` that its recipient owns (RLS: read your own, mark your own
+  read; only staff in the org may write one, so a client cannot forge a notice
+  that appears to come from Ahleyia). On top of that, **Web Push** — no
+  provider, no per-message cost, and skipped entirely when no VAPID keypair is
+  configured. `users.notify_prefs` is a map of opt-outs read by the server
+  before it sends; an absent key means send, so a new kind of notice reaches
+  people rather than being withheld until they find a toggle. Notice wording
+  lives server-side and is unit-tested to carry no amount and no address,
+  because a push can sit on a lock screen someone else is holding.
 - **Hydration** (`src/app/backend.ts`) — on load, when signed in, the store
   pulls the real identity, card on file, and jobs, and picks the active job id
   that the money-path actions operate on. Falls back to seed data otherwise.
@@ -154,8 +168,9 @@ what remains is provisioning + credentials:
 
 1. **Supabase**: create a project; run `supabase/migrations/0001_schema.sql`,
    `0002_rls.sql`, then `supabase/seed.sql`. Create a Storage bucket `proof`
-   (private; serve via signed, expiring URLs). Enable phone (OTP) + magic-link
-   auth. Add a trigger/edge function to insert a `users` row on signup.
+   (private; serve via signed, expiring URLs). Email + password auth is on by
+   default and is all the app uses. `0005_auth_users.sql` installs the trigger
+   that inserts a `users` row on signup.
 2. **Square**: create an app; get the sandbox access token, application id,
    location id, and webhook signature key. Point a webhook subscription at
    `/.netlify/functions/square-webhook`. Verify the Payments/Cards/Refunds

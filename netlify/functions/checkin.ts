@@ -6,7 +6,8 @@
 import { sbSelect, sbUpdate, sbInsert, json } from './_shared/db'
 import { getAdapter } from './_shared/adapter'
 import { requireCaller, isStaff } from './_shared/auth'
-import { notify, MSG } from './_shared/sms'
+import { notify as notifySms, MSG } from './_shared/sms'
+import { sendNotice } from './_shared/notify'
 import { evaluateGeofence } from '../../src/lib/geofence'
 import { transition, releaseAmounts } from '../../src/lib/payments/state'
 
@@ -53,8 +54,12 @@ export const handler = async (event: any) => {
 
   if (charge.status !== 'COMPLETED') {
     await sbUpdate('jobs', `id=eq.${jobId}`, { payment_state: transition(job.payment_state, 'capture_failed'), status: 'held' })
-    // Tell the owner so they can fix the card — nothing was charged.
-    await notify(job.owner_id, MSG.cardDeclined(prop?.name || 'your home'))
+    // Tell the owner so they can fix the card — nothing was charged. With
+    // texting optional, the in-app notice is the one that always lands.
+    await notifySms(job.owner_id, MSG.cardDeclined(prop?.name || 'your home'))
+    await sendNotice('card_declined', { orgId: job.org_id, userId: job.owner_id }, {
+      subject: prop?.name, link: 'card', jobId,
+    })
     return json(402, { error: 'Card declined — nothing was charged, nothing released. The job is held.', code: 'CAPTURE_FAILED' })
   }
   // Re-check CREDIT at charge; a re-classified card is refunded and held.
@@ -81,8 +86,13 @@ export const handler = async (event: any) => {
   })
 
   // She's on site and the one charge has gone through — tell the owner.
-  // A notification must never fail a completed payment, so this is best-effort.
-  await notify(job.owner_id, MSG.onArrival(prop?.name || 'your home', charge.amount))
+  // A notification must never fail a completed payment, so both of these are
+  // best-effort. The in-app notice carries no amount: a push payload can sit on
+  // a lock screen someone else is holding.
+  await notifySms(job.owner_id, MSG.onArrival(prop?.name || 'your home', charge.amount))
+  await sendNotice('arrived', { orgId: job.org_id, userId: job.owner_id }, {
+    subject: prop?.name, link: 'schedule', jobId,
+  })
 
   return json(200, { ok: true, captured: charge.amount, arrivalReleased: arrival, paymentState: released })
 }

@@ -89,19 +89,25 @@ export function PublicScreens(v: any) {
 
   if (v.vGate) return (
     <>
-      <DetailHeader gradient="magenta" onBack={v.goBack} badge={v.badgeSafe} title="Welcome back" subtitle="Your number and a texted code — no password" />
+      <DetailHeader gradient="magenta" onBack={v.goBack} badge={v.badgeSafe} title="Welcome back" subtitle="Your email and password" />
       <div style={css('padding:22px')}>
         <Card>
-          <SectionLabel>Verify it’s you</SectionLabel>
-          <Field icon="📱"><NativeInput type="tel" inputMode="tel" autoComplete="tel" aria-label="Mobile number" placeholder="(404) 555-0134" value={v.gatePhone} onChange={v.setGatePhone} /></Field>
-          <p style={css('margin:10px 0 0;font-size:11.5px;color:var(--text-muted)')}>We text you a one-tap code — no password to remember.</p>
+          <SectionLabel>Sign in</SectionLabel>
+          <Field icon="💌" style="box-sizing:border-box"><NativeInput type="email" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false} aria-label="Email" placeholder="Email address" value={v.gateEmail} onChange={v.setGateEmail} /></Field>
+          <div style={{ height: 8 }} />
+          <Field icon="🔐" style="box-sizing:border-box">
+            <NativeInput type={v.gatePwType} autoComplete="current-password" aria-label="Password" placeholder="Password" value={v.gatePw} onChange={v.setGatePw} />
+            <span style={css('font-size:11px;color:var(--magenta);cursor:pointer')} onClick={v.toggleGatePw}>{v.gatePwToggle}</span>
+          </Field>
         </Card>
         <NoteCard tone="pink" icon="💌"><b>Got an invite link from Ahleyia?</b> Tap it instead — it opens your account instantly, already connected to her.</NoteCard>
         <Card tone="dashed">
           <p style={css('margin:0;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>After this you’ll: paste your listing link (we auto-detect your home) → set your requirements & scent → save a credit card → get your tailored quote. Then everything — bookings, photo-proof reports, approvals — lives in your account.</p>
         </Card>
-        <Button onClick={v.goVerify}>Text me the code</Button>
-        <p style={css('margin:10px 2px 0;font-size:11px;color:var(--text-muted)')}>Cleaners & staff: separate sign-in — client accounts never see the working side.</p>
+        {v.gateErr && <NoteCard tone="pink" icon="⚠️">{v.gateErr}</NoteCard>}
+        <Button onClick={v.gateSignIn}>{v.beBusy ? 'Signing in…' : 'Sign in'}</Button>
+        <div style={css('margin-top:14px;text-align:center;font-size:11.5px;color:var(--text-muted)')}>New here? <span style={css('color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.goSignup}>Create an account</span></div>
+        <p style={css('margin:10px 2px 0;font-size:11px;color:var(--text-muted)')}>Cleaners & staff sign in here too — the app opens on your side of it.</p>
       </div>
     </>
   )
@@ -132,12 +138,12 @@ export function PublicScreens(v: any) {
             <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Keep me signed in on this phone</div>
           </div>
         </Card>
-        <NoteCard tone="pink" icon="🔒"><b>Two-step, every new device.</b> A code goes to {v.adminMaskedPhone} after your password — client data and payouts sit behind this login, so it stays locked down.</NoteCard>
+        <NoteCard tone="pink" icon="🔒"><b>This login holds the business.</b> Client data, payouts and pricing sit behind it — use a password you don’t use anywhere else.</NoteCard>
         <Button onClick={v.adminSignIn}>Sign in to the business</Button>
         <div style={css('margin-top:14px;text-align:center;font-size:11.5px;color:var(--text-muted)')}><span style={css('color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.adminForgot}>Forgot your password?</span></div>
         <SectionLabel>Not the owner?</SectionLabel>
         <Card flush>
-          <SupplyRow icon="🧽" name="Staff sign in" sub="Cleaners use their number and a texted code" right="›" onClick={v.goStaffSignIn} />
+          <SupplyRow icon="🧽" name="Staff sign in" sub="Cleaners use their email and password" right="›" onClick={v.goStaffSignIn} />
           <SupplyRow icon="🏡" name="Client sign in" sub="Owners and hosts" right="›" onClick={v.goGate} last />
         </Card>
       </div>
@@ -153,11 +159,18 @@ export function PublicScreens(v: any) {
       <div style={css('padding:22px')}>
         {v.su1 && (<>
           <Card>
-            <SectionLabel>Your name & number</SectionLabel>
+            <SectionLabel>Your name & sign-in</SectionLabel>
             <Field icon="👤"><NativeInput type="text" autoComplete="name" aria-label="Full name" placeholder="Full name" value={v.suName} onChange={v.setSuName} /></Field>
             <div style={{ height: 8 }} />
-            <Field icon="📱"><NativeInput type="tel" inputMode="tel" autoComplete="tel" aria-label="Mobile number" placeholder="(404) 555-0134" value={v.suPhone} onChange={v.setSuPhone} /></Field>
-            <p style={css('margin:10px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>We text a code to confirm it’s you. That number is also how Ahleyia reaches you on the day.</p>
+            <Field icon="💌"><NativeInput type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} aria-label="Email" placeholder="Email address" value={v.suEmail} onChange={v.setSuEmail} /></Field>
+            <div style={{ height: 8 }} />
+            <Field icon="🔐">
+              <NativeInput type={v.suPwType} autoComplete="new-password" aria-label="Choose a password" placeholder="Choose a password" value={v.suPw} onChange={v.setSuPw} />
+              <span style={css('font-size:11px;color:var(--magenta);cursor:pointer')} onClick={v.toggleSuPw}>{v.suPwToggle}</span>
+            </Field>
+            <div style={{ height: 8 }} />
+            <Field icon="📱"><NativeInput type="tel" inputMode="tel" autoComplete="tel" aria-label="Mobile number (optional)" placeholder="Mobile number (optional)" value={v.suPhone} onChange={v.setSuPhone} /></Field>
+            <p style={css('margin:10px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>Your email and password are your sign-in. A number is optional — it’s just how Ahleyia reaches you on the day.</p>
           </Card>
           <Card>
             <SectionLabel>Which kind of account?</SectionLabel>
@@ -167,24 +180,11 @@ export function PublicScreens(v: any) {
             <div style={css('font-size:12px;font-weight:var(--weight-semibold);margin:16px 0 6px')}>How often?</div>
             <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap')}>{v.suCadence.map((c: any, i: number) => <Pill key={i} selected={c.on} onClick={c.pick}>{c.label}</Pill>)}</div>
           </Card>
-          <NoteCard tone="pink" icon="🔒">No password to remember, ever. Your number and a texted code are your sign-in — on any phone.</NoteCard>
+          <NoteCard tone="pink" icon="🔒">One sign-in, any device. Bookings, photo-proof reports and approvals all live behind it.</NoteCard>
         </>)}
         {v.su2 && (<>
           <Card>
-            <SectionLabel>Enter the code we sent {v.suPhoneShown}</SectionLabel>
-            <CodeBoxes v={v} />
-            <p style={css('margin:14px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted);text-align:center')}>Tap the boxes and your phone’s own keypad opens — iOS and Android fill the code from your texts.</p>
-          </Card>
-          <Card flush>
-            <SupplyRow icon="📱" name="Send it again" sub={v.suPhoneShown} right="›" onClick={v.resendCode} />
-            <SupplyRow icon="✏️" name="Wrong number?" sub="Go back and change it" right="›" onClick={v.suBack} last />
-          </Card>
-        </>)}
-        {v.su3 && (<>
-          <Card>
-            <SectionLabel right={v.chipVerified}>Your details</SectionLabel>
-            <Field icon="💌"><NativeInput type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} aria-label="Email" placeholder="Email for reports and receipts" value={v.suEmail} onChange={v.setSuEmail} /></Field>
-            <div style={{ height: 8 }} />
+            <SectionLabel>Your details</SectionLabel>
             <Field icon="📍"><NativeInput type="text" autoComplete="street-address" aria-label="Service address" placeholder="Service address" value={v.suAddress} onChange={v.setSuAddress} /></Field>
             <p style={css('margin:10px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>Metro Atlanta only for now. You can add more properties once you’re in.</p>
           </Card>
@@ -205,23 +205,24 @@ export function PublicScreens(v: any) {
             </div>
           </Card>
         </>)}
-        {v.su4 && (<>
+        {v.su3 && (<>
           <Card tone="blush">
             <div style={css('text-align:center')}>
               <div style={css('width:56px;height:56px;border-radius:50%;background-image:var(--gradient-eco);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto')}>✓</div>
               <div style={css('font-family:var(--font-serif-display);font-size:24px;line-height:1.1;margin-top:12px')}>{v.suWelcome}</div>
-              <p style={css('margin:8px auto 0;max-width:255px;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Your account is live. Next: add your home so Ahleyia can quote it and set your standard.</p>
+              <p style={css('margin:8px auto 0;max-width:255px;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>{v.suConfirmNote ? 'Confirm your email, then sign in. Next: add your home so Ahleyia can quote it and set your standard.' : 'Your account is live. Next: add your home so Ahleyia can quote it and set your standard.'}</p>
             </div>
           </Card>
           <Card flush>
-            <SupplyRow icon="✓" name={v.suName} sub={v.suPhoneShown + ' · verified'} right={v.chipVerified} />
-            <SupplyRow icon="💌" name={v.suEmailShown} sub="Reports & receipts land here" right={v.chipReady} />
+            <SupplyRow icon="✓" name={v.suName} sub="Your account" right={v.chipReady} />
+            <SupplyRow icon="💌" name={v.suEmailShown} sub="Your sign-in — reports & receipts land here" right={v.chipReady} />
             <SupplyRow icon="📍" name={v.suHoodShown} sub={v.suAddressShown} right={v.chipReady} />
             <SupplyRow icon={v.suKindIcon} name={v.suKind} sub={v.suKindSub} right={v.chipReady} last />
           </Card>
           <NoteCard tone="money" icon="🧾"><b>Nothing has been charged.</b> You’ll add a card when you accept a quote — then it’s charged once, in full, on arrival. Tips are separate and 100% hers.</NoteCard>
         </>)}
-        <Button variant={v.suBtnVariant} onClick={v.suNext}>{v.suNextLabel}</Button>
+        {v.suErr && <NoteCard tone="pink" icon="⚠️">{v.suErr}</NoteCard>}
+        <Button variant={v.suBtnVariant} onClick={v.suNext}>{v.beBusy ? 'Creating…' : v.suNextLabel}</Button>
         {v.su1 && <div style={css('margin-top:14px;text-align:center;font-size:11.5px;color:var(--text-muted)')}>Already have an account? <span style={css('color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.goGate}>Sign in</span></div>}
       </div>
     </>
@@ -230,21 +231,6 @@ export function PublicScreens(v: any) {
   if (v.vInvite) return <InviteScreen v={v} />
   if (v.vPortfolio) return <PortfolioScreen v={v} />
   if (v.vStaffSetup) return <StaffSetup v={v} />
-  if (v.vVerify) return (
-    <>
-      <DetailHeader gradient="magenta" onBack={v.goBack} badge={v.badgeCodeSent} title="Enter your code" subtitle="Texted to (404) 555-0134 just now" />
-      <div style={css('padding:22px')}>
-        <Card>
-          <CodeBoxes v={v} />
-          <p style={css('margin:14px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted);text-align:center')}>Tap the boxes and your phone’s own keypad opens — iOS and Android fill the code straight from your texts.</p>
-        </Card>
-        <NoteCard tone="pink" icon="🔒">No password to remember, ever. A fresh code every time you sign in on a new phone.</NoteCard>
-        <Button onClick={v.verifyCode}>{v.verifyLabel}</Button>
-        <div style={css('margin-top:10px')}><Button variant="ghost" onClick={v.resendCode}>Send it again</Button></div>
-      </div>
-    </>
-  )
-
   if (v.vNotifs) return (
     <div style={css('min-height:860px;background:linear-gradient(160deg,#2A1720,#4A2C3A 55%,#8F1560);padding:44px 18px 22px;position:relative;overflow:hidden')}>
       <div style={css('position:absolute;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.07);top:-90px;right:-80px')} />
@@ -300,18 +286,7 @@ export function PublicScreens(v: any) {
   return null
 }
 
-function CodeBoxes({ v }: { v: any }) {
-  return (
-    <div style={css('position:relative')}>
-      <div style={css('display:flex;gap:10px;justify-content:center;margin:4px 0 6px;cursor:text')} onClick={v.focusCode}>
-        {v.codeBoxes.map((b: any, i: number) => (
-          <div key={i} style={{ ...css('width:56px;height:66px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-family:var(--font-serif-display);font-size:30px;color:var(--ink)'), border: '1px solid ' + b.border, background: b.bg }}>{b.char}</div>
-        ))}
-      </div>
-      <input ref={v.codeRef} type="tel" inputMode="numeric" autoComplete="one-time-code" maxLength={4} aria-label="4-digit code" value={v.code} onChange={v.setCode} style={css('position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;background:transparent;font-size:16px;caret-color:transparent')} />
-    </div>
-  )
-}
+
 
 function StaffSetup({ v }: { v: any }) {
   return (
@@ -344,7 +319,7 @@ function StaffSetup({ v }: { v: any }) {
             <Field icon="👤"><NativeInput type="text" autoComplete="name" aria-label="Full name" placeholder="Full name" value={v.staffName} onChange={v.setStaffName} /></Field>
             <div style={{ height: 8 }} />
             <Field icon="📱"><NativeInput type="tel" inputMode="tel" autoComplete="tel" aria-label="Mobile number" placeholder="Mobile number" /></Field>
-            <p style={css('margin:10px 0 0;font-size:11px;color:var(--text-muted);line-height:var(--leading-snug)')}>We text you a code to sign in — no password to remember.</p>
+            <p style={css('margin:10px 0 0;font-size:11px;color:var(--text-muted);line-height:var(--leading-snug)')}>Ahleyia sends you a link to set your email and password — that’s your sign-in.</p>
           </Card>
         </>)}
         {v.st2 && (<>
@@ -392,7 +367,7 @@ function StaffSetup({ v }: { v: any }) {
             </div>
           </Card>
           <Card flush>
-            <SupplyRow icon="✓" name="Account created" sub="Sign in with your number and a texted code" right={v.chipReady} />
+            <SupplyRow icon="✓" name="Account created" sub="Sign in with your email and password" right={v.chipReady} />
             <SupplyRow icon="🏦" name="Payouts connected" sub="Instant payouts on" right={v.chipReady} />
             <SupplyRow icon="📋" name="Certification" sub={v.certStatusSub} right={v.certStatusChip} />
             <SupplyRow icon="👤" name="Background check" sub="Running · 1–3 days" right={v.chipPendingCheck} last />

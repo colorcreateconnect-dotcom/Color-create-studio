@@ -139,3 +139,34 @@ export interface CloseVisitResult { ok: true; timeCharge: number; reimbursed: nu
 export function closeConciergeVisit(input: { jobId: string; minutes: number }): Promise<CloseVisitResult> {
   return post('concierge-close', input)
 }
+
+/* ---- notifications ----------------------------------------------------- */
+
+/** What this deployment can do. Cheap enough to call on load; the app uses it
+ *  to decide whether to offer "turn on notifications" at all. */
+export interface PushConfig { pushConfigured: boolean; publicKey: string }
+export async function pushConfig(): Promise<PushConfig> {
+  try {
+    const res = await fetch(`${FN_BASE}/notify`, { method: 'GET' })
+    if (!res.ok) return { pushConfigured: false, publicKey: '' }
+    return await res.json()
+  } catch { return { pushConfigured: false, publicKey: '' } }
+}
+
+/** Register this device. The endpoint + keys come from src/lib/push. */
+export function registerPush(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<{ ok: true; pushConfigured: boolean }> {
+  return post('notify', { action: 'subscribe', subscription })
+}
+
+/** Stop pushing to this device. */
+export function unregisterPush(endpoint: string): Promise<{ ok: true }> {
+  return post('notify', { action: 'unsubscribe', endpoint })
+}
+
+/** Staff-only: send one of the studio's notices about a job. The wording is
+ *  the server's, not ours — see netlify/functions/_shared/notify.ts. */
+export type SendableNotice = 'on_the_way' | 'report_ready' | 'approval_due' | 'quote_ready' | 'message' | 'supplies'
+export interface SendNoticeResult { ok: true; stored: boolean; pushed: number; skipped?: string }
+export function sendNotice(input: { jobId: string; kind: SendableNotice }): Promise<SendNoticeResult> {
+  return post('notify', { action: 'send', ...input })
+}

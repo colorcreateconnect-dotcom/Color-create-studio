@@ -62,21 +62,25 @@ function toSession(d: any): Session {
   }
 }
 
-/** Step 1 of client sign-in — text a one-time code to the phone. */
-export async function sendPhoneOtp(phone: string): Promise<void> {
-  await auth('otp', { phone: normalizePhone(phone), channel: 'sms' })
-}
-
-/** Step 2 — verify the texted code; on success the session is persisted. */
-export async function verifyPhoneOtp(phone: string, token: string): Promise<Session> {
-  const d = await auth<any>('verify', { type: 'sms', phone: normalizePhone(phone), token })
-  const s = toSession(d); persist(s); return s
-}
-
-/** Business/admin sign-in — email + password (GoTrue password grant). */
+/** Sign in — email + password (GoTrue password grant). The only way in, for
+ *  every role. Texted one-time codes are deliberately not used: they need an
+ *  SMS provider and a per-message cost before anyone can even open the app. */
 export async function signInWithPassword(email: string, password: string): Promise<Session> {
   const d = await auth<any>('token', { email, password }, '?grant_type=password')
   const s = toSession(d); persist(s); return s
+}
+
+/** Create an account — email + password. Supabase may or may not require email
+ *  confirmation; when it does, no session comes back and the caller has to say
+ *  "check your email" rather than pretending the person is signed in. */
+export async function signUpWithPassword(
+  email: string, password: string, meta?: Record<string, unknown>,
+): Promise<{ session: Session | null; needsConfirmation: boolean }> {
+  const d = await auth<any>('signup', { email, password, data: meta || {} })
+  if (!d?.access_token) return { session: null, needsConfirmation: true }
+  const session = toSession(d)
+  persist(session)
+  return { session, needsConfirmation: false }
 }
 
 /** Exchange a stored refresh token for a fresh access token. */

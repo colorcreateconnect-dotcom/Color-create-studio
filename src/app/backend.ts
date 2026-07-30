@@ -7,14 +7,14 @@
  * `backendActive()` and falls back to the demo behavior when it's false, so the
  * clickable prototype never breaks. */
 import { isSupabaseConfigured } from '../lib/config'
-import { restore, verifyPhoneOtp, sendPhoneOtp, signInWithPassword, signOut } from '../lib/supabase'
+import { restore, signInWithPassword, signUpWithPassword, signOut } from '../lib/supabase'
 import { getData, threadKeyForOwner } from '../lib/data'
 import type { User, PaymentMethod, Job, Property, Message, Quote, Report, Charge } from '../lib/data/types'
 export { threadKeyForOwner }
 import { ApiError } from '../lib/api'
 export { getData }
 
-export { verifyPhoneOtp, sendPhoneOtp, signInWithPassword, signOut }
+export { signInWithPassword, signUpWithPassword, signOut }
 export * as api from '../lib/api'
 
 /** Is a live backend wired? Everything gates on this. */

@@ -13,7 +13,73 @@ export function SharedScreens(v: any) {
   if (v.vThread) return <Thread v={v} />
   if (v.vCompose) return <Compose v={v} />
   if (v.vCalendar) return <Calendar v={v} />
+  if (v.vNotices) return <Notices v={v} />
   return null
+}
+
+/* Everything the app has told this person, newest first. The list is the record
+   of record: a notice is a database row before it is ever a phone buzz, so it's
+   here whether or not push was ever turned on. */
+function Notices({ v }: { v: any }) {
+  return (
+    <>
+      <DetailHeader onBack={v.goBack} badge={v.feedBadge} title="Notifications" subtitle={v.feedSub} />
+      <div style={css('padding:22px')}>
+        {v.pushOffered && (
+          <Card tone={v.pushOn ? 'blush' : undefined}>
+            <div style={css('display:flex;align-items:flex-start;gap:14px')}>
+              <div style={css('width:46px;height:46px;border-radius:50%;background:var(--surface-cream);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0')}>🔔</div>
+              <div style={css('flex:1;min-width:0')}>
+                <div style={css('font-size:13.5px;font-weight:var(--weight-semibold)')}>{v.pushLabel}</div>
+                <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft);margin-top:3px')}>{v.pushSub}</div>
+                {!v.pushNeedsInstall && !v.pushBlocked && (
+                  <div style={css('margin-top:10px')}>
+                    <Button variant={v.pushOn ? 'ghost' : 'green'} size="sm" onClick={v.togglePush}>
+                      {v.pushBusy ? 'One moment…' : (v.pushOn ? 'Turn off on this device' : 'Turn them on')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
+        {v.pushMsg && <NoteCard tone="warn" icon="⚠️">{v.pushMsg}</NoteCard>}
+
+        {v.feedLoading && <NoteCard tone="cream" icon="⏳">Loading your notices…</NoteCard>}
+        {v.feedEmpty && (
+          <Card tone="blush">
+            <div style={css('text-align:center;padding:6px 4px')}>
+              <div style={css('font-size:34px')}>🔔</div>
+              <div style={css('font-family:var(--font-serif-display);font-size:23px;line-height:1.1;margin-top:10px')}>Nothing yet</div>
+              <p style={css('margin:8px auto 0;max-width:250px;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>You’ll hear when she’s on her way, when a report is ready, and when something needs you.</p>
+            </div>
+          </Card>
+        )}
+        {!!v.feedCards?.length && (<>
+          <SectionLabel action={v.feedUnread ? 'Mark all read' : undefined} onAction={v.feedUnread ? v.markAllRead : undefined}>Recent</SectionLabel>
+          <Card flush>
+            {v.feedCards.map((n: any, i: number, arr: any[]) => (
+              <div key={n.id} onClick={n.open} style={{
+                ...css('display:flex;gap:12px;align-items:flex-start;padding:14px 2px;cursor:pointer'),
+                borderBottom: i === arr.length - 1 ? '0' : '1px solid var(--border-default)',
+              }}>
+                <div style={css('width:38px;height:38px;border-radius:50%;background:var(--surface-cream);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0')}>{n.icon}</div>
+                <div style={css('flex:1;min-width:0')}>
+                  <div style={css('display:flex;gap:8px;align-items:baseline;justify-content:space-between')}>
+                    <div style={{ ...css('font-size:13px'), fontWeight: n.unread ? 600 : 400 }}>{n.title}</div>
+                    <div style={css('font-size:10px;color:var(--text-muted);white-space:nowrap')}>{n.when}</div>
+                  </div>
+                  {n.body && <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft);margin-top:2px')}>{n.body}</div>}
+                </div>
+                {n.unread && <div style={css('width:8px;height:8px;border-radius:50%;background:var(--magenta);flex-shrink:0;margin-top:6px')} />}
+              </div>
+            ))}
+          </Card>
+        </>)}
+        <NoteCard tone="pink" icon="🔒">Notices never carry an amount or an address — they can sit on a lock screen. Tap one to open the detail behind it.</NoteCard>
+      </div>
+    </>
+  )
 }
 
 function Thread({ v }: { v: any }) {

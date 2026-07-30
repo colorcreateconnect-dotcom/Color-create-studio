@@ -13,9 +13,10 @@ import { SLOTS, windowFor, slotTaken } from '../lib/schedule'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
-  sendPhoneOtp, verifyPhoneOtp, signInWithPassword, signOut as beSignOut, api, getData, threadKeyForOwner,
+  signInWithPassword, signUpWithPassword, signOut as beSignOut, api, getData, threadKeyForOwner,
 } from './backend'
 import { isSquareConfigured } from '../lib/config'
+import { pushSupport, enablePush, disablePush, currentEndpoint } from '../lib/push'
 
 type Any = Record<string, any>
 
@@ -144,7 +145,7 @@ const ASST: Any[] = [
 ]
 
 /* ------------------------------------------------------- initial state -- */
-export interface ModelProps { startRole?: 'visitor' | 'cleaner' | 'owner'; showChrome?: boolean; autoFillMethod?: boolean; inviteToken?: string }
+export interface ModelProps { startRole?: 'visitor' | 'cleaner' | 'owner'; showChrome?: boolean; autoFillMethod?: boolean; inviteToken?: string; openLink?: string }
 
 function initialState(props: ModelProps): Any {
   const fill = !!props.autoFillMethod
@@ -170,7 +171,7 @@ function initialState(props: ModelProps): Any {
     tipAmount: '', offline: false, detectFailed: false, manualName: '',
     beds: '2', baths: '2', emptyJobs: false, emptyHomes: false, emptyMsgs: false,
     cam: null, luxChecked: {}, luxPhotos: {}, luxOpen: 1, asstChecked: {}, asstOpen: 1,
-    code: '', tpl: 'turn', gallery: 'clean', galleryFrom: 'report',
+    tpl: 'turn', gallery: 'clean', galleryFrom: 'report',
     rate: 'form', stars: 5, praise: { 'Staging was perfect': true }, rateNote: '',
     editField: 'phone', editValue: '',
     split: 40, clientFilter: 'All',
@@ -195,19 +196,20 @@ function initialState(props: ModelProps): Any {
     invitePreview: null, inviteError: '', inviteFormError: '', inviteDone: false,
     inviteEmail: '', invitePw: '', invitePwShown: false, inviteBusy: false,
     adminEmail: '', adminPw: '', pwShown: false, adminRemember: true,
-    suStep: 1, suName: '', suPhone: '', suEmail: '', suAddress: '', suTerms: false,
+    suStep: 1, suName: '', suPhone: '', suEmail: '', suPw: '', suPwShown: false, suErr: '',
+    suNeedsConfirm: false, suAddress: '', suTerms: false,
     suKind: 'Airbnb host', suScopeMap: {}, suCadenceVal: 'Weekly',
     quoteScopeMap: { 'Main level': true, 'Primary suite': true }, quoteCadenceVal: 'Weekly',
     suHood: 'Midtown', suContactPref: 'Text me', suSourcePref: 'Her card / QR',
     staffStep: 1, staffName: '', verified: {}, cert: {}, taxKind: 'Individual / sole prop',
-    standardsMap: {}, setup: { verify: true },
+    standardsMap: {}, setup: {},
     // Concierge tier (v3): request form + live visit clock + at-cost expenses.
     conciergeSvc: {}, conciergeWindow: 'Tomorrow, 10 AM – 12 PM', conciergeNote: '', conciergeSent: false,
     visitState: 'brief', visitMinutes: 0, expenses: [], expCat: 'Groceries', expAmount: '', expPhoto: false,
     scentOn: true,
     // Live-backend slice — populated by hydrate() when Supabase is configured;
     // stays empty in the sandbox/demo so every screen runs on seed data.
-    gatePhone: '',
+    gateEmail: '', gatePw: '', gatePwShown: false, gateErr: '',
     beReady: false, beSignedIn: false, beUser: null, beCard: null,
     beJobs: [], beProps: [], beClients: [], beActiveJobId: null, beBusy: false,
     beMsgs: [], beQuotes: [], beReports: [], beCharges: [], beThreadOwner: null,
@@ -221,6 +223,9 @@ function initialState(props: ModelProps): Any {
     access: { routes: true, checklists: true, supplies: true, ownernotes: true },
     onotif: { reports: true, cleaning: true, supplies: true, summary: false },
     cnotif: { bookings: true, approvals: true, supplies: true },
+    // Notifications: real rows, plus this device's push state.
+    beNotices: [], beNoticesReady: false, pushState: 'default', pushOn: false,
+    pushKey: '', pushReady: false, pushBusy: false, pushMsg: '',
     threads: {
       ahleyia: [
         { theirs: true, text: 'Good morning! Heading to the Hartwell Estate now — I’ll send photos as I go.', time: '10:52a' },
@@ -247,7 +252,6 @@ function initialState(props: ModelProps): Any {
 export function useModel(props: ModelProps) {
   const [state, setState] = useState<Any>(() => initialState(props))
   const toastTimer = useRef<any>(null)
-  const codeRef = useRef<HTMLInputElement | null>(null)
 
   const stateRef = useRef(state); stateRef.current = state
   const s = state
@@ -289,6 +293,46 @@ export function useModel(props: ModelProps) {
   }
 
   /* ---- small JSX builders, mirror this.chip / this.mt / money ---- */
+  /* ---- notifications ---- */
+  /** "now", "12m ago", "3h ago", "Wed" — how a notice is stamped in the feed. */
+  const agoLabel = (iso: string) => {
+    const t = new Date(iso).getTime()
+    if (isNaN(t)) return ''
+    const mins = Math.floor((Date.now() - t) / 60000)
+    if (mins < 1) return 'now'
+    if (mins < 60) return mins + 'm ago'
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return hrs + 'h ago'
+    const d = new Date(t)
+    const days = Math.floor(hrs / 24)
+    return days < 7 ? d.toLocaleDateString([], { weekday: 'short' }) : d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  }
+
+  /** Where tapping a notice lands. `link` is a route key the server chose from
+   *  a fixed set — never a URL, so a notice can't navigate anywhere arbitrary. */
+  const openNotice = (n: Any) => {
+    if (!n.read) {
+      setState((st: Any) => ({ ...st, beNotices: st.beNotices.map((x: Any) => x.id === n.id ? { ...x, read: true } : x) }))
+      getData().markNotificationsRead([n.id]).catch(() => { /* stays unread next load */ })
+    }
+    const st = stateRef.current
+    const owner = st.beUser?.role === 'owner'
+    const link = String(n.link || '')
+    if (link.startsWith('job:')) { go({ role: 'cleaner', c: 'job', cTab: 1, beStepsJobId: link.slice(4) }); return }
+    switch (link) {
+      case 'report': go(owner ? { role: 'owner', o: 'report', oTab: 1 } : { role: 'cleaner', c: 'today', cTab: 0 }); return
+      case 'schedule': go(owner ? { role: 'owner', o: 'schedule' } : { role: 'cleaner', c: 'calendar' }); return
+      case 'card': go({ role: 'owner', o: 'edit', editField: 'card', editValue: '' }); return
+      case 'payouts': go({ role: 'cleaner', c: 'payouts' }); return
+      case 'clients': go({ role: 'cleaner', c: 'clients' }); return
+      case 'quote': go(owner ? { role: 'owner', o: 'quote' } : { role: 'cleaner', c: 'quote' }); return
+      case 'messages': go(owner ? { role: 'owner', o: 'messages', oTab: 3 } : { role: 'cleaner', c: 'inbox', cTab: 2 }); return
+      default:
+        if (n.jobId) { go({ role: 'cleaner', c: 'job', cTab: 1, beStepsJobId: n.jobId }); return }
+        go(owner ? { role: 'owner', o: 'home', oTab: 0 } : { role: 'cleaner', c: 'today', cTab: 0 })
+    }
+  }
+
   const chip = (key: any, tone: string, txt: any) => <Chip key={key} tone={tone}>{txt}</Chip>
   const mt = (key: any, icon: any, label: any, value?: any) => <MetaTag key={key} icon={icon} label={label} value={value} />
   const money = (t: string, val: string) => <b style={{ fontSize: '13px', color: t }}>{val}</b>
@@ -319,6 +363,82 @@ export function useModel(props: ModelProps) {
     }).catch(() => { if (alive) setState((st: Any) => ({ ...st, beReady: true })) })
     return () => { alive = false }
   }, [])
+
+  /* A notification was tapped. Two ways in: the app was closed and the service
+     worker opened it with ?open=<link>, or the app was already open and the SW
+     posted the link to it. Both land in the same place, once we know who is
+     signed in — the same route means different screens for a client and staff. */
+  useEffect(() => {
+    if (!state.beSignedIn || !state.beUser) return
+    const link = props.openLink
+    if (!link) return
+    openNotice({ id: '', link, jobId: null, read: true })
+    // Don't re-fire on the next render, and don't leave it in the address bar.
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('open')
+      window.history.replaceState({}, '', url.toString())
+    } catch { /* not fatal */ }
+  }, [state.beSignedIn, state.beUser?.id])
+
+  /* The service worker forwards a tap that arrived while the app was open. */
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.serviceWorker) return
+    const onMsg = (e: MessageEvent) => {
+      const d: any = e.data || {}
+      if (d.type === 'open-link' && d.link) openNotice({ id: '', link: d.link, jobId: null, read: true })
+    }
+    navigator.serviceWorker.addEventListener('message', onMsg)
+    return () => navigator.serviceWorker.removeEventListener('message', onMsg)
+  }, [])
+
+  /* Notices for whoever is signed in. Reloaded on sign-in and whenever the
+     service worker says a push just arrived, so the feed and the badge agree
+     with what landed on the phone. */
+  useEffect(() => {
+    if (!backendActive() || !state.beSignedIn || !state.beUser) return
+    let alive = true
+    const load = () => {
+      getData().notifications(40)
+        .then((rows) => { if (alive) setState((st: Any) => ({ ...st, beNotices: rows, beNoticesReady: true })) })
+        .catch(() => { if (alive) setState((st: Any) => ({ ...st, beNoticesReady: true })) })
+    }
+    load()
+    // The SW forwards a tap on a notification, and tells us when one arrives
+    // while the app is open.
+    const onSw = (e: MessageEvent) => {
+      const d: any = e.data || {}
+      if (d.type === 'open-link') { load(); return }
+      if (d.type === 'push-received') load()
+    }
+    navigator.serviceWorker?.addEventListener?.('message', onSw)
+    // Coming back to the app is the other moment the feed can be stale.
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      alive = false
+      navigator.serviceWorker?.removeEventListener?.('message', onSw)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [state.beSignedIn, state.beUser?.id])
+
+  /* What this device can do about notifications, and whether it already is.
+     Asks the server for the VAPID public key once; with no keys configured the
+     app simply never offers to turn push on. */
+  useEffect(() => {
+    if (!backendActive() || !state.beSignedIn) return
+    let alive = true
+    ;(async () => {
+      const cfg = await api.pushConfig()
+      const endpoint = await currentEndpoint()
+      if (!alive) return
+      setState((st: Any) => ({
+        ...st, pushReady: true, pushKey: cfg.publicKey,
+        pushSupported: cfg.pushConfigured, pushState: pushSupport(), pushOn: !!endpoint,
+      }))
+    })()
+    return () => { alive = false }
+  }, [state.beSignedIn])
 
   /* The open job's real checklist. Loads whenever a different job is opened;
      ticks are written back one row at a time by toggleLiveStep below. */
@@ -372,6 +492,8 @@ export function useModel(props: ModelProps) {
     const v: Any = {
       clientFull, clientFirst, clientGreeting: clientFirst, clientInitials, clientEmail,
       clientPhone: (s.suPhone || '').trim() || '(404) 555-0134',
+      phoneSub: 'How she reaches you on the day',
+      signInLine: (s.suEmail || '').trim() || 'jh@hartwellgroup.com',
       goBack: () => back(),
       fieldFit: { boxSizing: 'border-box', width: '100%' },
       menuOpen: s.menuOpen,
@@ -805,17 +927,98 @@ export function useModel(props: ModelProps) {
       ).map((label) => ({ label, send: () => sendLive(label) }))
       v.sendCompose = () => { const t = s.draft.trim(); if (!t) { say('Add a message before sending ✏️'); return } sendLive(t) }
     }
+    /* ---- what each person wants to hear about ----
+       The toggles write `users.notify_prefs`, which is the same map the server
+       checks before it sends anything. Absent means yes, so turning something
+       ON deletes the key rather than storing true — a person who never touched
+       a toggle and a person who turned everything back on behave identically. */
+    const prefBucket = (which: 'onotif' | 'cnotif') => (which === 'onotif' ? s.onotif : s.cnotif)
+    const savePref = (which: 'onotif' | 'cnotif', key: string, next: boolean) => {
+      setState((st: Any) => ({ ...st, [which]: { ...st[which], [key]: next } }))
+      if (!backendActive() || !s.beUser?.id) return
+      // Merge over whatever the account already had: this screen only shows
+      // some of the keys, and it must not wipe the others.
+      const merged: Any = { ...(s.beUser.notifyPrefs || {}) }
+      if (next) delete merged[key]; else merged[key] = false
+      getData().saveNotifyPrefs(s.beUser.id, merged)
+        .then(() => setState((st: Any) => ({ ...st, beUser: { ...st.beUser, notifyPrefs: merged } })))
+        .catch((e: any) => {
+          setState((st: Any) => ({ ...st, [which]: { ...st[which], [key]: !next } }))
+          say(errMsg(e, 'Couldn’t save that setting'))
+        })
+    }
+    const prefRow = (which: 'onotif' | 'cnotif') => (n: { key: string; label: string }) => {
+      // Live accounts read the saved map; the demo reads its own local state.
+      const live = backendActive() && !!s.beUser
+      const on = live ? (s.beUser.notifyPrefs || {})[n.key] !== false : !!prefBucket(which)[n.key]
+      return { label: n.label, on, toggle: () => savePref(which, n.key, !on) }
+    }
     v.ownerNotifs = [
       { key: 'reports', label: 'Photo-verified report when a clean is submitted' },
-      { key: 'cleaning', label: '“Cleaning now” and “guest-ready” status changes' },
+      { key: 'cleaning', label: '“On her way”, “cleaning now” and “guest-ready”' },
+      { key: 'approvals', label: 'When a clean is waiting on your approval' },
+      { key: 'bookings', label: 'When a clean is booked or moved' },
       { key: 'supplies', label: 'Supply approvals & delivery confirmations' },
       { key: 'summary', label: 'Monthly service summary by email' },
-    ].map((n) => ({ label: n.label, on: !!s.onotif[n.key], toggle: () => setState((st: Any) => ({ ...st, onotif: { ...st.onotif, [n.key]: !st.onotif[n.key] } })) }))
+    ].map(prefRow('onotif'))
     v.cleanerNotifs = [
       { key: 'bookings', label: 'New booking requests & leads from my card' },
       { key: 'approvals', label: 'Owner approvals & released payments' },
+      { key: 'payouts', label: 'Payouts released to you' },
+      { key: 'clients', label: 'When a client finishes setting up their account' },
       { key: 'supplies', label: 'Supply approvals from owners' },
-    ].map((n) => ({ label: n.label, on: !!s.cnotif[n.key], toggle: () => setState((st: Any) => ({ ...st, cnotif: { ...st.cnotif, [n.key]: !st.cnotif[n.key] } })) }))
+    ].map(prefRow('cnotif'))
+    /* ---- turning notifications on for THIS device ----
+       Web Push is per browser, not per account: a notice reaches whichever
+       devices have registered. The notification row exists either way, so
+       declining here costs you nothing except the phone buzzing. */
+    v.pushReady = s.pushReady
+    v.pushOn = s.pushOn
+    v.pushBusy = s.pushBusy
+    v.pushMsg = s.pushMsg
+    v.pushOffered = backendActive() && s.pushReady && !!s.pushSupported && s.pushState !== 'unsupported'
+    v.pushNeedsInstall = s.pushState === 'needs-install'
+    v.pushBlocked = s.pushState === 'denied'
+    v.pushLabel = s.pushOn ? 'Notifications are on' : 'Turn on notifications'
+    v.pushSub = s.pushOn
+      ? 'This device buzzes for “on her way”, reports and approvals.'
+      : (s.pushState === 'needs-install'
+        ? 'Add the app to your home screen first — iPhone only allows it there.'
+        : (s.pushState === 'denied'
+          ? 'Blocked in your browser settings. Your notices still appear in the app.'
+          : 'Get them on your phone, not just in the app.'))
+    v.togglePush = async () => {
+      if (s.pushBusy) return
+      if (s.pushOn) {
+        set({ pushBusy: true, pushMsg: '' })
+        const endpoint = await disablePush()
+        if (endpoint) { try { await api.unregisterPush(endpoint) } catch { /* row goes on the next send */ } }
+        setState((t: Any) => ({ ...t, pushBusy: false, pushOn: false }))
+        say('Notifications off for this device')
+        return
+      }
+      set({ pushBusy: true, pushMsg: '' })
+      const r = await enablePush(s.pushKey)
+      if (!r.ok) {
+        const why = r.reason === 'denied'
+          ? 'Your browser is blocking notifications — turn them on for this site in its settings.'
+          : (r.reason === 'needs-install'
+            ? 'On iPhone, add the app to your home screen first, then turn this on.'
+            : (r.reason === 'no-key'
+              ? 'Notifications aren’t set up on the server yet.'
+              : (r.detail || 'Couldn’t turn on notifications')))
+        setState((t: Any) => ({ ...t, pushBusy: false, pushState: pushSupport(), pushMsg: why }))
+        return
+      }
+      try {
+        await api.registerPush(r.subscription)
+        setState((t: Any) => ({ ...t, pushBusy: false, pushOn: true, pushState: 'granted', pushMsg: '' }))
+        say('Notifications on 🔔')
+      } catch (e) {
+        setState((t: Any) => ({ ...t, pushBusy: false, pushMsg: errMsg(e, 'Couldn’t register this device') }))
+      }
+    }
+
     v.toastInvite = () => say('Invite link copied 💌')
     v.signOut = async () => {
       const admin = ['admin', 'team', 'clients', 'bizsettings', 'area', 'assign', 'calendar'].indexOf(s.c) >= 0
@@ -994,8 +1197,18 @@ export function useModel(props: ModelProps) {
       v.clientFull = liveName
       v.clientInitials = liveName.slice(0, 2).toUpperCase()
       v.accountTitle = liveName + '’s account'
+      // The seed persona leaked into a couple of headings ("James's schedule").
+      const liveFirst = liveName.split(' ')[0]
+      v.scheduleTitle = liveFirst + '’s schedule'
+      v.clientAddress = liveName
       if (s.beUser?.email) v.clientEmail = s.beUser.email
-      if (s.beUser?.phone) v.clientPhone = s.beUser.phone
+      // No phone on the account is the normal case now — signing in never used
+      // one. Say so instead of showing a seed number.
+      v.clientPhone = s.beUser?.phone || 'No number yet'
+      v.phoneSub = s.beUser?.phone
+        ? 'How she reaches you on the day'
+        : 'Optional — add one and she can text you on the day'
+      v.signInLine = s.beUser?.email || 'Your email'
       v.clientTypeLine = 'Client · ' + (s.beUser?.email || '')
       v.livePropsLine = homes.length ? homes.map((h: Any) => h.name).join(' · ') : 'None yet — add your first'
       v.livePropCount = homes.length + (homes.length === 1 ? ' property' : ' properties')
@@ -1064,9 +1277,47 @@ export function useModel(props: ModelProps) {
       say(s.offline ? 'Saved — will sync when you’re back 📸' : 'Photo saved to owner report 📸')
     }
 
-    // 31 · notifications · 32 · splash
+    /* ---- 31 · notifications ----
+       On a live account this is the real feed: rows written by the studio and
+       by the functions, newest first, with the unread ones marked. In the demo
+       it stays the lock-screen showcase below. */
     v.vNotifs = s.role === 'visitor' && s.p === 'notifs'
     v.vSplash = s.role === 'visitor' && s.p === 'splash'
+    v.vNotices = (s.role === 'owner' && s.o === 'notices') || (s.role === 'cleaner' && s.c === 'notices')
+    v.goNotices = () => go(s.role === 'owner' ? { o: 'notices' } : { c: 'notices' })
+    const liveNotices = backendActive() && s.beSignedIn && !!s.beUser
+    if (liveNotices) {
+      const rows: Any[] = s.beNotices || []
+      const ICON_FOR: Any = {
+        on_the_way: '🚗', arrived: '✨', report_ready: '📋', approval_due: '📋',
+        booked: '📅', quote_ready: '🧮', message: '💬', invite_claimed: '👤',
+        payout: '💰', supplies: '🛒', card_declined: '💳',
+      }
+      v.liveNoticeFeed = true
+      v.feedCards = rows.map((n: Any) => ({
+        id: n.id, icon: ICON_FOR[n.kind] || '✨',
+        when: agoLabel(n.createdAt), title: n.title, body: n.body || '',
+        unread: !n.read, open: () => openNotice(n),
+      }))
+      v.feedUnread = rows.filter((n: Any) => !n.read).length
+      v.feedBadge = v.feedUnread
+        ? chip('nt0', 'turn', v.feedUnread + ' unread')
+        : chip('nt0', 'onBrand', 'All caught up')
+      v.feedSub = s.pushOn
+        ? 'On this phone and in the app'
+        : 'Everything the app has told you'
+      // A quiet nudge at the top of Home / Today when something is waiting.
+      v.unreadNudge = v.feedUnread
+        ? { count: v.feedUnread, label: v.feedUnread === 1 ? '1 new notification' : v.feedUnread + ' new notifications', go: () => go(s.beUser?.role === 'owner' ? { role: 'owner', o: 'notices' } : { role: 'cleaner', c: 'notices' }) }
+        : null
+      v.feedEmpty = s.beNoticesReady && rows.length === 0
+      v.feedLoading = !s.beNoticesReady
+      v.markAllRead = async () => {
+        if (!rows.some((n: Any) => !n.read)) return
+        setState((st: Any) => ({ ...st, beNotices: st.beNotices.map((n: Any) => ({ ...n, read: true })) }))
+        try { await getData().markNotificationsRead() } catch { /* they'll still show unread next load */ }
+      }
+    }
     v.pushCards = [
       { icon: '🚗', when: 'now', title: 'Ahleyia is on her way', body: 'She’ll be at The Hartwell Estate around 11:00.' },
       { icon: '✨', when: '2m ago', title: 'Your home is guest-ready ✨', body: '9 proof photos and your report are inside.' },
@@ -1075,46 +1326,52 @@ export function useModel(props: ModelProps) {
       { icon: '🛒', when: '3h ago', title: 'Supplies approved & ordered', body: '13 items on the way to units 1604, 1403 and 1913.' },
       { icon: '💰', when: 'Wed', title: 'Payout landed: $110', body: 'Your 50% for the Hartwell arrival. Nice work.' },
     ]
-
-    // 39 · verify code
-    v.vVerify = s.role === 'visitor' && s.p === 'verify'
-    v.goVerify = async () => {
-      if (!backendActive()) { go({ p: 'verify', code: '' }); say('Code sent to (404) 555-0134 📱'); return }
-      const phone = (s.gatePhone || s.suPhone || '').trim()
-      if (phone.replace(/\D/g, '').length < 10) { say('Enter your mobile number first 📱'); return }
-      try { set({ beBusy: true }); await sendPhoneOtp(phone); set({ beBusy: false }); go({ p: 'verify', code: '' }); say('Code texted to ' + phone + ' 📱') }
-      catch (e) { set({ beBusy: false }); say(errMsg(e)) }
+    // Demo (no backend): the notifications screen shows the same showcase
+    // notices as the lock-screen mock, so it is never an empty shell.
+    if (!liveNotices) {
+      v.feedCards = v.pushCards.map((p: Any, i: number) => ({
+        id: 'demo' + i, icon: p.icon, when: p.when, title: p.title, body: p.body,
+        unread: i < 3, open: () => say('Opens straight to what it’s about'),
+      }))
+      v.feedUnread = 3
+      v.feedBadge = chip('nt0', 'turn', '3 unread')
+      v.feedSub = 'Everything the app has told you'
+      v.markAllRead = () => say('All caught up ✓')
     }
-    v.gatePhone = s.gatePhone
-    v.setGatePhone = (e: any) => set({ gatePhone: e.target.value })
+
+    /* ---- client & staff sign-in: email + password ----
+       Texted one-time codes are gone. They needed an SMS provider wired up
+       and a per-message cost before anyone could get in at all, and a client
+       whose account Ahleyia created already sets a password on their invite
+       link — so a password is the thing they actually have. */
+    v.gateEmail = s.gateEmail
+    v.setGateEmail = (e: any) => set({ gateEmail: e.target.value })
+    v.gatePw = s.gatePw
+    v.setGatePw = (e: any) => set({ gatePw: e.target.value })
+    v.gatePwType = s.gatePwShown ? 'text' : 'password'
+    v.gatePwToggle = s.gatePwShown ? 'Hide' : 'Show'
+    v.toggleGatePw = () => set({ gatePwShown: !s.gatePwShown })
+    v.gateErr = s.gateErr
     v.beBusy = s.beBusy
-    v.badgeCodeSent = chip('v1', 'onBrand', '📱 Code sent')
-    v.codeBoxes = [0, 1, 2, 3].map((i) => ({ char: s.code[i] || '', bg: s.code[i] ? 'var(--pink-blush)' : 'var(--surface-cream)', border: s.code.length === i ? 'var(--magenta)' : 'var(--border-default)' }))
-    v.code = s.code
-    v.codeRef = codeRef
-    v.focusCode = () => { if (codeRef.current) codeRef.current.focus() }
-    v.setCode = (e: any) => set({ code: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })
-    v.verifyLabel = s.code.length === 4 ? 'Verify & continue' : 'Enter your 4-digit code'
-    v.verifyCode = async () => {
-      if (s.code.length < 4) { say('Four digits, then you’re in'); return }
-      if (!backendActive()) { go({ role: 'owner', o: 'setup', oTab: 0 }); say('Verified — welcome in ✓'); return }
-      const phone = (s.gatePhone || s.suPhone || '').trim()
+    v.gateSignIn = async () => {
+      const em = (s.gateEmail || '').trim().toLowerCase()
+      if (em.indexOf('@') < 0) { set({ gateErr: 'Your email address, please.' }); return }
+      if ((s.gatePw || '').length < 6) { set({ gateErr: 'Your password is at least 6 characters.' }); return }
+      if (!backendActive()) { set({ gateErr: '' }); go({ role: 'owner', o: 'setup', oTab: 0 }); say('Welcome back ✓'); return }
       try {
-        set({ beBusy: true })
-        await verifyPhoneOtp(phone, s.code)
+        set({ beBusy: true, gateErr: '' })
+        await signInWithPassword(em, s.gatePw)
         const h = await hydrate()
-        setState((st: Any) => ({ ...st, beBusy: false, beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs, beActiveJobId: h.activeJobId ?? null }))
+        setState((st: Any) => ({
+          ...st, beBusy: false, gatePw: '', beSignedIn: true, beUser: h.user, beCard: h.card,
+          beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beActiveJobId: h.activeJobId ?? null,
+          beMsgs: h.messages, beQuotes: h.quotes, beReports: h.reports, beCharges: h.charges,
+        }))
         const r = h.user?.role
         if (r === 'owner') go({ role: 'owner', o: 'home', oTab: 0 })
         else go({ role: 'cleaner', c: r === 'org_admin' ? 'admin' : 'today', cTab: 0 })
-        say('Verified — welcome in ✓')
-      } catch (e) { set({ beBusy: false }); say(errMsg(e, 'That code didn’t match — try again')) }
-    }
-    v.resendCode = async () => {
-      set({ code: '' })
-      if (!backendActive()) { say('New code sent 📱'); return }
-      const phone = (s.gatePhone || s.suPhone || '').trim()
-      try { await sendPhoneOtp(phone); say('New code sent 📱') } catch (e) { say(errMsg(e)) }
+        say('Welcome back ✓')
+      } catch (e) { set({ beBusy: false, gateErr: errMsg(e, 'That email and password didn’t match') }) }
     }
 
     // 44 · Kee Method template viewer
@@ -1172,7 +1429,6 @@ export function useModel(props: ModelProps) {
     v.togglePw = () => set({ pwShown: !s.pwShown })
     v.adminRemember = s.adminRemember
     v.setAdminRemember = (n: boolean) => set({ adminRemember: n })
-    v.adminMaskedPhone = '(•••) •••-3242'
     v.adminEmailShown = s.adminEmail.trim() || 'ahleyia@atlluxurycleaning.com'
     v.adminSignIn = async () => {
       const em = s.adminEmail.trim().toLowerCase()
@@ -1197,17 +1453,17 @@ export function useModel(props: ModelProps) {
     v.adminForgot = () => say('Reset link sent to your business email 💌')
     v.goStaffSignIn = () => go({ p: 'gate' })
 
-    // 59 · public sign-up
+    // 59 · public sign-up — email + a password they choose. No texted code.
     v.vSignup = s.role === 'visitor' && s.p === 'signup'
-    v.goSignup = () => go({ p: 'signup', suStep: 1, code: '' })
+    v.goSignup = () => go({ p: 'signup', suStep: 1 })
     const su = s.suStep
-    for (let i = 1; i <= 4; i++) v['su' + i] = su === i
-    v.suTitle = ['Create your account', 'Verify your number', 'A few details', 'You’re in'][su - 1]
-    v.suSub = ['Two minutes, no password, nothing charged', 'So we know it’s really you', 'Where your reports go, and where she’s cleaning', 'Account created — welcome'][su - 1]
-    v.suBadge = chip('su9', 'onBrand', su === 4 ? '✓ Account created' : 'Step ' + su + ' of 4')
-    v.suPct = Math.round(su / 4 * 100)
-    v.suPctLabel = Math.round(su / 4 * 100) + '%'
-    v.suStepLabel = ['You', 'Verify', 'Details', 'Done'][su - 1]
+    for (let i = 1; i <= 3; i++) v['su' + i] = su === i
+    v.suTitle = ['Create your account', 'A few details', 'You’re in'][su - 1]
+    v.suSub = ['Two minutes, and nothing charged', 'Where your reports go, and where she’s cleaning', 'Account created — welcome'][su - 1]
+    v.suBadge = chip('su9', 'onBrand', su === 3 ? '✓ Account created' : 'Step ' + su + ' of 3')
+    v.suPct = Math.round(su / 3 * 100)
+    v.suPctLabel = Math.round(su / 3 * 100) + '%'
+    v.suStepLabel = ['You', 'Details', 'Done'][su - 1]
     v.suName = s.suName
     v.setSuName = (e: any) => set({ suName: e.target.value })
     v.suPhone = s.suPhone
@@ -1237,21 +1493,44 @@ export function useModel(props: ModelProps) {
     v.suHoods = ['Buckhead', 'Midtown', 'Sandy Springs', 'Brookhaven', 'Somewhere else'].map((label) => ({ label, on: s.suHood === label, pick: () => set({ suHood: label }) }))
     v.suContact = ['Text me', 'Call me', 'In-app only'].map((label) => ({ label, on: s.suContactPref === label, pick: () => set({ suContactPref: label }) }))
     v.suSource = ['Her card / QR', 'A friend', 'Instagram', 'Google'].map((label) => ({ label, on: s.suSourcePref === label, pick: () => set({ suSourcePref: label }) }))
-    v.suBtnVariant = su === 3 || su === 4 ? 'green' : 'primary'
-    v.suNextLabel = ['Text me a code', 'Verify & continue', 'Create my account', 'Add my home'][su - 1]
+    v.suPw = s.suPw
+    v.setSuPw = (e: any) => set({ suPw: e.target.value })
+    v.suPwType = s.suPwShown ? 'text' : 'password'
+    v.suPwToggle = s.suPwShown ? 'Hide' : 'Show'
+    v.toggleSuPw = () => set({ suPwShown: !s.suPwShown })
+    v.suErr = s.suErr
+    v.suConfirmNote = s.suNeedsConfirm
+    v.suBtnVariant = su >= 2 ? 'green' : 'primary'
+    v.suNextLabel = ['Continue', 'Create my account', 'Add my home'][su - 1]
     v.suBack = () => su > 1 ? go({ suStep: su - 1 }) : go({ p: 'welcome' })
-    v.suNext = () => {
+    v.suNext = async () => {
       if (su === 1) {
-        if (!s.suName.trim()) { say('Your name first'); return }
-        if (s.suPhone.replace(/\D/g, '').length < 10) { say('A full mobile number, please'); return }
-        set({ suStep: 2, code: '' }); say('Code sent to ' + v.suPhoneShown + ' 📱'); return
+        if (!s.suName.trim()) { set({ suErr: 'Your name first.' }); return }
+        if (!s.suEmail.trim() || s.suEmail.indexOf('@') < 0) { set({ suErr: 'An email for your reports.' }); return }
+        if ((s.suPw || '').length < 8) { set({ suErr: 'Pick a password of at least 8 characters.' }); return }
+        set({ suStep: 2, suErr: '' }); return
       }
-      if (su === 2) { if (s.code.length < 4) { say('Four digits, then you’re in'); return } set({ suStep: 3 }); say('Number verified ✓'); return }
-      if (su === 3) {
-        if (!s.suEmail.trim() || s.suEmail.indexOf('@') < 0) { say('An email for your reports'); return }
-        if (!s.suAddress.trim()) { say('Where is she cleaning?'); return }
-        if (!s.suTerms) { say('Please agree to the terms to continue'); return }
-        set({ suStep: 4 }); say('Account created 🎉'); return
+      if (su === 2) {
+        if (!s.suAddress.trim()) { set({ suErr: 'Where is she cleaning?' }); return }
+        if (!s.suTerms) { set({ suErr: 'Please agree to the terms to continue.' }); return }
+        if (!backendActive()) { set({ suStep: 3, suErr: '' }); say('Account created 🎉'); return }
+        // Creates a real auth user. The DB trigger gives them a `users` row as
+        // an owner with no org — Ahleyia connects them to the studio.
+        try {
+          set({ beBusy: true, suErr: '' })
+          const r = await signUpWithPassword(s.suEmail.trim().toLowerCase(), s.suPw, { full_name: s.suName.trim() })
+          if (r.needsConfirmation) {
+            setState((t: Any) => ({ ...t, beBusy: false, suStep: 3, suNeedsConfirm: true }))
+            say('Check your email to confirm 💌'); return
+          }
+          const h = await hydrate()
+          setState((t: Any) => ({
+            ...t, beBusy: false, suStep: 3, suPw: '', suNeedsConfirm: false,
+            beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs, beProps: h.properties,
+          }))
+          say('Account created 🎉')
+        } catch (e) { set({ beBusy: false, suErr: errMsg(e, 'Couldn’t create that account') }) }
+        return
       }
       go({ role: 'owner', o: 'setup', oTab: 0, setup: { verify: true } })
     }
@@ -1323,7 +1602,7 @@ export function useModel(props: ModelProps) {
     const tileDone = { background: 'var(--gradient-eco)', color: '#fff', fontWeight: 600, fontSize: '15px' }
     const tileTodo = { background: 'var(--surface-cream)', color: 'var(--ink-soft)', fontWeight: 600, fontSize: '15px' }
     const SETUP = [
-      { id: 'verify', name: 'Verify your number', sub: 'One-tap code · no password to remember', go: () => go({ role: 'visitor', p: 'verify', code: '' }) },
+      { id: 'notify', name: 'Turn on notifications', sub: 'On her way · report ready · approvals', go: () => go({ o: 'notices' }) },
       { id: 'property', name: 'Add your property', sub: 'Paste a listing link and we read the details', go: () => go({ o: 'onboard' }) },
       { id: 'requirements', name: 'Set your standard', sub: 'Products, scent and your house rules', go: () => go({ o: 'products' }) },
       { id: 'card', name: 'Save a credit card', sub: 'Charged once on arrival — never twice', go: () => go({ o: 'edit', editField: 'card', editValue: '' }) },
@@ -1338,7 +1617,9 @@ export function useModel(props: ModelProps) {
         go: () => { setState((t: Any) => ({ ...t, setup: { ...t.setup, [x.id]: true } })); x.go() },
       }
     })
-    v.setupTitle = setupDone >= SETUP.length ? 'You’re all set, ' + clientFirst : 'Finish your account, ' + clientFirst
+    // The real account's first name when signed in, the seed persona otherwise.
+    const firstName = String(v.clientGreeting || clientFirst).split(' ')[0]
+    v.setupTitle = setupDone >= SETUP.length ? 'You’re all set, ' + firstName : 'Finish your account, ' + firstName
     v.setupSub = setupDone >= SETUP.length ? 'Everything Ahleyia needs is in place' : 'About 5 minutes, and she can start'
     v.setupBadge = chip('su0', 'onBrand', setupDone + ' of ' + SETUP.length + ' done')
     v.setupPct = Math.round(setupDone / SETUP.length * 100)
@@ -1999,6 +2280,12 @@ export function useModel(props: ModelProps) {
           say(n ? 'Checklist ready · ' + n + ' steps ✓' : 'Checklist loaded ✓')
         } catch (e) { set({ beStepsBusy: false }); say(errMsg(e, 'Couldn’t build the checklist')) }
       }
+      v.liveOnMyWay = async () => {
+        try {
+          const r = await api.sendNotice({ jobId: openJob.id, kind: 'on_the_way' })
+          say(r.pushed ? 'They’ve been told you’re on your way 🚗' : 'Sent — they’ll see it in the app 🚗')
+        } catch (e) { say(errMsg(e, 'Couldn’t send that just now')) }
+      }
       v.liveComplete = async () => {
         if (totalN && doneN < totalN) { say((totalN - doneN) + ' steps still open — finish those first'); return }
         try {
@@ -2010,6 +2297,9 @@ export function useModel(props: ModelProps) {
             beJobs: st.beJobs.map((j: Any) => j.id === openJob.id ? { ...j, status: 'complete' } : j),
             c: 'today', cTab: 0, hist: [],
           }))
+          // The owner hears about it: a row in their notices, and a push if
+          // they've turned it on. Best-effort — the clean is already closed.
+          api.sendNotice({ jobId: openJob.id, kind: 'report_ready' }).catch(() => { /* in-app only */ })
           say('Clean complete — owner notified 📸')
         } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t close out that job')) }
       }
@@ -2266,8 +2556,8 @@ export function useModel(props: ModelProps) {
           item('🌱', 'Products & scent', 'Eco, non-toxic, and why', () => go({ role: 'owner', o: 'products' }), 'products'),
         ]) },
         { title: 'Get started', items: close([
-          item('✍️', 'Create an account', 'Two minutes, nothing charged', () => go({ p: 'signup', suStep: 1, code: '' }), 'signup'),
-          item('🔑', 'Client sign in', 'Your number and a texted code', () => go({ p: 'gate' }), 'gate'),
+          item('✍️', 'Create an account', 'Two minutes, nothing charged', () => go({ p: 'signup', suStep: 1 }), 'signup'),
+          item('🔑', 'Client sign in', 'Your email and password', () => go({ p: 'gate' }), 'gate'),
           item('🧼', 'Join her team', 'For cleaners with an invite', () => go({ p: 'staffsetup', staffStep: 1 }), 'staffsetup'),
         ]) },
       ] },
@@ -2306,6 +2596,7 @@ export function useModel(props: ModelProps) {
           item('🏠', 'Add a home for a client', 'A second property, or one you kept on paper', () => go({ c: 'addprop', npErr: '' }), 'addprop'),
           item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' }), 'template'),
           item('📍', 'Service area', 'Where you take work', () => go({ c: 'area' }), 'area'),
+          item('🔔', 'Notifications', v.feedUnread ? v.feedUnread + ' unread' : 'Everything the app has told you', () => go({ c: 'notices' }), 'notices'),
           item('⚙️', 'Settings', 'Your account and notifications', () => go({ c: 'settings' }), 'settings'),
           item('🔐', 'Master login & security', 'Business email, password, two-step', () => go({ role: 'visitor', p: 'adminlogin' }), 'adminlogin'),
         ]) },
@@ -2322,6 +2613,7 @@ export function useModel(props: ModelProps) {
           item('📋', 'Service report', 'Photos, timeline and approval', () => go({ o: 'report', oTab: 1 }), 'report'),
           item('🖼️', 'All proof photos', 'Timestamped, kept for you', () => go({ o: 'gallery', gallery: 'clean', galleryFrom: 'report' }), 'gallery'),
           item('📷', 'Reference photos', 'How your rooms should look', () => go({ o: 'gallery', gallery: 'reference', galleryFrom: 'account' }), 'gallery'),
+          item('🔔', 'Notifications', v.feedUnread ? v.feedUnread + ' unread' : 'Everything the app has told you', () => go({ o: 'notices' }), 'notices'),
           item('⭐', 'Rate & thank Ahleyia', 'She reads every one', () => go({ o: 'rate', rate: 'form' }), 'rate'),
           item('💬', 'Something’s not right', 'She comes back to fix it', () => go({ o: 'dispute', dispute: 'form' }), 'dispute'),
         ]) },
@@ -2631,8 +2923,7 @@ export function useModel(props: ModelProps) {
         { n: 3, label: 'Account gate', go: jump('visitor', 'gate') },
         { n: 31, label: 'Notifications', go: jump('visitor', 'notifs') },
         { n: 32, label: 'Icon & opening screen', go: jump('visitor', 'splash') },
-        { n: 39, label: 'Verify your code', go: jump('visitor', 'verify', { code: '' }) },
-        { n: 59, label: 'Create an account', go: jump('visitor', 'signup', { suStep: 1, code: '' }) },
+        { n: 59, label: 'Create an account', go: jump('visitor', 'signup', { suStep: 1 }) },
         { n: 59, label: 'Sign-up details', go: jump('visitor', 'signup', { suStep: 3 }) },
         { n: 62, label: 'Business sign in', go: jump('visitor', 'adminlogin') },
         { n: 57, label: 'New cleaner setup', go: jump('visitor', 'staffsetup', { staffStep: 1 }) },

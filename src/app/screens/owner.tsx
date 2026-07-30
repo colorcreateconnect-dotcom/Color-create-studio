@@ -25,6 +25,15 @@ export function OwnerScreens(v: any) {
         <Avatar initials={v.clientInitials} size={38} gradient="linear-gradient(135deg,#2F6BD6,#33B27A)" onClick={v.goAccount} style={{ cursor: 'pointer' }} />
       </div>
       <div style={css('padding:16px 22px 22px')}>
+        {v.unreadNudge && (
+          <Card onClick={v.unreadNudge.go} style={{ cursor: 'pointer' }}>
+            <div style={css('display:flex;align-items:center;gap:12px')}>
+              <div style={css('width:38px;height:38px;border-radius:50%;background:var(--gradient-brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0')}>🔔</div>
+              <div style={css('flex:1;font-size:13px;font-weight:var(--weight-semibold)')}>{v.unreadNudge.label}</div>
+              <div style={css('font-size:16px;color:var(--text-muted)')}>›</div>
+            </div>
+          </Card>
+        )}
         {v.noHomes && (<>
           <Card tone="blush">
             <div style={css('text-align:center;padding:6px 4px')}>
@@ -392,7 +401,8 @@ function Account({ v }: { v: any }) {
         </Card>
         <SectionLabel>Account details</SectionLabel>
         <Card flush>
-          <SupplyRow icon="📱" name={v.clientPhone} sub="One-tap code sign-in · no password" right="›" onClick={v.goEditPhone} />
+          <SupplyRow icon="🔐" name={v.signInLine} sub="Your sign-in — email and password" right="›" onClick={v.goEditEmail} />
+          <SupplyRow icon="📱" name={v.clientPhone} sub={v.phoneSub} right="›" onClick={v.goEditPhone} />
           <SupplyRow icon="💌" name={v.clientEmail} sub="Reports & receipts are emailed here" right="›" onClick={v.goEditEmail} />
           <SupplyRow icon="🏡" name="Your properties" sub={v.liveOwner ? v.livePropsLine : 'The Hartwell Estate · Skyline Loft 12B'} right="›" onClick={v.goOwnerHome} />
           <SupplyRow icon="✅" name="Account setup" sub="Property, standard, card & reference photos" right="›" onClick={v.goSetup} last />
@@ -427,6 +437,13 @@ function Account({ v }: { v: any }) {
         </Card>
         <NoteCard tone="money" icon="🧾"><b>One charge, on arrival.</b> Your card is charged once for the full amount when Ahleyia arrives — never twice. Tips are charged separately, 100% to her.</NoteCard>
         <SectionLabel>Notifications</SectionLabel>
+        {v.pushOffered && (
+          <Card flush>
+            <SupplyRow icon="🔔" name={v.pushLabel} sub={v.pushSub}
+              right={v.pushNeedsInstall || v.pushBlocked ? '›' : (v.pushOn ? 'On' : 'Off')}
+              onClick={v.pushNeedsInstall || v.pushBlocked ? v.goNotices : v.togglePush} last />
+          </Card>
+        )}
         <Card>
           {v.ownerNotifs.map((n: any, i: number) => (
             <div key={i} style={css('display:flex;gap:12px;align-items:flex-start;padding:9px 0')}>

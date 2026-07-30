@@ -20,3 +20,24 @@ declare module 'node:crypto' {
     update(data: string): { digest(encoding: string): string }
   }
 }
+
+/* web-push is a server-only dependency of the notification functions and ships
+   no types. Only the two calls used are declared, so a typo in either is still
+   a compile error. */
+declare module 'web-push' {
+  interface PushSubscriptionLike {
+    endpoint: string
+    keys: { p256dh: string; auth: string }
+  }
+  interface SendOptions { TTL?: number; urgency?: string; topic?: string }
+  const webpush: {
+    setVapidDetails(subject: string, publicKey: string, privateKey: string): void
+    sendNotification(
+      subscription: PushSubscriptionLike,
+      payload?: string,
+      options?: SendOptions,
+    ): Promise<{ statusCode: number; body: string }>
+    generateVAPIDKeys(): { publicKey: string; privateKey: string }
+  }
+  export default webpush
+}
