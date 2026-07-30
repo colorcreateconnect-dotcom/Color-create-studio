@@ -37,22 +37,27 @@ export function Overlays({ v }: { v: any }) {
         </div>
       )}
 
-      {/* Account switcher — reachable from the rail on a laptop and the ☰ menu
-          on a phone. Hops between the business, the working day, a client's
-          account, and the signed-out public view. */}
+      {/* Your account — reachable from the rail on a laptop and the ☰ menu on a
+          phone. With no backend it is the review switcher and hops between all
+          four views on seed data. On a live deployment it shows the account you
+          are signed in as, and the only other row it can ever show is Ahleyia's
+          second view of her own account (business / working). */}
       {v.acctOpen && (
         <div style={css(RADIUS_WRAP)}>
           <Sheet open onClose={v.closeAcct}>
             <div style={css('text-align:center;margin-bottom:14px')}>
-              <div style={css('font-family:var(--font-serif-display);font-size:20px;line-height:1.2')}>Switch view</div>
+              <div style={css('font-family:var(--font-serif-display);font-size:20px;line-height:1.2')}>{v.acctTitle}</div>
               <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:4px')}>Signed in as {v.acctEmail}</div>
             </div>
             <Card flush>
               {v.acctRows.map((a: any, i: number) => (
                 <SupplyRow key={i} icon={a.icon} name={a.name} sub={a.sub} last={a.last}
-                  right={a.current ? v.chipCurrent : '›'} onClick={a.use} />
+                  right={a.current ? v.chipCurrent : '›'} onClick={a.current ? undefined : a.use} />
               ))}
             </Card>
+            {v.acctSignOut && (
+              <div style={css('margin-top:8px')}><Button variant="ghost" onClick={v.acctSignOut}>Sign out</Button></div>
+            )}
             <div style={css('margin-top:8px')}><Button variant="ghost" onClick={v.closeAcct}>Close</Button></div>
           </Sheet>
         </div>
@@ -68,9 +73,9 @@ export function Overlays({ v }: { v: any }) {
                 <div className="av">{v.acctIcon}</div>
                 <div style={css('flex:1;min-width:0')}>
                   <b>{v.acctName}</b>
-                  <span>Switch view</span>
+                  <span>{v.acctTitle}</span>
                 </div>
-                <div style={css('color:var(--text-muted);font-size:15px')}>⇅</div>
+                <div style={css('color:var(--text-muted);font-size:15px')}>{v.acctSwitchable ? '⇅' : '›'}</div>
               </div>
             </div>
             <div style={css('margin-top:14px;max-height:400px;overflow:auto')}>

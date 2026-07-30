@@ -29,7 +29,7 @@ export function Rail({ v }: { v: any }) {
       ))}
 
       <div className="foot">
-        <div className="acctbtn" onClick={v.openAcct}>
+        <div className="acctbtn" onClick={v.openAcct} title={v.acctTitle}>
           <div className="av">{v.acctIcon}</div>
           <div style={css('flex:1;min-width:0')}>
             <b>{v.acctName}</b>

@@ -22,6 +22,20 @@ Still seed/sample content (same pattern when needed): service reports, supplies,
 payouts, My Week. Needs your input: Square keys (real payments), a VAPID keypair
 for phone notifications (§8 — two commands, free), custom domain (optional).
 
+> **Building the clickable demo:** whether the review switches work is decided
+> at BUILD time by whether `VITE_SUPABASE_*` are present — and a local
+> `.env.local` counts, so an ordinary `npm run build` on a configured machine
+> produces a live app in which `?role=` and `?chrome=` do nothing. That is
+> correct for the deployed site. For the reviewable bundle use
+> **`npm run build:demo`** (→ `dist-demo/`), which builds with those variables
+> cleared.
+
+**The app is not a viewer.** With a backend configured, `?role=cleaner` on the
+live URL does nothing — it used to open the working day on seed data with no
+sign-in at all. The rule lives in `src/lib/views.ts` and is unit-tested: a
+cleaner has one view, a client has one view, the owner has her two real ones,
+and signed out you get the public storefront.
+
 **Every account is a real account.** Ahleyia adds a cleaner, they claim their
 link and get their own working day — their name, their route, their checklist,
 their notifications. There is deliberately **no way for a stranger to create a
@@ -216,6 +230,7 @@ demo never breaks.
 | Owner schedule | The client's real upcoming cleans, with window and price. Reschedule / add / cancel open the real thread with the ask written for them. |
 | Add a home for a client | Staff write a `properties` row for an existing client (RLS: their own org only). It's bookable immediately. |
 | Business dashboard | Real month, real counts, and a "Needs you" list built from what's actually outstanding — unassigned cleans, unclaimed invitations, open quotes. |
+| Views are not interchangeable | On a real deployment the zone comes from the signed-in account and nothing else. `?role=`, `?chrome=` and `?fill=` — the design-review switches that open a zone on seed data with no sign-in — are ignored outright. The account button shows your own account; the only second row it can ever show is Ahleyia's other view of her own account (business / working). |
 | Every account is its own | The greeting, avatar initials, profile, settings and role label all come from the signed-in account. A cleaner she hires sees their own name and their own route, never "Ahleyia Kee · Founder". |
 | A hired cleaner's app | Their own route (jobs assigned to them), their checklist, their notifications and settings. The Business group — dashboard, client book, hiring, pricing, service area — is not in their menu, and `create-client` / `create-staff` / `send-invite` reject a non-admin caller, so hiding the button is not the only thing stopping it. |
 | Adding a cleaner | The owner adds them (name + a phone or email); the account is provisioned straight away so she can assign work, and they set their own email and password from a single-use link. Anyone with only the code (a link mangled in a chat app) can paste it on **"I'm a cleaner with an invite"**. |

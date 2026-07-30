@@ -11,6 +11,7 @@ import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/conc
 import { groupSteps, checklistProgress } from '../lib/checklist'
 import { SLOTS, windowFor, slotTaken } from '../lib/schedule'
 import { parseInviteInput, INVITE_PARSE_MESSAGE } from '../lib/inviteLink'
+import { viewsFor, mayRunBusiness } from '../lib/views'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
@@ -146,7 +147,7 @@ const ASST: Any[] = [
 ]
 
 /* ------------------------------------------------------- initial state -- */
-export interface ModelProps { startRole?: 'visitor' | 'cleaner' | 'owner'; showChrome?: boolean; autoFillMethod?: boolean; inviteToken?: string; openLink?: string }
+export interface ModelProps { startRole?: 'visitor' | 'cleaner' | 'owner'; showChrome?: boolean; autoFillMethod?: boolean; inviteToken?: string; openLink?: string; liveApp?: boolean }
 
 function initialState(props: ModelProps): Any {
   const fill = !!props.autoFillMethod
@@ -518,9 +519,12 @@ export function useModel(props: ModelProps) {
         : (s.role === 'cleaner'
           ? (['admin', 'team', 'clients', 'bizsettings', 'area', 'assign', 'calendar'].indexOf(s.c) >= 0 ? 'Ahleyia · admin' : 'Ahleyia · staff')
           : 'Owner · client'),
-      goVisitor: () => set({ role: 'visitor', hist: [], menuOpen: false }),
-      goCleaner: () => set({ role: 'cleaner', hist: [], menuOpen: false }),
-      goOwner: () => set({ role: 'owner', hist: [], menuOpen: false }),
+      // Review-only. They exist for the ?chrome=1 showcase, which is off on a
+      // live build; guarded here too so nothing can call them into a role the
+      // signed-in account doesn't have.
+      goVisitor: () => { if (!props.liveApp) set({ role: 'visitor', hist: [], menuOpen: false }) },
+      goCleaner: () => { if (!props.liveApp) set({ role: 'cleaner', hist: [], menuOpen: false }) },
+      goOwner: () => { if (!props.liveApp) set({ role: 'owner', hist: [], menuOpen: false }) },
       vWelcome: s.role === 'visitor' && s.p === 'welcome',
       vServices: s.role === 'visitor' && s.p === 'services',
       vPortfolio: s.role === 'visitor' && s.p === 'portfolio',
@@ -530,7 +534,7 @@ export function useModel(props: ModelProps) {
       cJob: s.role === 'cleaner' && s.c === 'job',
       cSupplies: s.role === 'cleaner' && s.c === 'supplies',
       cShare: s.role === 'cleaner' && s.c === 'share',
-      cQuote: s.role === 'cleaner' && s.c === 'quote',
+      cQuote: false, // set below, once the role is known
       cProfile: s.role === 'cleaner' && s.c === 'profile',
       oHome: s.role === 'owner' && s.o === 'home',
       oProducts: s.role === 'owner' && s.o === 'products',
@@ -546,7 +550,7 @@ export function useModel(props: ModelProps) {
       goMap: () => go({ c: 'map' }),
       goJob: () => go({ c: 'job', cTab: 1 }),
       goShare: () => go({ c: 'share' }),
-      goQuote: () => go({ c: 'quote' }),
+      goQuote: () => {}, // set below, once the role is known
       goProfile: () => go({ c: 'profile', cTab: 3 }),
       goOwnerHome: () => go({ role: 'owner', o: 'home', oTab: 0 }),
       goProducts: () => go({ o: 'products' }),
@@ -657,7 +661,10 @@ export function useModel(props: ModelProps) {
       email: signedInUser?.email || (s.role === 'owner' ? clientEmail : 'ahleyia@atlluxurycleaning.com'),
       phone: signedInUser?.phone || (s.role === 'owner' ? undefined : '404.259.3242'),
       role: myRole,
-      isAdmin: signedInUser ? iAmAdmin : true,          // the demo persona owns the business
+      // The same rule the view switcher uses, so the menu, the screens and the
+      // switcher can never disagree about what this account is.
+      isAdmin: mayRunBusiness({ liveApp: backendActive(), signedIn: !!signedInUser, role: (signedInUser?.role as any) ?? null })
+        || (!signedInUser && s.role !== 'owner'),   // the demo persona owns the business
       isCleanerOnly: signedInUser ? iAmCleanerOnly : false,
       isOwner: myRole === 'owner',
       // What it says under their name on their own profile.
@@ -1886,17 +1893,25 @@ export function useModel(props: ModelProps) {
     v.confirmMove = () => { if (!s.moveOption) { say('Pick how you want to cover it'); return } set({ mv: 'done' }); say('Owner notified — no charge to them ✓') }
     v.mvDoneCopy = s.moveOption === 'tiana' ? 'Tiana has the job, the home’s standard and the photo steps. The owner knows she’s coming.' : 'The owner has the new window and knows there’s no charge for the change.'
 
-    // 47–50 · admin side
-    v.aDash = s.role === 'cleaner' && s.c === 'admin'
-    v.aTeam = s.role === 'cleaner' && s.c === 'team'
-    v.aClients = s.role === 'cleaner' && s.c === 'clients'
-    v.aSettings = s.role === 'cleaner' && s.c === 'bizsettings'
-    v.isAdmin = ['admin', 'team', 'clients', 'bizsettings'].indexOf(s.c) >= 0
+    /* 47–50 · admin side.
+       Gated on the ROLE, not on where the state happens to be: the menu hides
+       these destinations from a cleaner, and a cleaner whose state somehow
+       lands on one of them gets their own day instead of the studio's books. */
+    const mayAdmin = v.me.isAdmin
+    v.aDash = mayAdmin && s.role === 'cleaner' && s.c === 'admin'
+    v.aTeam = mayAdmin && s.role === 'cleaner' && s.c === 'team'
+    v.aClients = mayAdmin && s.role === 'cleaner' && s.c === 'clients'
+    v.aSettings = mayAdmin && s.role === 'cleaner' && s.c === 'bizsettings'
+    // Rates, margins and the assistant split live in the Quote Builder. The
+    // Team screen says these "can't be granted" — so they are the admin's.
+    v.cQuote = mayAdmin && s.role === 'cleaner' && s.c === 'quote'
+    v.goQuote = () => { if (mayAdmin) go({ c: 'quote' }) }
+    v.isAdmin = mayAdmin && ['admin', 'team', 'clients', 'bizsettings'].indexOf(s.c) >= 0
     v.notAdmin = !v.isAdmin
-    v.goAdmin = () => go({ c: 'admin' })
-    v.goTeam = () => go({ c: 'team' })
-    v.goClients = () => go({ c: 'clients' })
-    v.goBizSettings = () => go({ c: 'bizsettings' })
+    v.goAdmin = () => { if (mayAdmin) go({ c: 'admin' }) }
+    v.goTeam = () => { if (mayAdmin) go({ c: 'team' }) }
+    v.goClients = () => { if (mayAdmin) go({ c: 'clients' }) }
+    v.goBizSettings = () => { if (mayAdmin) go({ c: 'bizsettings' }) }
     v.exitAdmin = () => go({ c: 'today', cTab: 0 })
     v.badgeAdminOnly = chip('ad0', 'onBrand', '👑 Admin only')
     v.badgeBook = chip('ad1', 'onBrand', 'Your book of business')
@@ -1920,8 +1935,8 @@ export function useModel(props: ModelProps) {
     ].map((a) => ({ label: a.label, note: a.note, locked: !!a.locked, on: a.locked ? false : !!s.access[a.key], toggle: a.locked ? () => say('Rates and billing stay admin-only 🔒') : () => setState((t: Any) => ({ ...t, access: { ...t.access, [a.key]: !t.access[a.key] } })) }))
 
     // 60 · assign jobs
-    v.aAssign = s.role === 'cleaner' && s.c === 'assign'
-    v.goAssign = () => go({ c: 'assign' })
+    v.aAssign = mayAdmin && s.role === 'cleaner' && s.c === 'assign'
+    v.goAssign = () => { if (v.me.isAdmin) go({ c: 'assign' }) }
     const WEEK = [24, 25, 27, 28, 29, 31]
     const DOW: Any = { 24: 'Fri, Jul 24', 25: 'Sat, Jul 25', 27: 'Mon, Jul 27', 28: 'Tue, Jul 28', 29: 'Wed, Jul 29', 31: 'Fri, Jul 31' }
     const ASSIGNEES = [{ id: 'Ahleyia', label: 'Ahleyia' }, { id: 'Tiana', label: 'Tiana' }, { id: 'Both', label: 'Both (shared)' }]
@@ -2193,8 +2208,8 @@ export function useModel(props: ModelProps) {
     }
 
     // service area
-    v.aArea = s.role === 'cleaner' && s.c === 'area'
-    v.goArea = () => go({ c: 'area' })
+    v.aArea = mayAdmin && s.role === 'cleaner' && s.c === 'area'
+    v.goArea = () => { if (v.me.isAdmin) go({ c: 'area' }) }
     const AREAS = [
       { id: 'buckhead', name: 'Buckhead', sub: 'Luxury homes · 4 clients' },
       { id: 'midtown', name: 'Midtown', sub: 'Airbnb turnovers · 3 clients' },
@@ -2715,7 +2730,6 @@ export function useModel(props: ModelProps) {
           item('👤', 'My week', 'Cleans, earnings and schedule', () => go({ c: 'profile', cTab: 3 }), 'profile'),
           item('🏦', 'Payouts', 'Every release, in order', () => go({ c: 'payouts' }), 'payouts'),
           item('🧾', 'Tax documents', '1099s and yearly summaries', () => go({ c: 'tax' }), 'tax'),
-          item('🧮', 'Quote Builder', 'Your pricing rules, made tappable', () => go({ c: 'quote' }), 'quote'),
         ]) },
         { title: 'Messages', items: close([
           item('💌', 'Inbox', 'Owners, leads and the business', () => go({ c: 'inbox' }), 'inbox'),
@@ -2726,6 +2740,7 @@ export function useModel(props: ModelProps) {
         // billing, the client book and hiring belong to the owner.
         ...(v.me.isAdmin ? [{ title: 'Business', items: close([
           item('👑', 'Business dashboard', 'Billing, people, pricing', () => go({ c: 'admin' }), 'admin'),
+          item('🧮', 'Quote Builder', 'Your pricing rules, made tappable', () => go({ c: 'quote' }), 'quote'),
           item('👥', 'Team & certification', 'Splits and what they can see', () => go({ c: 'team' }), 'team'),
           item('🧽', 'Add someone to your team', 'They set their own sign-in', () => go({ c: 'addstaff', newStaffLink: '' }), 'addstaff'),
           item('🏡', 'Clients & properties', 'Your book of business', () => go({ c: 'clients' }), 'clients'),
@@ -2784,12 +2799,30 @@ export function useModel(props: ModelProps) {
        the zone each account lands in. */
     const isAdminView = ['admin', 'team', 'clients', 'bizsettings', 'area', 'assign', 'calendar'].indexOf(s.c) >= 0
     const acctRole = s.role === 'cleaner' ? (isAdminView ? 'admin' : 'cleaner') : s.role
-    const ACCOUNTS: Any[] = [
+    /* What this person may look at.
+     *
+     * With no backend the switcher is the review tool it was built as: hop
+     * between the business, a working day, a client and the signed-out public
+     * view, all on seed data.
+     *
+     * On a live deployment it is NOT a switcher. Views and accounts are not
+     * interchangeable: you see your own account, decided by your role, and
+     * nothing else. The one exception is real — Ahleyia is both the business
+     * and the housekeeper, so an org_admin genuinely has two views of the same
+     * account, and only those two. */
+    const ALL_ACCOUNTS: Any[] = [
       ['admin', '👑', 'She’s Maid In ATL', 'Business · owner & admin'],
-      ['cleaner', '🧹', v.me.isOwner ? 'Ahleyia Kee' : v.me.name, 'Working day · housekeeper'],
+      ['cleaner', '🧹', v.me.isOwner ? 'Ahleyia Kee' : v.me.name, v.me.isAdmin ? 'Working day · housekeeper' : v.me.title],
       ['owner', '🏡', v.clientFull, 'Client account'],
       ['visitor', '🌐', 'Not signed in', 'What someone with no account sees'],
     ]
+    const liveApp = backendActive()
+    // The rule lives in src/lib/views.ts, where it is tested on its own.
+    const allowed = viewsFor({ liveApp, signedIn: !!s.beSignedIn, role: s.beUser?.role ?? null })
+    const ACCOUNTS: Any[] = ALL_ACCOUNTS.filter((a) => allowed.indexOf(a[0]) >= 0)
+    // Nothing to switch to → the button is a profile, not a chooser.
+    v.acctSwitchable = ACCOUNTS.length > 1
+    v.acctLockedNote = liveApp && s.beSignedIn && !v.acctSwitchable
     const WHO: Any = {
       visitor: ['Not signed in', 'Anyone with her card link'],
       cleaner: [v.me.isOwner ? 'Ahleyia Kee' : v.me.name, isAdminView && v.me.isAdmin ? '👑 Business side · admin' : 'Working side · today’s route'],
@@ -3043,9 +3076,15 @@ export function useModel(props: ModelProps) {
         else if (a[0] === 'owner') { patch.role = 'owner'; patch.o = 'home'; patch.oTab = 0 }
         else { patch.role = 'visitor'; patch.p = 'welcome' }
         set(patch)
-        say('Now viewing as ' + a[2])
+        // On a live account the two rows are two views of one account, so
+        // "now viewing as someone else" would be a lie.
+        say(liveApp && s.beSignedIn ? (a[0] === 'admin' ? 'Business side' : 'Working side') : 'Now viewing as ' + a[2])
       },
     }))
+    v.acctTitle = v.acctSwitchable ? 'Switch view' : 'Your account'
+    // Signing out is the one thing every live account needs from here, whether
+    // or not there is a second view to switch to.
+    v.acctSignOut = liveApp && s.beSignedIn ? v.signOut : null
 
     const jump = (role: string, key: string, extra?: Any) => () => {
       const patch: Any = { role, cam: null, emptyJobs: false, emptyHomes: false, emptyMsgs: false, ...(extra || {}) }

@@ -125,6 +125,15 @@ so the clickable prototype never breaks.
   so every cleaner Ahleyia hired saw "Ahleyia Kee · Founder" on their own
   profile. With no backend it falls back to the seed persona so the demo still
   reads as her studio.
+- **Views** (`src/lib/views.ts`) — which of the four zones an account may look
+  at. With no backend all four are reachable, because that build IS the design
+  review and switching on seed data is the point. On a live deployment they are
+  not interchangeable: the zone comes from the signed-in role, `?role=` /
+  `?chrome=` / `?fill=` are ignored, and the switcher offers only the account
+  you are. The single exception is real — an `org_admin` is both the business
+  and the housekeeper, so she has two views of one account. `mayRunBusiness()`
+  reads the same rule, so the menu, the screens and the switcher cannot
+  disagree about what an account is.
 - **Roles** — `org_admin` owns the business; `cleaner` works. The app hides the
   Business group (dashboard, client book, hiring, pricing) from a cleaner AND
   the endpoints that create people (`create-client`, `create-staff`,

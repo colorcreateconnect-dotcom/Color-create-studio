@@ -62,7 +62,7 @@ export function CleanerScreens(v: any) {
               <div style={css('font-family:var(--font-serif-display);font-size:23px;line-height:1.1;margin-top:10px')}>Your route is clear</div>
               <p style={css('margin:8px auto 16px;max-width:250px;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Nothing booked today. Share your card — that’s how the next three homes found you.</p>
               <Button icon="💌" onClick={v.goShare}>Share my card</Button>
-              <div style={css('margin-top:8px')}><Button variant="ghost" onClick={v.goQuote}>Build a quote for a lead</Button></div>
+              {v.meIsAdmin && <div style={css('margin-top:8px')}><Button variant="ghost" onClick={v.goQuote}>Build a quote for a lead</Button></div>}
             </div>
           </Card>
           <NoteCard tone="eco" icon="✨">Quiet days are good days to restock. Two units are below par on paper towels.</NoteCard>
@@ -602,8 +602,8 @@ function MyWeek({ v }: { v: any }) {
         </Card>
         <Card flush>
           <SupplyRow icon="🧴" name="Supplies" sub="Par levels, reorders and maintenance flags" right="›" onClick={v.goSupplies} />
-          <SupplyRow icon="👑" name="Business admin" sub="Money, team, clients & pricing — the owner side" right="›" onClick={v.goAdmin} />
-          <SupplyRow icon="🧮" name="Quote Builder" sub="Residential pricing — your $50/hr rule, made tappable" right="›" onClick={v.goQuote} />
+          {v.meIsAdmin && <SupplyRow icon="👑" name="Business admin" sub="Money, team, clients & pricing — the owner side" right="›" onClick={v.goAdmin} />}
+          {v.meIsAdmin && <SupplyRow icon="🧮" name="Quote Builder" sub="Residential pricing — your $50/hr rule, made tappable" right="›" onClick={v.goQuote} />}
           <SupplyRow icon="💌" name="Share your digital card" sub="QR to scan, or text the link on the spot" right="›" onClick={v.goShare} last />
         </Card>
         <SectionLabel>This week</SectionLabel>
@@ -761,12 +761,14 @@ function Settings({ v }: { v: any }) {
             <SupplyRow icon="👥" name="Team & certification" sub={v.teamSub} right="›" onClick={v.goTeam} last />
           </Card>
         </>)}
-        <SectionLabel right={v.badgePrivateGhost}>Your pricing rules</SectionLabel>
-        <Card flush>
-          <SupplyRow icon="🧮" name="Standard rate" sub="$50/hr floor" right="›" onClick={v.goQuote} />
-          <SupplyRow icon="🧮" name="Deep clean rate" sub="$65/hr" right="›" onClick={v.goQuote} />
-          <SupplyRow icon="👤" name="Assistant split" sub="40% with a $50 minimum" right="›" onClick={v.goQuote} last />
-        </Card>
+        {v.meIsAdmin && (<>
+          <SectionLabel right={v.badgePrivateGhost}>Your pricing rules</SectionLabel>
+          <Card flush>
+            <SupplyRow icon="🧮" name="Standard rate" sub="$50/hr floor" right="›" onClick={v.goQuote} />
+            <SupplyRow icon="🧮" name="Deep clean rate" sub="$65/hr" right="›" onClick={v.goQuote} />
+            <SupplyRow icon="👤" name="Assistant split" sub="40% with a $50 minimum" right="›" onClick={v.goQuote} last />
+          </Card>
+        </>)}
         <SectionLabel>Notifications</SectionLabel>
         {v.pushOffered && (
           <Card flush>

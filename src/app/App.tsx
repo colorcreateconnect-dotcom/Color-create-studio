@@ -13,6 +13,7 @@ import { OwnerScreens } from './screens/owner'
 import { SharedScreens } from './screens/shared'
 import { ConciergeScreens } from './screens/concierge'
 import { Overlays, ScreenIndex } from './screens/chrome'
+import { isSupabaseConfigured } from '../lib/config'
 import { Rail } from './Rail'
 
 function readProps(): ModelProps {
@@ -20,6 +21,13 @@ function readProps(): ModelProps {
   const role = q.get('role')
   const chrome = q.get('chrome')
   const fill = q.get('fill')
+  /* On a real deployment the app is not a viewer. `?role=`, `?chrome=` and
+     `?fill=` are review switches for the design showcase: they open a zone with
+     seed data and no sign-in, which on a live site would let anyone walk into
+     the working day and would make a real account's view interchangeable with
+     a made-up one. With a backend configured they are ignored outright — what
+     you see is decided by who you are signed in as, and nothing else. */
+  const live = isSupabaseConfigured()
   // A client opening the link Ahleyia sent them.
   const invite = q.get('invite')
   // Opened by tapping a notification while the app was closed. The service
@@ -29,11 +37,13 @@ function readProps(): ModelProps {
   return {
     inviteToken: invite || undefined,
     openLink: open || undefined,
-    startRole: role === 'cleaner' || role === 'owner' || role === 'visitor' ? role : 'visitor',
+    startRole: !live && (role === 'cleaner' || role === 'owner' || role === 'visitor') ? role : 'visitor',
     // The live app shows just the app. The review showcase (device switcher +
-    // role pills + "Every screen" index) is opt-in with ?chrome=1.
-    showChrome: chrome === '1' || chrome === 'true',
-    autoFillMethod: fill === '1' || fill === 'true',
+    // role pills + "Every screen" index) is opt-in with ?chrome=1, and only on
+    // a build with no backend.
+    showChrome: !live && (chrome === '1' || chrome === 'true'),
+    autoFillMethod: !live && (fill === '1' || fill === 'true'),
+    liveApp: live,
   }
 }
 

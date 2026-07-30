@@ -3,13 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "She's Maid In ATL — luxury housekeeping app (public storefront, cleaner, and owner zones)",
+  "description": "She's Maid In ATL \u2014 luxury housekeeping app (public storefront, cleaner, and owner zones)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:demo": "VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= vite build --base=/ --outDir dist-demo"
   },
   "dependencies": {
     "react": "^18.3.1",
