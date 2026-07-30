@@ -6,8 +6,8 @@
 # _headers — are honoured either way, so the app routes correctly however it got
 # deployed.
 #
-# There is deliberately no rule for /.netlify/functions/*. Netlify rejects any
-# redirect whose source starts with /.netlify ("Invalid /.netlify path in
+# There is deliberately no rule for the function route. Netlify rejects any
+# redirect whose source is under the reserved dot-netlify path ("Invalid path in
 # redirect source") and warns on every deploy. It is also unnecessary: function
 # routes are matched before redirects, so the catch-all below cannot swallow
 # them.
