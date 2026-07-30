@@ -173,6 +173,22 @@ so the clickable prototype never breaks.
   Reads are five-minute signed links from `photo-url`, which is where a client's
   right to see their own proof is granted; Storage itself never lets a client
   in. `missingProof()` stops a clean closing while a photo moment is empty.
+- **Inventory → Instacart** (`src/lib/supplies.ts`, `src/lib/grocery.ts`) — a home
+  holds a par level and a count; `lowItems()` is the difference and that is the
+  shopping list. The handoff stays behind the `GroceryAdapter` interface written
+  when the partnership turned out not to exist: `buildHandoff` for the whole
+  list, `buildItemLink` for one line, and nothing that places an order. It opens
+  the app because instacart.com publishes an apple-app-site-association, making
+  `https://instacart.com/...` a universal link — a custom `instacart://` scheme
+  would open the app and fail with nothing to show when it isn't installed. The
+  honest limit: Instacart search takes one query, so a fifteen-item list cannot
+  arrive as a filled cart, which is why per-line links are the real mechanic.
+  Their Developer Platform's shopping-list endpoint would return a genuinely
+  shoppable page and can replace `buildHandoff` behind the same interface if a
+  key is obtained — still link-building, still not order placement. `supplierOnly`
+  keeps linens out of the grocery link entirely. Inventory needs no new policy:
+  `supply_scoped` tests the home through a `properties` subquery, so it inherits
+  0010's contractor-book scoping for free.
 - **Roles** — `org_admin` owns the business; `cleaner` works. The app hides the
   Business group (dashboard, client book, hiring, pricing) from a cleaner AND
   the endpoints that create people (`create-client`, `create-staff`,

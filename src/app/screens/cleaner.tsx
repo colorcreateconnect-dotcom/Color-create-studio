@@ -467,7 +467,64 @@ function Assist({ v }: { v: any }) {
 }
 
 /* ------------------------------------------------------------- Supplies -- */
+/* The real cupboard: one card per home, a count per line, and the trip to
+   Instacart. The seed showcase below is untouched — a live account gets this. */
+function LiveSupplies({ v }: { v: any }) {
+  return (
+    <>
+      <div style={css('display:flex;align-items:center;gap:10px;padding:8px 22px 0')}>
+        <div style={css('flex:1;font-family:var(--font-serif-display);font-size:24px')}>Supplies</div>
+        <IconButton icon="💬" onClick={v.goInbox} />
+        <IconButton icon="☰" onClick={v.openMenu} />
+      </div>
+      <div style={css('padding:10px 22px 22px')}>
+        <div style={css('font-size:12px;color:var(--text-muted);margin-bottom:12px')}>Par-level tracking, per home</div>
+        <NoteCard tone={v.liveSupplyTone} icon="🛍️">{v.liveSupplyNote}</NoteCard>
+        {!v.liveSuppliesReady && <Card><div style={css('font-size:12.5px;color:var(--text-muted)')}>Loading your inventory…</div></Card>}
+        {v.liveUnits.map((u: any) => (
+          <Card key={u.id}>
+            <div style={css('display:flex;align-items:flex-start;gap:10px;justify-content:space-between')}>
+              <div>
+                <div style={css('font-size:16px;font-weight:var(--weight-semibold)')}>{u.name}</div>
+                <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>{u.sub}</div>
+              </div>
+              {u.lowChip}
+            </div>
+            {!u.empty && (
+              <div style={css('margin-top:6px')}>
+                {u.items.map((it: any) => (
+                  <SupplyRow
+                    key={it.id} icon={it.icon} name={it.name} sub={it.sub} flag={it.flag} last={it.last}
+                    right={(
+                      <div style={css('display:flex;align-items:center;gap:8px')}>
+                        <Stepper value={it.onHand} onChange={it.setOnHand} />
+                        {it.openItem
+                          ? <span onClick={it.openItem} style={css('font-size:11px;color:var(--magenta);cursor:pointer;text-decoration:underline;white-space:nowrap')}>Open</span>
+                          : <span style={css('font-size:10.5px;color:var(--text-muted);white-space:nowrap')}>supplier</span>}
+                      </div>
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+            <div style={css('margin-top:12px;font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft);background:var(--surface-cream);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 12px')}>{u.note}</div>
+            <div style={css('margin-top:8px;font-size:11.5px;line-height:var(--leading-snug);padding:10px 12px;border-radius:var(--radius-md);color:var(--ink-soft);background:var(--surface-cream);border:1px solid var(--border-default)')}>{u.maintLine}</div>
+            <div style={css('margin-top:12px')}>
+              {u.empty
+                ? <Button variant="ghost" onClick={u.seed}>{u.busy ? 'Setting up…' : 'Set up the standard par-stock'}</Button>
+                : <Button variant={u.canSend ? 'primary' : 'ghost'} onClick={u.send}>🛒 {u.sendLabel}</Button>}
+            </div>
+          </Card>
+        ))}
+        {v.liveNoHomes && <Card><div style={css('font-size:12.5px;color:var(--ink-soft)')}>No homes yet. Add one, then its inventory lives here.</div></Card>}
+        <NoteCard tone="pink" icon="🔒">{v.liveInstacartNote}</NoteCard>
+      </div>
+    </>
+  )
+}
+
 function Supplies({ v }: { v: any }) {
+  if (v.liveSupplies) return <LiveSupplies v={v} />
   return (
     <>
       <div style={css('display:flex;align-items:center;gap:10px;padding:8px 22px 0')}>

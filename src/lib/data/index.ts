@@ -48,6 +48,17 @@ export interface DataSource {
   liveJobSteps(jobId: string): Promise<LiveStep[]>
   /** Proof photos for a clean. RLS: the studio's staff, or the home's owner. */
   jobPhotos(jobId: string): Promise<ProofPhoto[]>
+  /** Par-level inventory for these homes. RLS: the home's owner, or org staff. */
+  supplyItems(propertyIds: string[]): Promise<SupplyItem[]>
+  /** Set what's actually in the cupboard. */
+  setSupplyOnHand(id: string, onHand: number): Promise<void>
+  /** Give a home the standard par-stock so the screen isn't blank on day one. */
+  seedSupplies(propertyId: string, rows: NewSupply[]): Promise<SupplyItem[]>
+  /** Add or change one line of a home's inventory. */
+  addSupplyItem(input: NewSupply & { propertyId: string }): Promise<SupplyItem>
+  /** Record that a reorder was sent, so there is a history rather than a link
+   *  someone tapped once. */
+  createReorder(input: { propertyId: string; items: unknown; status?: string }): Promise<{ id: string }>
   /** Tick / untick one step. RLS: staff in the job's org. */
   setJobStep(stepRowId: string, completed: boolean): Promise<void>
   /** Every job in the org — the scheduling calendar reads this. */
@@ -122,6 +133,17 @@ export interface LiveStep {
   photoTakenAt: string | null
 }
 
+/** A line of a home's par-level inventory. Mirrors src/lib/supplies.ts's
+ *  SupplyItem — that module holds the arithmetic, this one the rows. */
+export interface SupplyItem {
+  id: string; propertyId: string; name: string; icon?: string | null
+  parLevel: number; onHand: number; supplierOnly: boolean
+}
+
+export interface NewSupply {
+  name: string; icon?: string | null; parLevel: number; onHand?: number; supplierOnly?: boolean
+}
+
 /** A proof photo, as the app lists them. No URL: one is signed on demand and
  *  expires, so there is nothing here worth passing around. */
 export interface ProofPhoto {
@@ -179,6 +201,13 @@ function mapMessage(r: any): Message {
 }
 function mapBlock(r: any): AvailabilityBlock {
   return { id: r.id, cleanerId: r.cleaner_id, startsAt: r.starts_at, endsAt: r.ends_at, reason: r.reason ?? null }
+}
+function mapSupply(r: any): SupplyItem {
+  return {
+    id: r.id, propertyId: r.property_id, name: r.name, icon: r.icon ?? null,
+    parLevel: Number(r.par_level ?? 0), onHand: Number(r.on_hand ?? 0),
+    supplierOnly: !!r.supplier_only,
+  }
 }
 function mapNotice(r: any): Notice {
   return {
@@ -288,6 +317,56 @@ class SupabaseData implements DataSource {
       phaseTitle: r.phase_title ?? null, phaseOrd: r.phase_ord ?? null,
       photoKey: r.photo_key ?? null, photoTakenAt: r.photo_taken_at ?? null,
     }))
+  }
+  async supplyItems(propertyIds: string[]) {
+    if (!propertyIds?.length) return [] as SupplyItem[]
+    const list = propertyIds.map((s) => `"${s}"`).join(',')
+    const rows = await this.rest<any[]>(`supply_items?property_id=in.(${list})&select=id,property_id,name,icon,par_level,on_hand,supplier_only&order=supplier_only,name`)
+    return rows.map(mapSupply)
+  }
+  async setSupplyOnHand(id: string, onHand: number) {
+    const res = await fetch(`${this.url}/rest/v1/supply_items?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+      body: JSON.stringify({ on_hand: Math.max(0, Math.round(onHand)) }),
+    })
+    if (!res.ok) throw new Error(`Could not save that count (${res.status})`)
+  }
+  async seedSupplies(propertyId: string, rows: NewSupply[]) {
+    const body = rows.map((r) => ({
+      property_id: propertyId, name: r.name, icon: r.icon ?? null,
+      par_level: r.parLevel, on_hand: r.onHand ?? 0, supplier_only: !!r.supplierOnly,
+    }))
+    const res = await fetch(`${this.url}/rest/v1/supply_items`, {
+      method: 'POST',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) throw new Error(`Could not set up that inventory (${res.status})`)
+    return (await res.json() as any[]).map(mapSupply)
+  }
+  async addSupplyItem(input: NewSupply & { propertyId: string }) {
+    const res = await fetch(`${this.url}/rest/v1/supply_items`, {
+      method: 'POST',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+      body: JSON.stringify([{
+        property_id: input.propertyId, name: input.name, icon: input.icon ?? null,
+        par_level: input.parLevel, on_hand: input.onHand ?? 0, supplier_only: !!input.supplierOnly,
+      }]),
+    })
+    if (!res.ok) throw new Error(`Could not add that item (${res.status})`)
+    return mapSupply((await res.json() as any[])[0])
+  }
+  async createReorder(input: { propertyId: string; items: unknown; status?: string }) {
+    const res = await fetch(`${this.url}/rest/v1/reorders`, {
+      method: 'POST',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+      body: JSON.stringify([{
+        property_id: input.propertyId, items: input.items, status: input.status ?? 'flagged',
+      }]),
+    })
+    if (!res.ok) throw new Error(`Could not record that reorder (${res.status})`)
+    return { id: (await res.json() as any[])[0]?.id }
   }
   async jobPhotos(jobId: string) {
     // RLS decides what comes back: the studio's staff see the org's, and the
@@ -428,6 +507,11 @@ class MockData implements DataSource {
   async chargesForJobs() { return [] as Charge[] }
   async liveJobSteps() { return [] as LiveStep[] }
   async jobPhotos() { return [] as ProofPhoto[] }
+  async supplyItems() { return [] as SupplyItem[] }
+  async setSupplyOnHand() { /* no backend: the seed screen owns the numbers */ }
+  async seedSupplies() { return [] as SupplyItem[] }
+  async addSupplyItem(): Promise<SupplyItem> { throw new Error('No backend configured') }
+  async createReorder() { return { id: '' } }
   async setJobStep() { /* demo: nothing to persist */ }
   async orgJobs() { return [] as Job[] }
   async createPropertyFor(input: NewProperty) { return this.createProperty(input) }

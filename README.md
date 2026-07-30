@@ -79,6 +79,12 @@ credentials (which can't be provisioned in a sandbox). Highlights:
   only through links that expire in five minutes, and are never marketing: the
   server writes consent false every time and the database refuses it outright
   for a 'before' shot. A clean cannot be closed with a photo moment still empty.
+- **Cupboard to Instacart in one tap** — each home has a par level per item and
+  a count of what's there; the gap is the shopping list, so nobody types one.
+  The link opens the actual Instacart app (universal links), and the store,
+  delivery window and payment are the owner's own inside it — this app never
+  places an order or charges for supplies. Linens go to the linen supplier
+  instead, never to a supermarket.
 - **One way in** — email + password for every role. A client Ahleyia added sets
   their own password on the single-use invite link she sends them. No texted
   codes, so getting into the app needs no SMS provider and costs nothing.

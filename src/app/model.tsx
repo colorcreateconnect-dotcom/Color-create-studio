@@ -15,6 +15,10 @@ import { viewsFor, mayRunBusiness } from '../lib/views'
 import { busyWindows, dayAvailability, dayIsFull, mergeBusy, busyMinutesBetween } from '../lib/availability'
 import { checkPhoto, photoKeyFor, photoNonce, missingProof, PHOTO_REJECT_MESSAGE } from '../lib/photo'
 import { uploadProof } from '../lib/storage'
+import {
+  isLow, lowItems, shortBy, reorderLines, tally, groceryPart, supplierPart, STARTER_SUPPLIES,
+} from '../lib/supplies'
+import { getGroceryAdapter } from '../lib/grocery'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
@@ -234,6 +238,8 @@ function initialState(props: ModelProps): Any {
     // Proof photos: which step is uploading, and the short-lived links that let
     // the checklist show a thumbnail. Never persisted — they expire.
     bePhotoBusy: '', bePhotoUrls: {},
+    // Par-level inventory, loaded per home.
+    beSupplies: [], beSuppliesReady: false, beSupplyBusy: '',
     // Manual property entry (staff adding a home for a client they already have)
     npOwner: '', npName: '', npKind: 'residential', npArea: '', npBeds: '', npBaths: '', npErr: '',
     // Live scheduling: which month/day of the real calendar is in view
@@ -544,6 +550,20 @@ export function useModel(props: ModelProps) {
       .catch(() => { /* thumbnails are a nicety; the proof itself is recorded */ })
     return () => { alive = false }
   }, [s.beStepsJobId, (s.beSteps || []).map((r: Any) => r.photoKey || '').join(',')])
+
+  /* The real par-level inventory for the homes in view.
+     Loaded once the properties are known, and reloaded when they change. RLS
+     scopes it: a client sees their own homes' cupboards, staff see their org's. */
+  useEffect(() => {
+    if (!backendActive() || !state.beSignedIn) return
+    const ids = (state.beProps || []).map((p: Any) => p.id)
+    if (!ids.length) { setState((st: Any) => ({ ...st, beSuppliesReady: true })); return }
+    let alive = true
+    getData().supplyItems(ids)
+      .then((rows) => { if (alive) setState((st: Any) => ({ ...st, beSupplies: rows, beSuppliesReady: true })) })
+      .catch(() => { if (alive) setState((st: Any) => ({ ...st, beSuppliesReady: true })) })
+    return () => { alive = false }
+  }, [state.beSignedIn, (state.beProps || []).map((p: Any) => p.id).join(',')])
 
   /* An invitation was opened — from the link she sent, or from a code the
      person pasted in. Either way the token is the credential, so this runs
@@ -967,6 +987,138 @@ export function useModel(props: ModelProps) {
     v.shownUnits = s.unitFilter === 'All units' ? units : units.filter((u) => u.id === s.unitFilter)
     v.cartCount = cart
     v.qty = qty; v.setQty = setQty
+
+    /* ---- the real cupboard, and the trip to Instacart ----
+       Nobody types a shopping list. Each home holds a par level per item and a
+       count of what is actually there; the gap is the reorder. Two things it is
+       deliberately NOT: it does not place an order (there is no Instacart
+       partnership, and payment stays the owner's own inside their own account),
+       and it does not send linens to a supermarket — those are supplierOnly and
+       route to the linen supplier instead.
+
+       The link is an ordinary https://instacart.com address, which is what makes
+       it open the APP: those are universal links, so a phone with Instacart
+       installed hands the URL to it, and one without falls back to the web. An
+       instacart:// scheme would do the first and fail the second. */
+    if (backendActive() && s.beSignedIn) {
+      const grocer = getGroceryAdapter()
+      const all: Any[] = s.beSupplies || []
+      const props: Any[] = s.beProps || []
+      const open = (url: string) => {
+        // Leaves the app on a phone, which is the point — they finish in
+        // Instacart. noopener so the opened tab can't reach back in.
+        try { window.open(url, '_blank', 'noopener,noreferrer') } catch { say('Couldn’t open Instacart just now') }
+      }
+
+      const setOnHand = (row: Any, n: number) => {
+        const next = Math.max(0, Math.round(n))
+        setState((st: Any) => ({
+          ...st, beSupplies: st.beSupplies.map((x: Any) => x.id === row.id ? { ...x, onHand: next } : x),
+        }))
+        getData().setSupplyOnHand(row.id, next).catch((e: any) => {
+          // Put the count back — the number on screen must not disagree with
+          // the number in the database.
+          setState((st: Any) => ({
+            ...st, beSupplies: st.beSupplies.map((x: Any) => x.id === row.id ? { ...x, onHand: row.onHand } : x),
+          }))
+          say(errMsg(e, 'Couldn’t save that count'))
+        })
+      }
+
+      const sendToInstacart = async (propertyId: string, name: string) => {
+        const mine = all.filter((x: Any) => x.propertyId === propertyId)
+        const toBuy = groceryPart(mine as any)
+        if (!toBuy.length) { say('Nothing below par at ' + name + ' ✓'); return }
+        const handoff = grocer.buildHandoff(toBuy.map((i) => ({ name: i.name, quantity: shortBy(i) })))
+        // Recorded first, so there's a history even if they abandon the cart.
+        try {
+          await getData().createReorder({
+            propertyId, status: 'flagged',
+            items: reorderLines(mine as any),
+          })
+        } catch { /* the handoff still happens — the list is the point */ }
+        open(handoff.url)
+        say(handoff.itemCount + (handoff.itemCount === 1 ? ' item' : ' items') + ' → Instacart 🛒')
+      }
+
+      const seedFor = async (propertyId: string, name: string) => {
+        try {
+          setState((st: Any) => ({ ...st, beSupplyBusy: propertyId }))
+          const rows = await getData().seedSupplies(propertyId, STARTER_SUPPLIES as any)
+          setState((st: Any) => ({ ...st, beSupplyBusy: '', beSupplies: st.beSupplies.concat(rows) }))
+          say(rows.length + ' items set up for ' + name + ' ✓')
+        } catch (e) {
+          setState((st: Any) => ({ ...st, beSupplyBusy: '' }))
+          say(errMsg(e, 'Couldn’t set that inventory up'))
+        }
+      }
+
+      const liveUnits = props.map((p: Any) => {
+        const mine = all.filter((x: Any) => x.propertyId === p.id)
+        const t = tally(mine as any)
+        const low = lowItems(mine as any)
+        const linens = supplierPart(mine as any)
+        return {
+          id: p.id,
+          name: p.name || 'Home',
+          sub: (p.neighborhood ? '📍 ' + p.neighborhood + ' · ' : '')
+            + (mine.length ? mine.length + ' tracked' : 'No inventory yet'),
+          lowChip: mine.length
+            ? (t.low ? chip('sl' + p.id, 'low', t.low + ' low') : chip('sl' + p.id, 'refresh', 'At par'))
+            : chip('sl' + p.id, 'ghost', 'Not set up'),
+          note: mine.length
+            ? (t.low
+              ? 'Count what’s in the cupboard — anything under its par level goes on the list.'
+              : 'Everything is at par. Nothing to send.')
+            : 'This home has no inventory yet. Set up the standard par-stock and adjust it as you go.',
+          // Linens are a supplier order, not groceries; said out loud so nobody
+          // goes looking for sheet sets at a supermarket.
+          maintLine: linens.length
+            ? '🛏 ' + linens.length + (linens.length === 1 ? ' linen item' : ' linen items')
+              + ' below par — those go to the linen supplier, not Instacart.'
+            : '🛏 Linens at par.',
+          items: mine.map((it: Any, i: number) => ({
+            id: it.id, icon: it.icon || '🧴', name: it.name,
+            sub: 'Par ' + it.parLevel + ' · ' + it.onHand + ' on hand'
+              + (isLow(it as any) ? ' · short ' + shortBy(it as any) : ''),
+            flag: isLow(it as any) ? chip('sf' + it.id, 'low', 'LOW') : null,
+            level: null,
+            onHand: it.onHand,
+            setOnHand: (n: number) => setOnHand(it, n),
+            // One tap per line is how a list is actually shopped — a single
+            // search box cannot hold fifteen different products.
+            openItem: it.supplierOnly ? null : () => open(grocer.buildItemLink({ name: it.name, quantity: shortBy(it as any) })),
+            supplierOnly: !!it.supplierOnly,
+            last: i === mine.length - 1,
+          })),
+          empty: mine.length === 0,
+          busy: s.beSupplyBusy === p.id,
+          seed: () => seedFor(p.id, p.name || 'this home'),
+          send: () => sendToInstacart(p.id, p.name || 'this home'),
+          canSend: t.grocery > 0,
+          sendLabel: t.grocery
+            ? 'Send ' + t.grocery + (t.grocery === 1 ? ' item' : ' items') + ' to Instacart'
+            : 'Nothing below par',
+        }
+      })
+
+      v.liveSupplies = true
+      v.liveSuppliesReady = s.beSuppliesReady
+      v.liveUnits = liveUnits
+      v.liveNoHomes = props.length === 0
+      const allT = tally(all as any)
+      v.liveSupplyNote = props.length === 0
+        ? 'Add a home first — inventory is tracked per home.'
+        : (allT.total === 0
+          ? 'No inventory yet. Set up a home’s standard par-stock below, then count what’s actually there.'
+          : (allT.low
+            ? allT.low + (allT.low === 1 ? ' item' : ' items') + ' below par'
+              + (allT.supplier ? ' · ' + allT.supplier + ' of them linens (supplier, not Instacart)' : '')
+              + '. Tap a line to open it in Instacart, or send the whole list.'
+            : 'Every home is at par. Nothing to reorder.'))
+      v.liveSupplyTone = props.length === 0 || allT.total === 0 ? 'pink' : (allT.low ? 'warn' : 'money')
+      v.liveInstacartNote = 'Instacart opens in its own app. You pick the store, the delivery window and pay there — nothing is charged through this app, and no card is shared with it.'
+    }
 
     // accounts, inbox, threads, compose
     v.cInbox = s.role === 'cleaner' && s.c === 'inbox'
