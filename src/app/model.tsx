@@ -841,6 +841,14 @@ export function useModel(props: ModelProps) {
       if (isNaN(d.getTime())) return null
       return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     }
+    // "Jul 30, 12:31 PM" — used where a report has to say exactly when.
+    const fullWhen = (iso?: string) => {
+      if (!iso) return ''
+      const d = new Date(iso)
+      if (Number.isNaN(d.getTime())) return ''
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', '
+        + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    }
     const dayKey = (iso?: string) => {
       if (!iso) return ''
       const d = new Date(iso)
@@ -978,7 +986,9 @@ export function useModel(props: ModelProps) {
       if (!known) { set({ detectFailed: true, detected: false }); say('Couldn’t read that link — fill it in by hand'); return }
       set({ detected: true, detectFailed: false }); say('Listing detected ✓')
     }
-    v.detected = s.detected
+    // The listing-URL detection step is a showcase flow — it announces a
+    // specific Midtown loft. A live client adds a home manually.
+    v.detected = s.detected && !(backendActive() && s.beSignedIn)
     v.consent = s.consent
     v.setConsent = (n: boolean) => set({ consent: n })
     v.addProperty = async () => {
@@ -1539,6 +1549,21 @@ export function useModel(props: ModelProps) {
       { id: 'c3', icon: '🗑️', name: 'Trash bags', sub: 'Unit 1913', def: 1 },
     ].map((it, i, arr) => ({ id: it.id, icon: it.icon, name: it.name, sub: it.sub, def: it.def, last: i === arr.length - 1 }))
 
+    // The stamp on a photo the client just attached — the actual time, not a
+    // fixed one from the showcase.
+    v.nowStamp = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+
+    /* Rates. $50 and $65 are the studio's STARTING defaults, not a rule this
+       account set — saying "your $50/hr rule" to a contractor who has never
+       opened the pricing screen states something untrue about their own
+       business. Labelled as a default until they change it. */
+    const rateSet = false   // no per-studio rate is stored yet
+    const rateWord = rateSet ? 'your' : 'default'
+    v.rateRuleLine = 'Residential pricing — the ' + rateWord + ' $50/hr rule, made tappable'
+    v.rateStdLine = '$50/hr floor · ' + (rateSet ? 'yours' : 'starting default')
+    v.rateDeepLine = '$65/hr · ' + (rateSet ? 'yours' : 'starting default')
+    v.rateRulesLine = '$50/hr floor · deep $65 · 40% assistant split' + (rateSet ? '' : ' · defaults')
+
     // tip custom
     v.tipCustom = s.tip === 'Custom'
     v.tipAmount = s.tipAmount
@@ -1558,6 +1583,46 @@ export function useModel(props: ModelProps) {
     // When live, the Home screen reads real properties (or the empty state);
     // otherwise it keeps the seed showcase, so the demo is unchanged.
     v.liveOwner = backendActive() && s.beSignedIn && s.beUser?.role === 'owner'
+
+    /* ---- the client's Service Report, from their own cleans ----
+       This screen was entirely showcase: it announced "The Hartwell Estate ·
+       Today, 12:31 PM", claimed 26/26 steps and 9 proof photos, and stated that
+       a card had been charged $220 — to a client who has never been charged
+       anything, because payments are deferred. Inventing a charge is the worst
+       of it, so the money block now tells the truth or says nothing. */
+    if (v.liveOwner) {
+      const mine: Any[] = (s.beJobs || []).slice().sort((a: Any, b: Any) =>
+        String(b.windowStart || '').localeCompare(String(a.windowStart || '')))
+      // The report is about a finished clean. An in-progress one has nothing to
+      // report yet, and saying otherwise is how a report stops being evidence.
+      const done = mine.filter((j: Any) => j.status === 'complete')
+      const job = done[0] || null
+      const prop = job ? (s.beProps || []).find((p: Any) => p.id === job.propertyId) : null
+      // reports are hydrated already and carry the counts the screen needs
+      const rep = job ? (s.beReports || []).find((r: Any) => r.jobId === job.id) || null : null
+      const charged = job ? (s.beCharges || []).filter((c: Any) => c.jobId === job.id) : []
+
+      v.liveReport = true
+      v.reportEmpty = !job
+      v.reportSubtitle = job
+        ? (prop?.name || 'Your home') + ' · ' + (fullWhen(job.finishedAt || job.windowEnd || job.windowStart) || 'recently')
+        : 'No completed cleans yet'
+      v.reportSteps = rep && rep.stepsTotal ? rep.stepsDone + '/' + rep.stepsTotal : '—'
+      const shotCount = rep ? Number(rep.photoCount || 0) : 0
+      v.reportPhotoCount = String(shotCount)
+      v.reportHasPhotos = shotCount > 0
+      v.reportGalleryLabel = shotCount ? 'See all ' + shotCount : ''
+      v.reportRefMatch = !!rep?.referenceMatch
+      // Payments are not switched on. Rather than describe a charge that never
+      // happened, say what is actually true for this clean.
+      v.reportCharged = charged.length
+        ? charged.map((c: Any) => ({ label: c.kind || 'Charge', amount: '$' + Number(c.amount || 0).toFixed(2) }))
+        : []
+      v.reportMoneyLine = charged.length
+        ? 'Charged once on arrival, as agreed. Approving releases the rest — it never charges again.'
+        : 'Nothing has been charged for this clean. Card payments switch on when the studio connects its payment account.'
+      v.reportEmptyLine = 'Once a clean is finished, its photos, timeline and Kee Method™ checklist arrive here — and stay, so you always have the record.'
+    }
     if (v.liveOwner) {
       const homes = (s.beProps || []).map((p: Any, i: number) => {
         const bb = [p.beds ? p.beds + ' bed' : null, p.baths ? p.baths + ' bath' : null].filter(Boolean).join(' · ')
@@ -2806,6 +2871,46 @@ export function useModel(props: ModelProps) {
             return t >= today.getTime() - 864e5 && t <= weekEnd
           })
           v.liveWeekCount = String(thisWeek.length)
+      /* ---- money screens, when there is no money path ----
+         Payouts, Tax and the week's earnings were showing $4,280 released,
+         $110 awaiting approval and $58,140 of yearly income. None of it is
+         real: card payments are deferred, so nothing has ever been charged or
+         released. Invented earnings are worse than a blank screen — a
+         contractor could plan around them, and a 1099 figure especially is not
+         something to make up. A live account gets the truth instead. */
+      v.liveMoney = true
+      v.liveMoneyOff = true
+      v.liveMoneyLine = 'Payments aren’t switched on yet. Nothing has been charged to a client and nothing has been released to you — so there is nothing to show here. Your cleans and their times are all recorded, and become the record the moment payments go live.'
+      v.liveEarningsValue = '—'
+      v.liveEarningsLabel = 'Not enabled yet'
+      // Photo-verified: the share of this week's finished cleans that actually
+      // carry proof, rather than a flat 100%.
+      const wk = thisWeek.filter((j: Any) => j.status === 'complete')
+      const withProof = wk.filter((j: Any) => (s.beReports || []).some((r: Any) => r.jobId === j.id && Number(r.photoCount || 0) > 0))
+      v.livePhotoVerified = wk.length ? Math.round(withProof.length / wk.length * 100) + '%' : '—'
+
+      /* ---- the inbox, from real threads ----
+         It listed a Hartwell conversation and a $110 payout notice, to a
+         contractor who has neither. A thread per client they actually work
+         with, and an honest empty state before that. */
+      v.liveInbox = true
+      const seenOwner: Record<string, boolean> = {}
+      v.liveThreads = (s.beJobs || [])
+        .filter((j: Any) => j.ownerId && (j.cleanerId === s.beUser?.id || j.createdBy === s.beUser?.id))
+        .filter((j: Any) => (seenOwner[j.ownerId] ? false : (seenOwner[j.ownerId] = true)))
+        .map((j: Any) => {
+          const who = clientName(j.ownerId) || 'Client'
+          return {
+            id: j.ownerId,
+            name: who,
+            initials: who.split(' ').filter(Boolean).slice(0, 2).map((x: string) => x[0]).join('').toUpperCase() || '?',
+            preview: (propById[j.propertyId]?.name || 'Their home'),
+            when: timeOf(j.windowStart) || '',
+            open: () => go({ c: 'thread', threadWith: 'owner:' + j.ownerId, draft: '' }),
+          }
+        })
+
+
           v.liveClientCount = null
         }
         v.hasJobs = shown.length > 0
@@ -2850,6 +2955,13 @@ export function useModel(props: ModelProps) {
       // Open the Kee Method for whichever job is actually in play.
       const openable = shown[0] || allJobs[0]
       if (openable) v.goJob = () => go({ role: 'cleaner', c: 'job', cTab: 1, beStepsJobId: s.beActiveJobId || openable.id })
+      // "Move this job" is reachable from the real checklist, so its header must
+      // name the clean actually being moved, not the showcase loft.
+      const moving = (s.beJobs || []).find((j: Any) => j.id === s.beStepsJobId) || openable
+      if (moving) {
+        v.moveSubtitle = (propById[moving.propertyId]?.name || 'This clean')
+          + ' · ' + (timeOf(moving.windowStart) ? 'window ' + timeOf(moving.windowStart) : 'time to be confirmed')
+      }
     }
 
     /* ---- the checklist a cleaner actually works from ---- */

@@ -469,7 +469,7 @@ function Assist({ v }: { v: any }) {
 /* ------------------------------------------------------------- Supplies -- */
 /* The real cupboard: one card per home, a count per line, and the trip to
    Instacart. The seed showcase below is untouched — a live account gets this. */
-function LiveSupplies({ v }: { v: any }) {
+export function LiveSupplies({ v }: { v: any }) {
   return (
     <>
       <div style={css('display:flex;align-items:center;gap:10px;padding:8px 22px 0')}>
@@ -668,15 +668,15 @@ function MyWeek({ v }: { v: any }) {
         <Card flush>
           <SupplyRow icon="🧴" name="Supplies" sub="Par levels, reorders and maintenance flags" right="›" onClick={v.goSupplies} />
           {v.meIsAdmin && <SupplyRow icon="👑" name="Business admin" sub="Money, team, clients & pricing — the owner side" right="›" onClick={v.goAdmin} />}
-          {v.meIsAdmin && <SupplyRow icon="🧮" name="Quote Builder" sub="Residential pricing — your $50/hr rule, made tappable" right="›" onClick={v.goQuote} />}
+          {v.meIsAdmin && <SupplyRow icon="🧮" name="Quote Builder" sub={v.rateRuleLine} right="›" onClick={v.goQuote} />}
           <SupplyRow icon="💌" name="Share your digital card" sub="QR to scan, or text the link on the spot" right="›" onClick={v.goShare} last />
         </Card>
         <SectionLabel>This week</SectionLabel>
         <div style={css('display:grid;grid-template-columns:1fr 1fr;gap:var(--gap-tile);margin-bottom:var(--stack-card)')}>
-          <StatTile value="14" label="Cleans this week" color="var(--orange)" />
-          <StatTile value="100%" label="Photo-verified" color="var(--magenta)" />
-          <StatTile value="$4,280" label="Earned this week" color="var(--green-deep)" accent />
-          <StatTile value="0" label="Owner flags" color="var(--green-deep)" />
+          <StatTile value={v.liveWeekCount ?? '14'} label="Cleans this week" color="var(--orange)" />
+          <StatTile value={v.liveMoneyOff ? (v.livePhotoVerified ?? '—') : '100%'} label="Photo-verified" color="var(--magenta)" />
+          <StatTile value={v.liveMoneyOff ? v.liveEarningsValue : '$4,280'} label={v.liveMoneyOff ? v.liveEarningsLabel : 'Earned this week'} color="var(--green-deep)" accent />
+          <StatTile value={v.liveMoneyOff ? '0' : '0'} label="Owner flags" color="var(--green-deep)" />
         </div>
         <SectionLabel>This week’s schedule</SectionLabel>
         <Card flush>
@@ -691,6 +691,14 @@ function MyWeek({ v }: { v: any }) {
 
 /* -------------------------------------------------------------- Payouts -- */
 function Payouts({ v }: { v: any }) {
+  if (v.liveMoneyOff) return (
+    <>
+      <DetailHeader onBack={v.goBack} title="Your payouts" subtitle="Nothing released yet" />
+      <div style={css('padding:22px')}>
+        <NoteCard tone="pink" icon="💳">{v.liveMoneyLine}</NoteCard>
+      </div>
+    </>
+  )
   return (
     <>
       <DetailHeader onBack={v.goBack} badge={v.badgeInstant} title="Your payouts" subtitle="Every release, in order — nothing pending on you" />
@@ -710,6 +718,15 @@ function Payouts({ v }: { v: any }) {
 
 /* ---------------------------------------------------------------- Tax -- */
 function Tax({ v }: { v: any }) {
+  if (v.liveMoneyOff) return (
+    <>
+      <DetailHeader onBack={v.goBack} title="Tax documents" subtitle="Nothing to report yet" />
+      <div style={css('padding:22px')}>
+        <NoteCard tone="pink" icon="🧾">{v.liveMoneyLine}</NoteCard>
+        <NoteCard tone="eco" icon="📄">When payments are on, your yearly summary and 1099-NEC are generated from what actually cleared — never an estimate.</NoteCard>
+      </div>
+    </>
+  )
   return (
     <>
       <DetailHeader onBack={v.goBack} badge={v.badgeTaxYear} title="Tax documents" subtitle="Everything your accountant asks for, in one place" />
@@ -754,6 +771,20 @@ function Template({ v }: { v: any }) {
 
 /* -------------------------------------------------------------- Inbox -- */
 function Inbox({ v }: { v: any }) {
+  if (v.liveInbox) return (
+    <>
+      <DetailHeader onBack={v.goBack} title="Inbox" subtitle="Your clients and the studio" />
+      <div style={css('padding:22px')}>
+        {v.liveThreads.length ? (
+          <Card flush>{v.liveThreads.map((t: any, i: number) => (
+            <SupplyRow key={t.id} icon={t.initials} iconStyle={v.jhTile} name={t.name} sub={t.preview} right={t.when} onClick={t.open} last={i === v.liveThreads.length - 1} />
+          ))}</Card>
+        ) : (
+          <Card><div style={css('font-size:13px;line-height:var(--leading-snug);color:var(--ink-soft)')}>No messages yet. When a client writes to you — or you write to them — the thread lives here.</div></Card>
+        )}
+      </div>
+    </>
+  )
   return (
     <>
       <DetailHeader onBack={v.goBack} badge={v.badgeThreeNew} title="Inbox" subtitle="Owners, the business & new leads from your card" />
@@ -829,8 +860,8 @@ function Settings({ v }: { v: any }) {
         {v.meIsAdmin && (<>
           <SectionLabel right={v.badgePrivateGhost}>Your pricing rules</SectionLabel>
           <Card flush>
-            <SupplyRow icon="🧮" name="Standard rate" sub="$50/hr floor" right="›" onClick={v.goQuote} />
-            <SupplyRow icon="🧮" name="Deep clean rate" sub="$65/hr" right="›" onClick={v.goQuote} />
+            <SupplyRow icon="🧮" name="Standard rate" sub={v.rateStdLine} right="›" onClick={v.goQuote} />
+            <SupplyRow icon="🧮" name="Deep clean rate" sub={v.rateDeepLine} right="›" onClick={v.goQuote} />
             <SupplyRow icon="👤" name="Assistant split" sub="40% with a $50 minimum" right="›" onClick={v.goQuote} last />
           </Card>
         </>)}
@@ -894,7 +925,7 @@ function Flag({ v }: { v: any }) {
 function Move({ v }: { v: any }) {
   return (
     <>
-      <DetailHeader onBack={v.goBack} badge={v.badgeYourSide} title="Move this job" subtitle="Skyline Loft 12B · today, window 10–12" />
+      <DetailHeader onBack={v.goBack} badge={v.badgeYourSide} title="Move this job" subtitle={v.moveSubtitle || "Skyline Loft 12B · today, window 10–12"} />
       <div style={css('padding:22px')}>
         {v.mvForm && (<>
           <NoteCard tone="pink" icon="🧽"><b>This is on your side, so the owner is never charged</b> and their courtesy waiver stays unused. Tell them early and they’ll take it well — most do.</NoteCard>
@@ -985,7 +1016,7 @@ function AdminDash({ v }: { v: any }) {
           {v.liveNeeds && <SupplyRow icon="🏠" name="Add a home for a client" sub="Manually, for a client you already have" right="›" onClick={v.goAddProp} />}
           <SupplyRow icon="👥" name="Team & certification" sub={v.liveTeamSub || '1 assistant · splits · who can see what'} right="›" onClick={v.goTeam} />
           <SupplyRow icon="🏡" name="Clients & properties" sub={v.clientsSub || '9 clients · 14 properties · 2 quotes out'} right="›" onClick={v.goClients} />
-          <SupplyRow icon="🧮" name="Pricing rules" sub="$50/hr floor · deep $65 · 40% assistant split" right="›" onClick={v.goQuote} />
+          <SupplyRow icon="🧮" name="Pricing rules" sub={v.rateRulesLine} right="›" onClick={v.goQuote} />
           <SupplyRow icon="📋" name="Kee Method™ templates" sub="Turnover 26 · Luxury home 31" right="›" onClick={v.goTplTurn} />
           <SupplyRow icon="⚙️" name="Business settings" sub="Payouts, brand, service area, access" right="›" onClick={v.goBizSettings} last />
         </Card>

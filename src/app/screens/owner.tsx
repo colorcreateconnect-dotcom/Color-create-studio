@@ -11,6 +11,7 @@ import {
   PriceBox, Timeline, Checkbox, TextField, Stepper,
 } from '../../ds/components'
 import { SquareCardForm } from '../SquareCardForm'
+import { LiveSupplies } from './cleaner'
 
 export function OwnerScreens(v: any) {
   if (v.oHome) return (
@@ -242,7 +243,42 @@ function Onboard({ v }: { v: any }) {
 }
 
 /* -------------------------------------------------------------- Report -- */
+/* The real report for a real clean. The showcase version below it stays for the
+   design review; a signed-in client gets this one, and when they have no
+   finished cleans yet it says so rather than describing someone else's. */
+function LiveReport({ v }: { v: any }) {
+  return (
+    <>
+      <DetailHeader gradient="report" onBack={v.goBack} badge={v.badgeVerified} title="Service Report" subtitle={v.reportSubtitle} />
+      <div style={css('padding:22px')}>
+        {v.reportEmpty ? (
+          <Card><div style={css('font-size:13px;line-height:var(--leading-snug);color:var(--ink-soft)')}>{v.reportEmptyLine}</div></Card>
+        ) : (<>
+          <div style={css('display:flex;gap:var(--gap-tile);margin-bottom:var(--stack-card)')}>
+            <StatTile value={v.reportSteps} label="Kee Method™ steps" color="var(--magenta)" accent style={{ flex: 1 }} />
+            <StatTile value={v.reportPhotoCount} label="Proof photos" color="var(--orange)" style={{ flex: 1 }} />
+          </div>
+          {v.reportHasPhotos
+            ? <><SectionLabel action={v.reportGalleryLabel} onAction={v.goGallery}>Proof of service</SectionLabel>
+                <Card><div style={css('font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Your photos are private to you and the studio. They open on a link that expires, so they can never be passed around.</div></Card></>
+            : <NoteCard tone="pink" icon="📷">No proof photos on this clean.</NoteCard>}
+          <SectionLabel>Payment</SectionLabel>
+          <Card>
+            <p style={css('margin:0;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>{v.reportMoneyLine}</p>
+            {v.reportCharged.map((c: any, i: number) => (
+              <div key={i} style={css('display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:10px 0;border-top:1px solid var(--border-default);margin-top:10px')}>
+                <span>{c.label}</span><b>{c.amount}</b>
+              </div>
+            ))}
+          </Card>
+        </>)}
+      </div>
+    </>
+  )
+}
+
 function Report({ v }: { v: any }) {
+  if (v.liveReport) return <LiveReport v={v} />
   return (
     <>
       <DetailHeader gradient="report" onBack={v.goBack} badge={v.badgeVerified} title="Service Report" subtitle="The Hartwell Estate · Today, 12:31 PM" />
@@ -292,6 +328,7 @@ function Report({ v }: { v: any }) {
 
 /* ------------------------------------------------------- OwnerSupplies -- */
 function OwnerSupplies({ v }: { v: any }) {
+  if (v.liveSupplies) return <LiveSupplies v={v} />
   return (
     <>
       <div style={css('display:flex;align-items:center;gap:10px;padding:8px 22px 0')}>
@@ -753,7 +790,7 @@ function Dispute({ v }: { v: any }) {
             <SectionLabel>Show her</SectionLabel>
             <div style={css('display:flex;gap:10px;align-items:center')}>
               <div style={css('width:96px;height:96px;border-radius:var(--radius-lg);background:var(--photo-1);position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;border:1px dashed var(--tint-pink-line)')} onClick={v.attachDispPhoto}>
-                {v.dispPhoto ? <div style={css('position:absolute;bottom:8px;left:8px;background:var(--stamp-scrim);color:#fff;font-size:9.5px;padding:3px 7px;border-radius:7px;backdrop-filter:blur(2px)')}>📍 2:14 PM</div> : '📷'}
+                {v.dispPhoto ? <div style={css('position:absolute;bottom:8px;left:8px;background:var(--stamp-scrim);color:#fff;font-size:9.5px;padding:3px 7px;border-radius:7px;backdrop-filter:blur(2px)')}>📍 {v.nowStamp}</div> : '📷'}
               </div>
               <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>{v.dispPhotoLabel}</div>
             </div>
@@ -790,6 +827,9 @@ function Dispute({ v }: { v: any }) {
 
 /* ------------------------------------------------------------- EditList -- */
 function EditList({ v }: { v: any }) {
+  // On a live account the reorder list is simply what is below par, which is the
+  // inventory screen itself — there is no separate invented list to edit.
+  if (v.liveSupplies) return <LiveSupplies v={v} />
   return (
     <>
       <DetailHeader onBack={v.goBack} badge={v.badgeAdjust} title="Edit reorder list" subtitle="Adjust quantities before you approve" />
