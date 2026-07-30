@@ -48,6 +48,9 @@ export interface DataSource {
   liveJobSteps(jobId: string): Promise<LiveStep[]>
   /** Proof photos for a clean. RLS: the studio's staff, or the home's owner. */
   jobPhotos(jobId: string): Promise<ProofPhoto[]>
+  /** How a home is cleaned: product approach and finishing scent. The client's
+   *  own choice about their own home, so RLS lets them write it. */
+  setPropertyPrefs(propertyId: string, patch: { productPreference?: string; signatureScent?: string }): Promise<void>
   /** Par-level inventory for these homes. RLS: the home's owner, or org staff. */
   supplyItems(propertyIds: string[]): Promise<SupplyItem[]>
   /** Set what's actually in the cupboard. */
@@ -318,6 +321,18 @@ class SupabaseData implements DataSource {
       photoKey: r.photo_key ?? null, photoTakenAt: r.photo_taken_at ?? null,
     }))
   }
+  async setPropertyPrefs(propertyId: string, patch: { productPreference?: string; signatureScent?: string }) {
+    const body: any = {}
+    if (patch.productPreference) body.product_preference = patch.productPreference
+    if (patch.signatureScent) body.signature_scent = patch.signatureScent
+    if (!Object.keys(body).length) return
+    const res = await fetch(`${this.url}/rest/v1/properties?id=eq.${propertyId}`, {
+      method: 'PATCH',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) throw new Error(`Could not save that preference (${res.status})`)
+  }
   async supplyItems(propertyIds: string[]) {
     if (!propertyIds?.length) return [] as SupplyItem[]
     const list = propertyIds.map((s) => `"${s}"`).join(',')
@@ -507,6 +522,7 @@ class MockData implements DataSource {
   async chargesForJobs() { return [] as Charge[] }
   async liveJobSteps() { return [] as LiveStep[] }
   async jobPhotos() { return [] as ProofPhoto[] }
+  async setPropertyPrefs() { /* no backend: the seed screen owns the toggles */ }
   async supplyItems() { return [] as SupplyItem[] }
   async setSupplyOnHand() { /* no backend: the seed screen owns the numbers */ }
   async seedSupplies() { return [] as SupplyItem[] }

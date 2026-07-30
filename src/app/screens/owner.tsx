@@ -64,7 +64,7 @@ export function OwnerScreens(v: any) {
           </>)}
           <Card flush>
             <SupplyRow icon="📅" name="Your schedule" sub="Reschedule, add a service or cancel" right="›" onClick={v.goSchedule} />
-            <SupplyRow icon="🌱" name="Products & scent" sub="Eco & non-toxic · Eucalyptus-mint" right="›" onClick={v.goProducts} last />
+            <SupplyRow icon="🌱" name="Products & scent" sub={v.prefsLine} right="›" onClick={v.goProducts} last />
           </Card>
         </>)}
       </div>
@@ -73,8 +73,9 @@ export function OwnerScreens(v: any) {
 
   if (v.oProducts) return (
     <>
-      <DetailHeader gradient="eco" onBack={v.goBack} badge={v.badgeEco} title="Products & Scent" subtitle="Skyline Loft 12B · how your home is cleaned" />
+      <DetailHeader gradient="eco" onBack={v.goBack} badge={v.badgeEco} title="Products & Scent" subtitle={v.productsSubtitle} />
       <div style={css('padding:22px')}>
+        {v.productsMultiple && <NoteCard tone="pink" icon="🏡">This is your standard for <b>every home you own</b> — saving applies it to all of them.</NoteCard>}
         <NoteCard tone="eco" icon="💚">She’s Maid In ATL cleans non-toxic — safe for your family, pets, air quality, and your housekeeper’s health. Hospital-grade germ kill, <b>zero bleach or ammonia</b>.</NoteCard>
         <SectionLabel>Product approach</SectionLabel>
         <div style={css('display:flex;gap:var(--gap-chip);margin-bottom:var(--stack-card)')}>
@@ -110,7 +111,7 @@ export function OwnerScreens(v: any) {
           <p style={css('margin:12px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>{v.scentConsequence}</p>
           <div style={css('margin-top:8px')}><span style={css('font-size:11.5px;color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.goReceipts}>See exactly what you’ll be billed</span></div>
         </Card>
-        <Button variant="green" onClick={v.savePrefs}>Save preferences</Button>
+        <Button variant="green" onClick={v.savePrefs}>{v.beBusy ? 'Saving…' : 'Save preferences'}</Button>
       </div>
     </>
   )

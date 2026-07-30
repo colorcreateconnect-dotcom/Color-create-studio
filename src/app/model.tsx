@@ -19,6 +19,7 @@ import {
   isLow, lowItems, shortBy, reorderLines, tally, groceryPart, supplierPart, STARTER_SUPPLIES,
 } from '../lib/supplies'
 import { getGroceryAdapter } from '../lib/grocery'
+import { SCENTS, scentLabel, scentValue, isEco, productValue, prefsLine, productsSubtitle } from '../lib/prefs'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
@@ -214,6 +215,9 @@ function initialState(props: ModelProps): Any {
     adminEmail: '', adminPw: '', pwShown: false, adminRemember: true,
     suStep: 1, suName: '', suPhone: '', suEmail: '', suPw: '', suPwShown: false, suErr: '',
     suNeedsConfirm: false, suAddress: '', suTerms: false,
+    // Has the client changed the products/scent pickers this visit? Until they
+    // do, the screen shows what is actually stored on their home.
+    ecoTouched: false, scentTouched: false,
     // A housekeeper starting their own book, rather than a client booking one.
     proName: '', proEmail: '', proPw: '', proPwShown: false, proStudio: '',
     proTerms: false, proErr: '', proDone: false, proNeedsConfirm: false,
@@ -852,7 +856,15 @@ export function useModel(props: ModelProps) {
     }))
     v.sqftOpts = ['< 1,500 sq ft', '1,500–2,500', '2,500–4,000', '4,000+'].map((label) => ({ label, on: s.sqft === label, pick: () => set({ sqft: label }) }))
     v.cadenceOpts = ['One-time', 'Weekly', 'Biweekly', 'Monthly'].map((label) => ({ label, on: s.cadence === label, pick: () => set({ cadence: label }) }))
-    v.scentOpts = ['Eucalyptus-mint', 'Fresh linen', 'Citrus', 'Lavender', 'Unscented'].map((label) => ({ label, on: s.scent === label, pick: () => set({ scent: label }) }))
+    /* The client's own standard for their own home. On a live account it is
+       read from the `properties` row; `scentTouched` lets an unsaved pick win
+       over the stored value while they are still on the screen. */
+    const liveOwnerNow = backendActive() && s.beSignedIn && s.beUser?.role === 'owner'
+    const prefHomes: Any[] = liveOwnerNow ? (s.beProps || []) : []
+    const prefHome = prefHomes[0] || null
+    const storedScent = prefHome ? scentLabel(prefHome.signatureScent) : null
+    const effScent = s.scentTouched || !storedScent ? s.scent : storedScent
+    v.scentOpts = SCENTS.map((code) => scentLabel(code)).map((label) => ({ label, on: effScent === label, pick: () => set({ scent: label, scentTouched: true }) }))
     v.stagingOpts = ['Light', 'Standard', 'Heavy'].map((label) => ({ label, on: s.staging === label, pick: () => set({ staging: label }) }))
     // Airbnb 2BR staging price from the tested pricing engine (125 / 142 / 160).
     v.stagePrice = '$' + airbnbQuote(2, s.staging.toLowerCase() as Staging).clientNumber
@@ -909,10 +921,55 @@ export function useModel(props: ModelProps) {
     v.asstSplitLabel = 'Assistant (' + s.split + '%, $50 min)'
     v.keepSplitLabel = 'You keep (' + (100 - s.split) + '%)'
 
-    // Owner products
-    v.eco = s.eco; v.notEco = !s.eco
-    v.pickEco = () => set({ eco: true }); v.pickStdProd = () => set({ eco: false })
-    v.savePrefs = () => { go({ o: 'home', oTab: 0 }); say('Preferences saved 🌿') }
+    /* ---- Products & scent ----
+       How a home is cleaned is the client's own choice about their own home, so
+       on a live account it comes from — and goes back to — the `properties`
+       row, not from seed state. Before this, the screen was pure showcase: it
+       announced a fictional home in its header ("Skyline Loft 12B"), offered
+       toggles that started from demo defaults rather than the client's actual
+       standard, and said "Preferences saved 🌿" while saving nothing.
+       Telling someone their choice was recorded when it wasn't is the worst of
+       those three. */
+    // The preference is per home. With one home this edits that one; the screen
+    // says as much when there are several, rather than silently editing the first.
+    const liveHomes = prefHomes
+    const liveEco = prefHome ? isEco(prefHome.productPreference) : null
+
+    v.eco = liveEco == null ? s.eco : (s.ecoTouched ? s.eco : liveEco)
+    v.notEco = !v.eco
+    v.pickEco = () => set({ eco: true, ecoTouched: true })
+    v.pickStdProd = () => set({ eco: false, ecoTouched: true })
+    v.productsSubtitle = liveOwnerNow
+      ? productsSubtitle(liveHomes.map((p: Any) => p.name))
+      : 'Skyline Loft 12B · how your home is cleaned'
+    v.productsMultiple = liveHomes.length > 1
+    // The one-line summary on the home screen, from the same source.
+    v.prefsLine = prefHome
+      ? prefsLine(prefHome.productPreference, prefHome.signatureScent)
+      : prefsLine(s.eco ? 'eco_non_toxic' : 'standard_disinfectant', scentValue(s.scent))
+    v.savePrefs = async () => {
+      if (!liveOwnerNow || !prefHome) { go({ o: 'home', oTab: 0 }); say('Preferences saved 🌿'); return }
+      const scentPick = effScent
+      try {
+        set({ beBusy: true })
+        // Every home this client owns, so the standard is theirs and not a
+        // per-property surprise on the next booking.
+        await Promise.all(liveHomes.map((p: Any) => getData().setPropertyPrefs(p.id, {
+          productPreference: productValue(v.eco),
+          signatureScent: scentValue(scentPick),
+        })))
+        const fresh = await getData().properties(s.beUser.id).catch(() => null)
+        setState((t: Any) => ({
+          ...t, beBusy: false, ecoTouched: false, scentTouched: false,
+          ...(fresh ? { beProps: fresh } : {}),
+        }))
+        go({ o: 'home', oTab: 0 })
+        say('Preferences saved 🌿')
+      } catch (e) {
+        set({ beBusy: false })
+        say(errMsg(e, 'Couldn’t save that just now'))
+      }
+    }
     v.listingUrl = s.listingUrl
     v.setListing = (e: any) => set({ listingUrl: e.target.value })
     v.detect = () => {
