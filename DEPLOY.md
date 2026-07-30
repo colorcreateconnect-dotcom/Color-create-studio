@@ -209,13 +209,74 @@ Sign in from the app's **Business sign in** screen with that email + password.
 
 ## 4 · Deploy to Netlify
 
-1. **New site from Git** → pick this repo, branch `claude/app-build-fi3f02`
-   (or your default once merged). `netlify.toml` already sets the build command
-   (`npm run build`), publish dir (`dist`), the functions dir, the `@hourly`
-   `auto-release` schedule, the SPA redirect, and the no-cache header on `sw.js`.
-2. **Site settings → Environment variables**: add the four required vars from
-   step 1 (and any deferred ones you already have).
-3. Deploy. The functions are bundled automatically (esbuild).
+### A drag-and-drop site has no functions — and can't have any
+
+This is worth being blunt about, because the symptom is confusing: the app looks
+deployed and mostly works, then every action that writes something fails.
+
+Dragging a `dist` folder onto Netlify uploads static files and nothing else.
+Netlify never sees `netlify.toml`, never runs a build, and never bundles
+`netlify/functions/`, so **every `/.netlify/functions/*` request returns 404**.
+Signing in and reading data still work, because those go straight to Supabase
+from the browser — which is exactly why the site seems fine until someone tries
+to add a client, book a clean, take a proof photo or send a notice. All of those
+are privileged and live in functions, for the reason in §"Every privileged
+function authenticates its caller": they hold the service-role key, which must
+never reach a browser.
+
+There is no setting that adds functions to a drag-and-drop site. The site has to
+build from the repository.
+
+### Connecting the repository
+
+1. **Netlify → Add new site → Import an existing project → GitHub**, and pick
+   `colorcreateconnect-dotcom/color-create-studio`.
+   - Doing this on the *existing* site instead keeps its URL: **Site
+     configuration → Build & deploy → Continuous deployment → Link repository.**
+     Choose that if you want to keep the address you've already shared.
+2. **Branch to deploy**: `claude/app-build-fi3f02` (or your default branch once
+   this is merged).
+3. Leave the build settings alone. `netlify.toml` already sets the build command
+   (`npm run build`), publish dir (`dist`), functions dir, Node 20, the esbuild
+   bundler, the `@hourly` `auto-release` schedule, the SPA redirect and the
+   no-cache header on `sw.js`. If the UI pre-filled anything different, clear it
+   so the file wins.
+4. **Environment variables** — see the table below. Add them *before* the first
+   build: the four `VITE_` ones are read at build time and baked into the
+   bundle, so a build without them produces the demo app on seed data.
+5. Deploy. The functions are bundled automatically.
+
+### The variables, and which side they live on
+
+| Variable | Where | Why |
+|---|---|---|
+| `VITE_SUPABASE_URL` | build (browser) | Which project the app talks to. Baked into the bundle — a build without it produces the *demo*. |
+| `VITE_SUPABASE_ANON_KEY` | build (browser) | The publishable key. Safe in the bundle; RLS is what protects the data. |
+| `SUPABASE_URL` | functions | Same URL, read at runtime by the functions. |
+| `SUPABASE_SERVICE_ROLE_KEY` | functions | **Server only.** Bypasses RLS entirely. Never give this a `VITE_` name — that would publish it in the JavaScript. |
+| `SUPABASE_ANON_KEY` | functions | Used to verify a caller's token against GoTrue. |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | functions | Optional. Phone notifications. Without them, notices are still database rows and the feed still works — only the push is skipped. |
+| `SQUARE_*`, `TWILIO_*`, `VITE_SQUARE_*` | both | Deferred. Absent is fine; the adapters fall back to mock. |
+
+`VITE_` is not decoration: Vite inlines those four at build time, and inlines
+*nothing* else. Anything without the prefix stays server-side. That is the whole
+mechanism keeping the service-role key out of the browser, so the naming matters.
+
+### Confirming it worked
+
+```
+curl -s -o /dev/null -w '%{http_code}\n' \
+  -X POST https://<your-site>/.netlify/functions/become-contractor \
+  -H 'Content-Type: application/json' -d '{}'
+```
+
+**401** is the pass — the function is live and refusing an unauthenticated
+caller. **404** means functions still aren't deployed. **500** means it deployed
+but an environment variable is missing.
+
+Verified before shipping: all 17 functions bundle cleanly with esbuild for
+node18 (`web-push` included, at ~250kB, so it needs no `external_node_modules`
+entry).
 
 ---
 

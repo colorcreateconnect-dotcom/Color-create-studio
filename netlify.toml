@@ -1,11 +1,23 @@
 # Netlify build + Functions config.
+#
+# This file is only read when the site builds FROM THE REPOSITORY. A
+# drag-and-drop deploy uploads a folder and never sees it, which is why such a
+# site serves the app but has no working endpoints: every /.netlify/functions/*
+# call 404s. Connecting the repo is what turns the functions on. See DEPLOY.md.
 [build]
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
+[build.environment]
+  # Pinned so a change to Netlify's default can't break a build that works here.
+  # Vite wants ^18 || >=20; the functions are bundled for node18 and up.
+  NODE_VERSION = "20"
+
 [functions]
   node_bundler = "esbuild"
+  # web-push is imported lazily inside notify.ts and bundles cleanly at ~250kB,
+  # so it needs no external_node_modules entry. Verified with esbuild directly.
 
 # The 48h auto-release worker runs on a schedule (also declared in-file).
 [functions."auto-release"]
