@@ -12,8 +12,9 @@
 import { sbSelect, json } from './_shared/db'
 import { requireCaller, isStaff } from './_shared/auth'
 
-const URL_BASE = process.env.SUPABASE_URL || ''
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from './_shared/runtime-config'
+const URL_BASE = SUPABASE_URL
+const SERVICE_KEY = SUPABASE_SERVICE_ROLE_KEY
 
 /** Short. Long enough to load a page of a report, not long enough to be worth
  *  passing around. */

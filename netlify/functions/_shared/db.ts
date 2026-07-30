@@ -3,17 +3,18 @@
  * NEVER reach the browser — it lives only in Netlify env vars and is read only
  * inside functions. (Client code uses the anon key + RLS; see src/lib/data.) */
 
-const URL = process.env.SUPABASE_URL || ''
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from './runtime-config'
+
+const URL = SUPABASE_URL
+const SERVICE_KEY = SUPABASE_SERVICE_ROLE_KEY
 
 /** Which server-side variables are missing, if any.
  *
- *  Worth a named check rather than letting it fail downstream. With SUPABASE_URL
- *  unset, `${URL}/rest/v1/...` becomes a relative path and fetch dies with
- *  "Failed to parse URL from /rest/v1/..." — while an authenticated call fails
- *  even more misleadingly as "Sign in to continue", because the caller lookup
- *  gives up before it starts. Both blame the request for what is a deployment
- *  problem, which is a bad half-hour for whoever is debugging it. */
+ *  The project URL is baked in as a public fallback (see runtime-config.ts), so
+ *  the only thing that can be missing is the one real secret — the service-role
+ *  key. A named check is worth it: without it, an authenticated call fails
+ *  misleadingly as "Sign in to continue" because the caller lookup gives up
+ *  before it starts, blaming the request for a deployment problem. */
 export function missingServerConfig(): string[] {
   const missing: string[] = []
   if (!URL) missing.push('SUPABASE_URL')
@@ -26,8 +27,10 @@ export function configErrorResponse(): { statusCode: number; headers: any; body:
   const missing = missingServerConfig()
   if (!missing.length) return null
   return json(500, {
-    error: 'This deployment is missing server configuration: ' + missing.join(', ')
-      + '. Set them in Netlify → Site configuration → Environment variables.',
+    error: missing.length === 1 && missing[0] === 'SUPABASE_SERVICE_ROLE_KEY'
+      ? 'Almost there — this deployment just needs the database secret key. In Netlify → Site configuration → Environment variables, add SUPABASE_SERVICE_ROLE_KEY with your Supabase service_role key.'
+      : 'This deployment is missing server configuration: ' + missing.join(', ')
+        + '. Set them in Netlify → Site configuration → Environment variables.',
     code: 'SERVER_NOT_CONFIGURED',
     missing,
   })

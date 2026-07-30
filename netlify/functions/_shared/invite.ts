@@ -5,8 +5,9 @@
  * to claim anyone's account. Lookups hash the incoming token and match on that. */
 import { createHash, randomBytes } from 'node:crypto'
 
-const URL = process.env.SUPABASE_URL || ''
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from './runtime-config'
+const URL = SUPABASE_URL
+const SERVICE_KEY = SUPABASE_SERVICE_ROLE_KEY
 
 /** 32 random bytes, url-safe. Long enough that guessing is not a threat. */
 export function newToken(): string {

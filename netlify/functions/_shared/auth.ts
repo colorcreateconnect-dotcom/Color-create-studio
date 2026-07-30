@@ -10,10 +10,11 @@
  * carry). We verify it with GoTrue — a forged token fails there — and then load
  * the caller's app row (role + org) with the service key. */
 import { sbSelect, json, configErrorResponse } from './db'
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY } from './runtime-config'
 
-const URL = process.env.SUPABASE_URL || ''
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-const ANON_KEY = process.env.SUPABASE_ANON_KEY || SERVICE_KEY
+const URL = SUPABASE_URL
+const SERVICE_KEY = SUPABASE_SERVICE_ROLE_KEY
+const ANON_KEY = SUPABASE_ANON_KEY || SERVICE_KEY
 
 export interface Caller {
   id: string

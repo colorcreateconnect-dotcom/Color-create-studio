@@ -19,6 +19,7 @@
  * be pointed at somebody else's studio however it is called. */
 import { sbSelect, sbInsert, sbUpdate, json } from './_shared/db'
 import { requireCaller, mayStartOwnStudio } from './_shared/auth'
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from './_shared/runtime-config'
 import { studioNameFor } from './_shared/studio'
 
 export const handler = async (event: any) => {
@@ -83,8 +84,8 @@ export const handler = async (event: any) => {
 /* Rollback helper. Kept local because deleting an organization is not something
    any other endpoint should be able to reach for. */
 async function sbDeleteOrg(id: string): Promise<void> {
-  const url = process.env.SUPABASE_URL || ''
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  const url = SUPABASE_URL
+  const key = SUPABASE_SERVICE_ROLE_KEY
   await fetch(`${url}/rest/v1/organizations?id=eq.${id}`, {
     method: 'DELETE',
     headers: { apikey: key, Authorization: `Bearer ${key}` },
