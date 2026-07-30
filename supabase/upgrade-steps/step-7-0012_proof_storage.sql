@@ -1,3 +1,11 @@
+-- One step of the upgrade. Run these files IN ORDER, one at a time.
+-- Each is safe to run more than once, and a failure in one leaves the
+-- earlier ones in place — which is the whole point of splitting them:
+-- the SQL editor runs a script as a single transaction, so one error in a
+-- combined file silently reverts everything before it.
+-- ============================================================
+-- 0012_proof_storage.sql
+-- ============================================================
 -- Where proof photos actually live.
 --
 -- The `photos` table (0003) records that a photo exists and who it belongs to.

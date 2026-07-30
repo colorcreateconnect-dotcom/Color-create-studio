@@ -128,10 +128,40 @@ Or run the individual files in order if you prefer:
 **Already ran `setup.sql` before?** Do **not** re-run it — it would stop at
 `type "user_role" already exists`. Run **`supabase/upgrade.sql`** instead: it
 contains only the newer parts (invitations, SMS consent, the checklist's phase
-columns, notifications, and the contractor ownership model), is safe to run more
-than once, and leaves your data untouched.
-Verified against a database in exactly that state — applied, then applied again
-with no errors.
+columns, notifications, the contractor ownership model, the hardened signup
+trigger and the proof bucket), is safe to run more than once, and leaves your
+data untouched. Verified against a database in exactly that state — applied,
+then applied again with no errors.
+
+### If the upgrade appears to do nothing
+
+**The Supabase SQL editor runs a whole script as one transaction.** A single
+error anywhere — even in the last few lines — silently reverts *everything*
+before it, and you are left exactly where you started. If you run the upgrade
+and the app still behaves as though nothing changed, that is what happened, and
+the error is in the editor's output panel.
+
+So prefer **`supabase/upgrade-steps/`**: the same content split into seven files,
+`step-1-…` through `step-7-…`. Run them in order, one at a time. Each is safe to
+re-run, and a failure in one leaves the earlier ones committed, so you can see
+exactly where it stopped instead of losing the lot. Verified from a database at
+migration 0005: all seven applied in order, then all seven applied again with no
+errors.
+
+One known cause, now handled: `storage.objects` belongs to
+`supabase_storage_admin`, so `create policy` on it can fail with **`must be owner
+of table objects`** depending on which role runs the script. `0012` used to let
+that abort the transaction and take migrations 0006–0011 down with it. Every
+step in `0012` is now wrapped in its own exception handler, so a failure there
+prints a notice and the rest still applies. If you see that notice, create the
+bucket by hand — **Storage → New bucket → name `proof`, Public OFF** — and
+nothing else is affected: uploads are scoped by the object key's first segment,
+and reads are signed server-side by `photo-url.ts`, which checks the caller
+itself.
+
+To confirm the upgrade landed, the tables `notifications`, `push_subscriptions`
+and `availability_blocks` should exist, and `users` should have a `managed_by`
+column.
 
 `0005` installs a trigger so every Supabase Auth signup automatically gets a
 `public.users` row (self-signups default to role `owner`, no org). Without it,

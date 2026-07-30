@@ -1304,8 +1304,19 @@ create trigger on_auth_user_created
 -- is the only thing that builds a key, and it refuses anything but a uuid in
 -- those positions.
 --
--- Guarded on the storage schema existing, so this file also applies cleanly to
--- a plain Postgres database used for testing the rest of the schema.
+-- EVERY STEP HERE IS NON-FATAL, and that is the important part of this file.
+-- In a Supabase project `storage.objects` is owned by `supabase_storage_admin`,
+-- so `create policy` on it can fail with "must be owner of table objects"
+-- depending on the role running the script. The SQL editor runs a whole script
+-- as ONE transaction, so an error here would roll back every migration before
+-- it — which is exactly what happened the first time this shipped. Each step
+-- now sits in its own exception block; a plpgsql handler is a subtransaction,
+-- so a failure is contained, reported as a notice, and the rest of the upgrade
+-- still lands. Anything skipped can be done from the dashboard in a minute:
+--   Storage → New bucket → name `proof`, Public OFF.
+-- The app does not depend on the policies below for its guarantees. Uploads are
+-- scoped by them, but reads are signed server-side by netlify/functions/
+-- photo-url.ts, which checks the caller itself and uses the service key.
 
 do $$
 begin
@@ -1316,43 +1327,57 @@ begin
 
   -- Private bucket. `public = false` is the difference between a signed link
   -- and a permanent one anybody can pass around.
-  insert into storage.buckets (id, name, public)
-  values ('proof', 'proof', false)
-  on conflict (id) do update set public = false;
+  begin
+    insert into storage.buckets (id, name, public)
+    values ('proof', 'proof', false)
+    on conflict (id) do update set public = false;
+  exception when others then
+    raise notice 'could not create the `proof` bucket (%). Create it in the dashboard: Storage → New bucket → name proof, Public OFF.', sqlerrm;
+  end;
 
   -- Staff of the organization named in the key's first segment. Not "any
   -- staff": a contractor uploading into another studio's folder would be
   -- putting a photo of someone else's home somewhere they can read it.
-  execute $pol$
-    drop policy if exists proof_staff_insert on storage.objects;
-    create policy proof_staff_insert on storage.objects for insert
-      to authenticated
-      with check (
-        bucket_id = 'proof'
-        and is_staff()
-        and (storage.foldername(name))[1] = app_org()::text
-      );
-  $pol$;
+  begin
+    execute $pol$
+      drop policy if exists proof_staff_insert on storage.objects;
+      create policy proof_staff_insert on storage.objects for insert
+        to authenticated
+        with check (
+          bucket_id = 'proof'
+          and is_staff()
+          and (storage.foldername(name))[1] = app_org()::text
+        );
+    $pol$;
+  exception when others then
+    raise notice 'could not create policy proof_staff_insert (%). Add it under Storage → Policies, or run this file as the storage owner.', sqlerrm;
+  end;
 
-  execute $pol$
-    drop policy if exists proof_staff_read on storage.objects;
-    create policy proof_staff_read on storage.objects for select
-      to authenticated
-      using (
-        bucket_id = 'proof'
-        and is_staff()
-        and (storage.foldername(name))[1] = app_org()::text
-      );
-  $pol$;
+  begin
+    execute $pol$
+      drop policy if exists proof_staff_read on storage.objects;
+      create policy proof_staff_read on storage.objects for select
+        to authenticated
+        using (
+          bucket_id = 'proof'
+          and is_staff()
+          and (storage.foldername(name))[1] = app_org()::text
+        );
+    $pol$;
+  exception when others then
+    raise notice 'could not create policy proof_staff_read (%). Reads still work — photo-url.ts signs them server-side.', sqlerrm;
+  end;
 
   -- Retaking a photo writes a new key rather than replacing one, so there is no
   -- update policy at all. The first shot is the evidence; the second must not
   -- be able to quietly stand in for it.
-
-  -- Nobody deletes proof from the browser. If a photo has to go, that is an
-  -- explicit act by someone with the service key, recorded, not a tap.
-  execute $pol$
-    drop policy if exists proof_no_delete on storage.objects;
-  $pol$;
+  --
+  -- Nobody deletes proof from the browser either. If a photo has to go, that is
+  -- an explicit act by someone with the service key, recorded, not a tap.
+  begin
+    execute $pol$ drop policy if exists proof_no_delete on storage.objects; $pol$;
+  exception when others then
+    null;  -- nothing to drop, or not ours to drop; either way there is no delete policy
+  end;
 end
 $$;
