@@ -13,6 +13,17 @@ import { InviteScreen } from './invite'
 
 const ICON = './assets/brand/app-icon.png'
 const STICKER = './assets/brand/brand-sticker.png'
+/* Ahleyia's wordmark — her business card, and now the app's front door. The
+   artwork is already on-palette: its orange is --orange and its field is
+   --pink, so it sits on the brand gradient without fighting it. It carries the
+   name and "Luxury Housekeeping" itself, which is why those two lines are no
+   longer set in type underneath — they would be the same words twice.
+
+   Cropped, not resized: the artwork is a landscape card with a lot of empty
+   field above and below the lettering, which at this width reads as a pink
+   slab rather than a logo. object-fit trims the padding and leaves the mark
+   untouched. */
+const WORDMARK = './assets/brand/wordmark.png'
 
 export function PublicScreens(v: any) {
   if (v.vWelcome) return (
@@ -21,9 +32,11 @@ export function PublicScreens(v: any) {
         <div style={css('position:absolute;width:230px;height:230px;border-radius:50%;background:rgba(255,255,255,.08);top:-90px;right:-70px')} />
         <div style={css('position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.07);bottom:-120px;left:-60px')} />
         <div style={css('position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center')}>
-          <img src={STICKER} alt="She’s M.I.A · Luxury Housekeeping" style={css('width:96px;height:96px;border-radius:50%;box-shadow:0 12px 30px -14px rgba(42,23,32,.6)')} />
-          <div style={css('font-family:var(--font-serif-display);font-size:34px;line-height:1.05;margin-top:2px')}>She’s Maid In ATL</div>
-          <div style={css('font-family:var(--font-spaced);font-size:10px;letter-spacing:var(--tracking-spaced-wide);text-transform:uppercase;opacity:.9')}>Luxury Housekeeping</div>
+          <img
+            src={WORDMARK}
+            alt="She’s Maid In ATL — Luxury Housekeeping"
+            style={css('width:100%;max-width:334px;height:104px;object-fit:cover;display:block;border-radius:var(--radius-md);box-shadow:0 14px 34px -16px rgba(42,23,32,.55)')}
+          />
           <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap;justify-content:center;margin-top:4px')}>
             <Chip tone="onBrand">🌱 Eco-conscious</Chip>
             <Chip tone="onBrand">Boutique</Chip>
