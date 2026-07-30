@@ -46,6 +46,8 @@ export interface DataSource {
   chargesForJobs(jobIds: string[]): Promise<Charge[]>
   /** The real checklist for a job, in Kee Method order. */
   liveJobSteps(jobId: string): Promise<LiveStep[]>
+  /** Proof photos for a clean. RLS: the studio's staff, or the home's owner. */
+  jobPhotos(jobId: string): Promise<ProofPhoto[]>
   /** Tick / untick one step. RLS: staff in the job's org. */
   setJobStep(stepRowId: string, completed: boolean): Promise<void>
   /** Every job in the org — the scheduling calendar reads this. */
@@ -113,6 +115,19 @@ export interface LiveStep {
   id: string; ord: number; text: string
   photoRequired: boolean; completed: boolean
   phaseTitle: string | null; phaseOrd: number | null
+  /** Set once a proof photo has been taken for this step. The key itself is
+   *  never used to fetch anything — the bucket is private, and viewing goes
+   *  through the signing function. It is here so the checklist can say "done". */
+  photoKey: string | null
+  photoTakenAt: string | null
+}
+
+/** A proof photo, as the app lists them. No URL: one is signed on demand and
+ *  expires, so there is nothing here worth passing around. */
+export interface ProofPhoto {
+  id: string; jobId: string | null; stepId: string | null
+  kind: string; storageKey: string; capturedAt: string | null
+  marketingConsent: boolean
 }
 
 /** Shared thread key for an owner's conversation with the studio. */
@@ -266,11 +281,22 @@ class SupabaseData implements DataSource {
     return mapQuote(row)
   }
   async liveJobSteps(jobId: string) {
-    const rows = await this.rest<any[]>(`job_steps?job_id=eq.${jobId}&select=id,ord,text,photo_required,completed,phase_title,phase_ord&order=phase_ord.nullsfirst,ord`)
+    const rows = await this.rest<any[]>(`job_steps?job_id=eq.${jobId}&select=id,ord,text,photo_required,completed,phase_title,phase_ord,photo_key,photo_taken_at&order=phase_ord.nullsfirst,ord`)
     return rows.map((r) => ({
       id: r.id, ord: r.ord, text: r.text,
       photoRequired: !!r.photo_required, completed: !!r.completed,
       phaseTitle: r.phase_title ?? null, phaseOrd: r.phase_ord ?? null,
+      photoKey: r.photo_key ?? null, photoTakenAt: r.photo_taken_at ?? null,
+    }))
+  }
+  async jobPhotos(jobId: string) {
+    // RLS decides what comes back: the studio's staff see the org's, and the
+    // home's owner sees their own. Nobody else sees a row at all.
+    const rows = await this.rest<any[]>(`photos?job_id=eq.${jobId}&select=id,job_id,step_id,kind,storage_key,captured_at,marketing_consent&order=captured_at.nullslast`)
+    return rows.map((r) => ({
+      id: r.id, jobId: r.job_id ?? null, stepId: r.step_id ?? null,
+      kind: r.kind, storageKey: r.storage_key, capturedAt: r.captured_at ?? null,
+      marketingConsent: !!r.marketing_consent,
     }))
   }
   async setJobStep(stepRowId: string, completed: boolean) {
@@ -401,6 +427,7 @@ class MockData implements DataSource {
   }
   async chargesForJobs() { return [] as Charge[] }
   async liveJobSteps() { return [] as LiveStep[] }
+  async jobPhotos() { return [] as ProofPhoto[] }
   async setJobStep() { /* demo: nothing to persist */ }
   async orgJobs() { return [] as Job[] }
   async createPropertyFor(input: NewProperty) { return this.createProperty(input) }

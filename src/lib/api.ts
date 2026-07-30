@@ -107,6 +107,32 @@ export function becomeContractor(input: { studioName?: string } = {}): Promise<B
   return post('become-contractor', input)
 }
 
+/* ---- proof photos ----
+   The file goes straight to Storage (src/lib/storage.ts). These two calls are
+   the parts that have to be checked: recording the photo against the step, and
+   getting a short-lived link to look at one. `marketing_consent` is never sent —
+   the server always writes false. */
+export interface AttachPhotoResult {
+  ok: true; photoId: string | null
+  kind: 'before' | 'staging' | 'after' | 'maintenance' | 'receipt' | 'portfolio'
+  marketingConsent: false; replacedEarlierPhoto: boolean
+}
+export function attachPhoto(input: {
+  jobId: string; stepRowId: string; storageKey: string
+  takenAt?: string; lat?: number; lng?: number
+}): Promise<AttachPhotoResult> {
+  return post('attach-photo', input)
+}
+
+export interface PhotoUrlResult {
+  ok: true
+  photos: { id: string; kind: string; url: string; expiresIn: number }[]
+  expiresIn: number; publiclyLinkable: false
+}
+export function photoUrls(photoIds: string[]): Promise<PhotoUrlResult> {
+  return post('photo-url', { photoIds })
+}
+
 /* ---- text a client their invitation link (staff only; server picks recipient) ---- */
 export interface SendInviteResult {
   ok: true; inviteUrl: string; expiresAt: string

@@ -69,6 +69,16 @@ credentials (which can't be provisioned in a sandbox). Highlights:
   belongs to and Row-Level Security enforces it, so one contractor cannot read
   another's book and neither can the studio. Their own bookings and the studio's
   compete for the same hours, which is what drives availability.
+- **Your own studio** — a housekeeper who finds the app can open one instead of
+  waiting to be hired: a new organization with one person in it. Signing up
+  cannot grant it, because signing up cannot choose a role at all — the account
+  is promoted afterwards by an endpoint that can only ever create a *new*
+  studio, never join an existing one.
+- **Photo proof that means something** — the Kee Method's photo moments go from
+  the phone into a private bucket scoped to the studio's own folder, are viewed
+  only through links that expire in five minutes, and are never marketing: the
+  server writes consent false every time and the database refuses it outright
+  for a 'before' shot. A clean cannot be closed with a photo moment still empty.
 - **One way in** — email + password for every role. A client Ahleyia added sets
   their own password on the single-use invite link she sends them. No texted
   codes, so getting into the app needs no SMS provider and costs nothing.

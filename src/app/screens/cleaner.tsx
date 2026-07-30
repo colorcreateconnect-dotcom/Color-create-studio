@@ -307,6 +307,13 @@ function LiveClean({ v }: { v: any }) {
           <NoteCard tone="pink" icon="⏱️">Running behind or need to hand this off? Move it — the owner is never charged when the change is on your side.
             <div style={css('margin-top:10px')}><Button variant="ghost" size="sm" onClick={v.goMove}>Move or hand off</Button></div>
           </NoteCard>
+          {!!v.livePhotoMoments && (
+            <NoteCard tone={v.liveProofShort ? 'pink' : 'money'} icon={v.liveProofShort ? '📷' : '🔒'}>
+              {v.liveProofShort
+                ? <><b>{v.livePhotosTaken} of {v.livePhotoMoments} photo moments captured.</b> The report says this clean was documented, so the last {v.liveProofShort === 1 ? 'one' : v.liveProofShort} still need{v.liveProofShort === 1 ? 's' : ''} a picture before you can close it out.</>
+                : <><b>All {v.livePhotoMoments} photo moments captured.</b> They’re private to this home’s owner — never public, never marketing.</>}
+            </NoteCard>
+          )}
           {v.liveJobDone
             ? <NoteCard tone="money" icon="✓">This clean is closed out. The owner has the report.</NoteCard>
             : <Button variant="green" onClick={v.liveComplete}>Complete & send owner report</Button>}

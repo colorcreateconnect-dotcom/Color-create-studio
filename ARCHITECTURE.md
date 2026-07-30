@@ -148,6 +148,31 @@ so the clickable prototype never breaks.
   blocked with no job behind them. `dayAvailability()` turns that into the five
   arrival windows with a reason on each, and `book-clean` applies the same
   function server-side, so the calendar being stale cannot double-book anyone.
+- **Signup grants nothing** (`0011_signup_cannot_pick_a_role.sql`) — the trigger
+  that creates a `users` row used to read `role` and `org_id` out of the auth
+  account's metadata. That metadata is written by whoever calls the signup
+  endpoint, which is public, so it was an escalation path: read your own org_id,
+  sign up again claiming `org_admin` in it. Nothing in metadata distinguishes a
+  real provisioning call from a forged one, so none of it is read. Everyone who
+  signs up is an `owner` with no org; the privileged functions set role and org
+  afterwards, which is what they already did.
+- **A studio of your own** (`become-contractor.ts`) — the consequence of the
+  above is that an independent housekeeper cannot sign up *as* one, so the
+  promotion is a separate authorized step. It only ever creates a NEW
+  organization — no parameter names an existing one — and refuses a caller who
+  is already in a studio. Signup may not return a session (email confirmation),
+  so the intent parks in `localStorage` and completes on first sign-in.
+- **Proof photos** (`src/lib/photo.ts`, `0012_proof_storage.sql`) — the file
+  goes browser → private bucket directly, because a function is the wrong place
+  to carry megabytes. The object key is `<org>/<job>/<step>-<nonce>.<ext>` and
+  the storage policy reads that first segment, so the key is what scopes one
+  studio's photos from another's; `photoKeyFor()` is the only thing that builds
+  one and refuses a non-uuid. `attach-photo` writes the row with the two fields
+  that must not be the browser's to choose — consent always false, and the kind
+  derived from the checklist phase so a 'before' cannot be filed as an 'after'.
+  Reads are five-minute signed links from `photo-url`, which is where a client's
+  right to see their own proof is granted; Storage itself never lets a client
+  in. `missingProof()` stops a clean closing while a photo moment is empty.
 - **Roles** — `org_admin` owns the business; `cleaner` works. The app hides the
   Business group (dashboard, client book, hiring, pricing) from a cleaner AND
   the endpoints that create people (`create-client`, `create-staff`,

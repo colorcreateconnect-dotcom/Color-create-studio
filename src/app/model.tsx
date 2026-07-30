@@ -13,6 +13,8 @@ import { SLOTS, windowFor, slotHours } from '../lib/schedule'
 import { parseInviteInput, INVITE_PARSE_MESSAGE } from '../lib/inviteLink'
 import { viewsFor, mayRunBusiness } from '../lib/views'
 import { busyWindows, dayAvailability, dayIsFull, mergeBusy, busyMinutesBetween } from '../lib/availability'
+import { checkPhoto, photoKeyFor, photoNonce, missingProof, PHOTO_REJECT_MESSAGE } from '../lib/photo'
+import { uploadProof } from '../lib/storage'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
@@ -229,6 +231,9 @@ function initialState(props: ModelProps): Any {
     // The real checklist: rows of job_steps for the job that's open, ticked
     // straight into Postgres. beStepsJobId is what the effect watches.
     beSteps: [], beStepsJobId: null, beStepsBusy: false, beStepsErr: '', bePhaseOpen: 1,
+    // Proof photos: which step is uploading, and the short-lived links that let
+    // the checklist show a thumbnail. Never persisted — they expire.
+    bePhotoBusy: '', bePhotoUrls: {},
     // Manual property entry (staff adding a home for a client they already have)
     npOwner: '', npName: '', npKind: 'residential', npArea: '', npBeds: '', npBaths: '', npErr: '',
     // Live scheduling: which month/day of the real calendar is in view
@@ -510,6 +515,35 @@ export function useModel(props: ModelProps) {
       })
     return () => { alive = false }
   }, [s.beStepsJobId])
+
+  /* Thumbnails for the proof already taken on this clean.
+     The bucket is private, so there is no URL to store — each one is signed for
+     a few minutes when the screen opens, and again after a photo is taken. A
+     failure here costs a thumbnail and nothing else: the checklist still shows
+     that the photo exists, because that fact comes from the step row. */
+  useEffect(() => {
+    const jobId = s.beStepsJobId
+    if (!backendActive() || !jobId) return
+    const keys = (s.beSteps || []).map((r: Any) => r.photoKey).filter(Boolean)
+    if (!keys.length) return
+    let alive = true
+    getData().jobPhotos(jobId)
+      .then(async (photos) => {
+        const wanted = photos.filter((p) => keys.indexOf(p.storageKey) >= 0)
+        if (!wanted.length || !alive) return
+        const r = await api.photoUrls(wanted.map((p) => p.id))
+        if (!alive) return
+        const byId: Any = {}
+        r.photos.forEach((p) => { byId[p.id] = p.url })
+        const byKey: Any = {}
+        wanted.forEach((p) => { if (byId[p.id]) byKey[p.storageKey] = byId[p.id] })
+        setState((st: Any) => (st.beStepsJobId === jobId
+          ? { ...st, bePhotoUrls: { ...st.bePhotoUrls, ...byKey } }
+          : st))
+      })
+      .catch(() => { /* thumbnails are a nicety; the proof itself is recorded */ })
+    return () => { alive = false }
+  }, [s.beStepsJobId, (s.beSteps || []).map((r: Any) => r.photoKey || '').join(',')])
 
   /* An invitation was opened — from the link she sent, or from a code the
      person pasted in. Either way the token is the credential, so this runs
@@ -2639,6 +2673,65 @@ export function useModel(props: ModelProps) {
           say(errMsg(e, 'Couldn’t save that step — try again'))
         })
       }
+      /* ---- proof photos ----
+         The Kee Method has photo moments, and a moment is only proof if it is
+         actually captured. The file goes phone → private bucket directly (the
+         storage policy accepts a key only inside this studio's folder), then a
+         small call records it against the step. Nothing here decides whether
+         the photo may ever be published: `attach-photo` writes marketing
+         consent false every time, and the phase — not the person holding the
+         phone — decides whether it is a 'before' shot. */
+      const uploadStepPhoto = async (row: Any, file: any) => {
+        const check = checkPhoto(file)
+        if (!check.ok) { say(PHOTO_REJECT_MESSAGE[check.reason!]); return }
+        const orgId = s.beUser?.orgId
+        if (!orgId) { say('Your studio isn’t set up yet'); return }
+        setState((st: Any) => ({ ...st, bePhotoBusy: row.id }))
+        try {
+          const key = photoKeyFor({
+            orgId, jobId: openJob.id, stepId: row.id, ext: check.ext!, nonce: photoNonce(),
+          })
+          await uploadProof(key, file, file.type)
+          // Where it was taken is worth having and never worth blocking on —
+          // a basement with no signal must not cost the photo.
+          const at = new Date().toISOString()
+          const pos = await getPosition().catch(() => null)
+          const r = await api.attachPhoto({
+            jobId: openJob.id, stepRowId: row.id, storageKey: key,
+            takenAt: at, lat: pos?.lat, lng: pos?.lng,
+          })
+          setState((st: Any) => ({
+            ...st, bePhotoBusy: '',
+            beSteps: st.beSteps.map((x: Any) => x.id === row.id
+              ? { ...x, photoKey: key, photoTakenAt: at } : x),
+          }))
+          say(r.kind === 'before'
+            ? 'Before photo saved — private to the owner 🔒'
+            : 'Photo saved — private to the owner 🔒')
+        } catch (e) {
+          setState((st: Any) => ({ ...st, bePhotoBusy: '' }))
+          say(errMsg(e, 'Couldn’t save that photo'))
+        }
+      }
+      /* Opens the camera on a phone and the picker everywhere else. Built here
+         rather than rendered as a hidden input so the checklist row stays a
+         plain row — the same reason getPosition lives in the store. */
+      const capturePhoto = (row: Any) => {
+        if (typeof document === 'undefined') return
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = 'image/*'
+        input.setAttribute('capture', 'environment')
+        input.style.display = 'none'
+        input.onchange = () => {
+          const file = input.files && input.files[0]
+          input.remove()
+          if (file) uploadStepPhoto(row, file)
+        }
+        document.body.appendChild(input)
+        input.click()
+      }
+
       // Group by the phase stamped on each row at instantiation. Rows created
       // before phases were stamped fall into one "The Kee Method" group.
       const PHASE_ICON = ['🔍', '🧺', '✨', '🧴', '📋']
@@ -2650,12 +2743,23 @@ export function useModel(props: ModelProps) {
           done: g.done, total: g.total,
           open: s.bePhaseOpen === n,
           toggle: () => setState((st: Any) => ({ ...st, bePhaseOpen: st.bePhaseOpen === n ? 0 : n })),
-          steps: g.steps.map((r: Any) => ({
-            label: r.text, on: !!r.completed, photo: !!r.photoRequired,
-            added: false, wash: 'var(--photo-1)', stamp: '',
-            toggle: () => toggleStep(r),
-            add: () => say('Photo proof arrives with the camera step — not wired yet'),
-          })),
+          steps: g.steps.map((r: Any) => {
+            const url = r.photoKey ? (s.bePhotoUrls || {})[r.photoKey] : null
+            const busy = s.bePhotoBusy === r.id
+            return {
+              label: r.text, on: !!r.completed, photo: !!r.photoRequired,
+              added: !!r.photoKey,
+              // The thumbnail is a signed link that expires. When it hasn't
+              // arrived (or has lapsed) the tile still shows — the photo is
+              // recorded either way, and a blank tile is honest about that.
+              wash: url ? `url("${url}") center/cover` : 'var(--photo-1)',
+              stamp: r.photoKey
+                ? (busy ? 'Saving…' : '🔒 ' + (timeOf(r.photoTakenAt) || 'Taken') + ' · private')
+                : '',
+              toggle: () => toggleStep(r),
+              add: () => { if (!busy) capturePhoto(r) },
+            }
+          }),
         }
       })
       v.liveJobName = prop.name || 'This property'
@@ -2688,8 +2792,23 @@ export function useModel(props: ModelProps) {
           say(r.pushed ? 'They’ve been told you’re on your way 🚗' : 'Sent — they’ll see it in the app 🚗')
         } catch (e) { say(errMsg(e, 'Couldn’t send that just now')) }
       }
+      // How much of the documentation is actually there, so the screen can say
+      // so before someone taps Complete and gets refused.
+      const noProof = missingProof(rows as any)
+      v.livePhotoMoments = rows.filter((r: Any) => r.photoRequired).length
+      v.livePhotosTaken = v.livePhotoMoments - noProof.length
+      v.liveProofShort = noProof.length
       v.liveComplete = async () => {
         if (totalN && doneN < totalN) { say((totalN - doneN) + ' steps still open — finish those first'); return }
+        /* The owner's report says the clean was documented. A photo moment
+           ticked past without a picture would make that untrue, so it is not
+           allowed to close. */
+        if (noProof.length) {
+          say(noProof.length === 1
+            ? 'One photo moment still needs its picture'
+            : noProof.length + ' photo moments still need their pictures')
+          return
+        }
         try {
           set({ beBusy: true })
           const now = new Date().toISOString()
