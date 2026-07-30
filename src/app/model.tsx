@@ -234,7 +234,7 @@ function initialState(props: ModelProps): Any {
     // stays empty in the sandbox/demo so every screen runs on seed data.
     gateEmail: '', gatePw: '', gatePwShown: false, gateErr: '',
     beReady: false, beSignedIn: false, beUser: null, beCard: null,
-    beJobs: [], beProps: [], beClients: [], beStaff: [], beBlocks: [], beActiveJobId: null, beBusy: false,
+    beJobs: [], beProps: [], beClients: [], beStaff: [], beBlocks: [], beOrg: null, beActiveJobId: null, beBusy: false,
     beMsgs: [], beQuotes: [], beReports: [], beCharges: [], beThreadOwner: null,
     // The real checklist: rows of job_steps for the job that's open, ticked
     // straight into Postgres. beStepsJobId is what the effect watches.
@@ -378,7 +378,7 @@ export function useModel(props: ModelProps) {
       setState((st: Any) => {
         const patch: Any = {
           ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
-          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks, beActiveJobId: h.activeJobId ?? null,
+          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks, beOrg: h.org, beActiveJobId: h.activeJobId ?? null,
           beMsgs: h.messages, beQuotes: h.quotes, beReports: h.reports, beCharges: h.charges,
         }
         // Land a signed-in user in their own zone — but only from the default
@@ -416,7 +416,7 @@ export function useModel(props: ModelProps) {
         if (!alive) return
         setState((st: Any) => ({
           ...st, beUser: h.user, beJobs: h.jobs, beProps: h.properties,
-          beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks,
+          beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks, beOrg: h.org,
           role: 'cleaner', c: 'admin', cTab: 0, p: 'welcome',
         }))
         say('Your studio is live 🎉')
@@ -1488,6 +1488,9 @@ export function useModel(props: ModelProps) {
     if (backendActive() && s.beSignedIn && s.beUser?.role === 'owner') {
       const live = (s.beQuotes || [])[0]
       v.liveQuote = live || null
+      // No real quote yet → the screen must not show the seed "Ridgeview home ·
+      // prepared for James". An honest empty state instead.
+      v.quoteEmpty = !live
       if (live) {
         v.quotePrice = '$' + Number(live.clientAmount).toFixed(0)
         v.quotePriceSub = '$' + Number(live.clientAmount).toFixed(0) + ' per clean' + (live.cadence ? ' · ' + live.cadence : '')
@@ -1553,16 +1556,22 @@ export function useModel(props: ModelProps) {
     // fixed one from the showcase.
     v.nowStamp = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 
-    /* Rates. $50 and $65 are the studio's STARTING defaults, not a rule this
-       account set — saying "your $50/hr rule" to a contractor who has never
-       opened the pricing screen states something untrue about their own
-       business. Labelled as a default until they change it. */
-    const rateSet = false   // no per-studio rate is stored yet
-    const rateWord = rateSet ? 'your' : 'default'
-    v.rateRuleLine = 'Residential pricing — the ' + rateWord + ' $50/hr rule, made tappable'
-    v.rateStdLine = '$50/hr floor · ' + (rateSet ? 'yours' : 'starting default')
-    v.rateDeepLine = '$65/hr · ' + (rateSet ? 'yours' : 'starting default')
-    v.rateRulesLine = '$50/hr floor · deep $65 · 40% assistant split' + (rateSet ? '' : ' · defaults')
+    const liveSignedIn = backendActive() && s.beSignedIn
+    /* Rates. On a live account, no per-studio pricing is stored yet, so showing
+       "$50/hr floor · deep $65" states a specific price the cleaner never set.
+       A live account is prompted to set their own; the demo keeps the example
+       figures so the showcase reads fully. */
+    if (liveSignedIn) {
+      v.rateRuleLine = 'Set your residential pricing'
+      v.rateStdLine = 'Tap to set your standard rate'
+      v.rateDeepLine = 'Tap to set your deep-clean rate'
+      v.rateRulesLine = 'Not set yet — tap to set your rates'
+    } else {
+      v.rateRuleLine = 'Residential pricing — the $50/hr rule, made tappable'
+      v.rateStdLine = '$50/hr floor · starting default'
+      v.rateDeepLine = '$65/hr · starting default'
+      v.rateRulesLine = '$50/hr floor · deep $65 · 40% assistant split · defaults'
+    }
 
     // tip custom
     v.tipCustom = s.tip === 'Custom'
@@ -1583,6 +1592,49 @@ export function useModel(props: ModelProps) {
     // When live, the Home screen reads real properties (or the empty state);
     // otherwise it keeps the seed showcase, so the demo is unchanged.
     v.liveOwner = backendActive() && s.beSignedIn && s.beUser?.role === 'owner'
+
+    /* ---- the business's own name, wherever the studio is shown ----
+       "She's Maid In ATL" was hardcoded on the admin dashboard, business
+       settings and the share card. That is Ahleyia's studio — but an
+       independent cleaner running their own book has their own studio name, and
+       the app never loaded it. Now it comes from the signed-in account's
+       organization; the seed name stays only for the design showcase. */
+    v.bizName = liveSignedIn ? (s.beOrg?.name || 'Your studio') : 'She’s Maid In ATL'
+    v.bizContactEmail = liveSignedIn ? (s.beOrg?.contactEmail || s.beUser?.email || '') : 'AtlLuxuryCleaning.com'
+    v.bizContactPhone = liveSignedIn ? (s.beOrg?.contactPhone || s.beUser?.phone || '') : '404.259.3242'
+    if (liveSignedIn) {
+      // Business settings, from what the studio actually has — not the seed
+      // studio's bank, contact, neighborhoods and "You & Tiana".
+      const staffN = (s.beStaff || []).length || 1
+      const clientN = (s.beClients || []).length
+      const hoods = Array.from(new Set((s.beProps || []).map((p: Any) => p.neighborhood).filter(Boolean)))
+      v.bizLive = true
+      v.bizSubtitle = v.bizName + (s.beUser?.role === 'org_admin' ? '' : '')
+      v.bizBankLine = 'Not set up yet — payments switch on when you connect a payout account'
+      v.bizCardLine = v.bizContactEmail || v.bizContactPhone || 'Add your contact details'
+      v.bizAreaLine = hoods.length ? hoods.slice(0, 4).join(' · ') : 'Add a client to set your area'
+      v.bizStaffLine = staffN <= 1 ? 'Just you for now' : staffN + ' people · routes, checklists, own pay'
+      v.bizClientsLine = clientN === 0 ? 'No clients yet' : clientN + (clientN === 1 ? ' account' : ' accounts') + ' · their own homes only'
+      v.bizBrandName = v.bizName
+    } else {
+      v.bizLive = false
+      v.bizSubtitle = 'She’s Maid In ATL · Metro Atlanta'
+      v.bizBankLine = 'Bank ···· 8821 · instant payouts on'
+      v.bizCardLine = 'AtlLuxuryCleaning.com · 404.259.3242'
+      v.bizAreaLine = 'Buckhead · Midtown · Sandy Springs · +3'
+      v.bizStaffLine = 'You & Tiana · routes, checklists, own pay'
+      v.bizClientsLine = '9 accounts · their own homes only'
+      v.bizBrandName = 'She’s M.I.A Housekeeping'
+    }
+    // The digital card shows the account's OWN studio + contact, not Ahleyia's.
+    const shareWho = liveSignedIn ? (v.me?.name || 'You') : 'Ahleyia Kee'
+    const shareReach = [v.bizContactEmail, v.bizContactPhone].filter(Boolean).join(' · ')
+    v.shareContact = liveSignedIn
+      ? (shareWho + (shareReach ? ' · ' + shareReach : ''))
+      : 'AtlLuxuryCleaning.com · Ahleyia Kee · 404.259.3242'
+    v.sharePromo = liveSignedIn
+      ? ('They get: “' + shareWho + ' with ' + v.bizName + ' — see my services & book: [link]”')
+      : 'They get: “Ahleyia with She’s Maid In ATL — see my services & get your tailored quote: [link]”'
 
     /* ---- the client's Service Report, from their own cleans ----
        This screen was entirely showcase: it announced "The Hartwell Estate ·
@@ -1848,6 +1900,10 @@ export function useModel(props: ModelProps) {
       sub: p.total + ' steps' + (p.photos ? ' · ' + p.photos + ' photo moment' + (p.photos > 1 ? 's' : '') : ''),
       count: chip('tp' + i, 'ghost', String(p.total)),
     }))
+    // The template is the Kee Method reference (product content). Its "open a
+    // job" shortcut points at seed homes, so on a live account it becomes "open
+    // your current clean" and routes to the real checklist.
+    v.tplShowOpen = !liveSignedIn
     v.tplOpenLabel = isLux ? 'Open the Ridgeview job' : 'Open the Hartwell job'
     v.tplOpenJob = () => set({ c: isLux ? 'lux' : 'job', cTab: isLux ? s.cTab : 1 })
 
@@ -2070,7 +2126,7 @@ export function useModel(props: ModelProps) {
           ...t, beBusy: false, proDone: true, proPw: '', proNeedsConfirm: false,
           proStudio: res.studioName,
           beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs,
-          beProps: h.properties, beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks,
+          beProps: h.properties, beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks, beOrg: h.org,
         }))
         say('Your studio is live 🎉')
       } catch (e) {
@@ -2309,17 +2365,27 @@ export function useModel(props: ModelProps) {
     v.mvDone = s.mv === 'done'
     v.badgeYourSide = chip('mv0', 'onBrand', 'No charge to the owner')
     v.moveReasons = ['Running behind', 'Car trouble', 'Not well', 'Family emergency', 'Double-booked'].map((label) => ({ label, on: s.moveReason === label, pick: () => set({ moveReason: label }) }))
-    v.moveOptions = [
-      { id: 'later', icon: '⏱', name: 'Push the window today', sub: 'Same day, 2 – 4 PM instead of 10 – 12', right: '2 – 4 PM' },
-      { id: 'tomorrow', icon: '📅', name: 'Move to tomorrow', sub: 'First window, 8 – 10 AM', right: 'Sat 8 AM' },
-      { id: 'tiana', icon: 'TJ', name: 'Send Tiana instead', sub: 'Certified in The Kee Method™ · your split applies', right: 'Today' },
-    ].map((o, i, arr) => ({ icon: o.icon, name: o.name, sub: o.sub, last: i === arr.length - 1, right: s.moveOption === o.id ? chip('mo' + o.id, 'refresh', '✓ ' + o.right) : chip('mo' + o.id, 'ghost', o.right), pick: () => set({ moveOption: o.id }) }))
+    // Handing a clean off is only real if there IS someone to hand it to. The
+    // seed offered "Send Tiana instead" — a fake assistant. On a live account
+    // the option only appears when the studio actually has another cleaner, and
+    // it names them; a solo cleaner just sees the reschedule choices.
+    const otherCleaners = liveSignedIn
+      ? (s.beStaff || []).filter((u: Any) => u.role === 'cleaner' && u.id !== s.beUser?.id && u.fullName)
+      : [{ id: 'tiana', fullName: 'Tiana Jones' }]
+    const handoff = otherCleaners[0] || null
+    const baseMoveOptions = [
+      { id: 'later', icon: '⏱', name: 'Push the window today', sub: 'A later window the same day', right: 'Later today' },
+      { id: 'tomorrow', icon: '📅', name: 'Move to tomorrow', sub: 'First window, 8 – 10 AM', right: 'Tomorrow' },
+    ]
+    if (handoff) baseMoveOptions.push({ id: 'handoff', icon: '🧽', name: 'Send ' + handoff.fullName.split(' ')[0] + ' instead', sub: 'Certified in The Kee Method™', right: 'Today' })
+    v.moveOptions = baseMoveOptions.map((o, i, arr) => ({ icon: o.icon, name: o.name, sub: o.sub, last: i === arr.length - 1, right: s.moveOption === o.id ? chip('mo' + o.id, 'refresh', '✓ ' + o.right) : chip('mo' + o.id, 'ghost', o.right), pick: () => set({ moveOption: o.id }) }))
+    const handoffName = handoff ? handoff.fullName.split(' ')[0] : ''
     v.moveNote = s.moveNote
     v.setMoveNote = (e: any) => set({ moveNote: e.target.value })
-    v.movePlaceholder = s.moveOption === 'tiana' ? 'Tiana is covering your clean today — same standard, same photos…' : 'So sorry — running behind this morning. Can I come 2–4 instead?'
-    v.moveConfirmLabel = s.moveOption === 'tiana' ? 'Send Tiana & notify the owner' : 'Move it & notify the owner'
+    v.movePlaceholder = s.moveOption === 'handoff' ? handoffName + ' is covering your clean today — same standard, same photos…' : 'So sorry — running behind this morning. Can I come to a later window instead?'
+    v.moveConfirmLabel = s.moveOption === 'handoff' ? 'Send ' + handoffName + ' & notify the owner' : 'Move it & notify the owner'
     v.confirmMove = () => { if (!s.moveOption) { say('Pick how you want to cover it'); return } set({ mv: 'done' }); say('Owner notified — no charge to them ✓') }
-    v.mvDoneCopy = s.moveOption === 'tiana' ? 'Tiana has the job, the home’s standard and the photo steps. The owner knows she’s coming.' : 'The owner has the new window and knows there’s no charge for the change.'
+    v.mvDoneCopy = s.moveOption === 'handoff' ? handoffName + ' has the job, the home’s standard and the photo steps. The owner knows they’re coming.' : 'The owner has the new window and knows there’s no charge for the change.'
 
     /* 47–50 · admin side.
        Gated on the ROLE, not on where the state happens to be: the menu hides
@@ -2780,7 +2846,21 @@ export function useModel(props: ModelProps) {
       { id: 'marietta', name: 'Marietta', sub: 'Outside your drive time' },
     ]
     const areaOn = (id: string) => s.areas[id] !== false && (s.areas[id] || ['buckhead', 'midtown', 'sandy', 'vahi', 'brookhaven', 'decatur'].indexOf(id) >= 0)
-    v.areaRows = AREAS.map((a, i, arr) => { const on = areaOn(a.id); return { icon: on ? '📍' : '○', name: a.name, sub: a.sub, last: i === arr.length - 1, right: on ? chip('ar' + a.id, 'refresh', 'On') : chip('ar' + a.id, 'ghost', 'Off'), toggle: () => setState((t: Any) => ({ ...t, areas: { ...t.areas, [a.id]: !areaOn(a.id) } })) } })
+    if (liveSignedIn) {
+      // The service area is the neighborhoods the studio actually has homes in,
+      // not the seed's fake "Buckhead · 4 clients". Empty until they add one.
+      const hoods = Array.from(new Set((s.beProps || []).map((p: Any) => p.neighborhood).filter(Boolean))) as string[]
+      v.areaLive = true
+      v.areaEmpty = hoods.length === 0
+      v.areaRows = hoods.map((name, i, arr) => ({
+        icon: '📍', name, sub: 'A home you clean here', last: i === arr.length - 1,
+        right: chip('ar' + i, 'refresh', 'On'), toggle: () => {},
+      }))
+      v.areaEmptyLine = 'No service area yet. It fills in from where your clients’ homes are — add a client and their home, and their neighborhood shows up here.'
+    } else {
+      v.areaLive = false
+      v.areaRows = AREAS.map((a, i, arr) => { const on = areaOn(a.id); return { icon: on ? '📍' : '○', name: a.name, sub: a.sub, last: i === arr.length - 1, right: on ? chip('ar' + a.id, 'refresh', 'On') : chip('ar' + a.id, 'ghost', 'Off'), toggle: () => setState((t: Any) => ({ ...t, areas: { ...t.areas, [a.id]: !areaOn(a.id) } })) } })
+    }
     v.badgeAreaCount = chip('ar0', 'onBrand', AREAS.filter((a) => areaOn(a.id)).length + ' neighborhoods on')
     v.chipDriveTime = chip('ar1', 'ghost', s.driveTime)
     v.driveOpts = ['Up to 20 min', 'Up to 35 min', 'Up to 50 min'].map((label) => ({ label, on: s.driveTime === label, pick: () => set({ driveTime: label }) }))
@@ -2862,55 +2942,62 @@ export function useModel(props: ModelProps) {
       v.liveNextLabel = jobsToday.length ? 'Today’s route' : (upcoming.length ? 'Coming up' : 'Nothing booked yet')
       v.liveTodayCount = String(jobsToday.length)
       if (liveStaffWork) {
-        // The client count is the studio's number. A cleaner's second tile is
-        // her own week.
-        if (!v.me.isAdmin) {
-          const weekEnd = today.getTime() + 7 * 864e5
-          const thisWeek = allJobs.filter((j: Any) => {
-            const t = j.windowStart ? new Date(j.windowStart).getTime() : 0
-            return t >= today.getTime() - 864e5 && t <= weekEnd
-          })
-          v.liveWeekCount = String(thisWeek.length)
-      /* ---- money screens, when there is no money path ----
-         Payouts, Tax and the week's earnings were showing $4,280 released,
-         $110 awaiting approval and $58,140 of yearly income. None of it is
-         real: card payments are deferred, so nothing has ever been charged or
-         released. Invented earnings are worse than a blank screen — a
-         contractor could plan around them, and a 1099 figure especially is not
-         something to make up. A live account gets the truth instead. */
-      v.liveMoney = true
-      v.liveMoneyOff = true
-      v.liveMoneyLine = 'Payments aren’t switched on yet. Nothing has been charged to a client and nothing has been released to you — so there is nothing to show here. Your cleans and their times are all recorded, and become the record the moment payments go live.'
-      v.liveEarningsValue = '—'
-      v.liveEarningsLabel = 'Not enabled yet'
-      // Photo-verified: the share of this week's finished cleans that actually
-      // carry proof, rather than a flat 100%.
-      const wk = thisWeek.filter((j: Any) => j.status === 'complete')
-      const withProof = wk.filter((j: Any) => (s.beReports || []).some((r: Any) => r.jobId === j.id && Number(r.photoCount || 0) > 0))
-      v.livePhotoVerified = wk.length ? Math.round(withProof.length / wk.length * 100) + '%' : '—'
-
-      /* ---- the inbox, from real threads ----
-         It listed a Hartwell conversation and a $110 payout notice, to a
-         contractor who has neither. A thread per client they actually work
-         with, and an honest empty state before that. */
-      v.liveInbox = true
-      const seenOwner: Record<string, boolean> = {}
-      v.liveThreads = (s.beJobs || [])
-        .filter((j: Any) => j.ownerId && (j.cleanerId === s.beUser?.id || j.createdBy === s.beUser?.id))
-        .filter((j: Any) => (seenOwner[j.ownerId] ? false : (seenOwner[j.ownerId] = true)))
-        .map((j: Any) => {
-          const who = clientName(j.ownerId) || 'Client'
-          return {
-            id: j.ownerId,
-            name: who,
-            initials: who.split(' ').filter(Boolean).slice(0, 2).map((x: string) => x[0]).join('').toUpperCase() || '?',
-            preview: (propById[j.propertyId]?.name || 'Their home'),
-            when: timeOf(j.windowStart) || '',
-            open: () => go({ c: 'thread', threadWith: 'owner:' + j.ownerId, draft: '' }),
-          }
+        // This person's week — used by both a plain cleaner (their second tile)
+        // and an admin (their money screens). Computed for everyone; the
+        // isAdmin split below is only about which SECOND TILE the Today screen
+        // shows, not about who gets honest money screens.
+        const weekEnd = today.getTime() + 7 * 864e5
+        const thisWeek = allJobs.filter((j: Any) => {
+          const t = j.windowStart ? new Date(j.windowStart).getTime() : 0
+          return t >= today.getTime() - 864e5 && t <= weekEnd
         })
+        v.liveWeekCount = String(thisWeek.length)
 
+        /* ---- money screens, when there is no money path ----
+           Payouts, Tax and the week's earnings were showing $4,280 released,
+           $110 awaiting approval and $58,140 of yearly income. None of it is
+           real: card payments are deferred, so nothing has ever been charged or
+           released. Invented earnings are worse than a blank screen — a
+           contractor could plan around them, and a 1099 figure especially is not
+           something to make up. A live account gets the truth instead.
+           Applies to EVERY live staff account, admin or not — an independent
+           cleaner running their own studio is exactly who was still seeing the
+           fake $4,280. */
+        v.liveMoney = true
+        v.liveMoneyOff = true
+        v.liveMoneyLine = 'Payments aren’t switched on yet. Nothing has been charged to a client and nothing has been released to you — so there is nothing to show here. Your cleans and their times are all recorded, and become the record the moment payments go live.'
+        v.liveEarningsValue = '—'
+        v.liveEarningsLabel = 'Not enabled yet'
+        // Photo-verified: the share of this week's finished cleans that actually
+        // carry proof, rather than a flat 100%.
+        const wk = thisWeek.filter((j: Any) => j.status === 'complete')
+        const withProof = wk.filter((j: Any) => (s.beReports || []).some((r: Any) => r.jobId === j.id && Number(r.photoCount || 0) > 0))
+        v.livePhotoVerified = wk.length ? Math.round(withProof.length / wk.length * 100) + '%' : '—'
 
+        /* ---- the inbox, from real threads ----
+           It listed a Hartwell conversation and a $110 payout notice, to a
+           contractor who has neither. A thread per client they actually work
+           with, and an honest empty state before that. */
+        v.liveInbox = true
+        const seenOwner: Record<string, boolean> = {}
+        v.liveThreads = (s.beJobs || [])
+          .filter((j: Any) => j.ownerId && (j.cleanerId === s.beUser?.id || j.createdBy === s.beUser?.id))
+          .filter((j: Any) => (seenOwner[j.ownerId] ? false : (seenOwner[j.ownerId] = true)))
+          .map((j: Any) => {
+            const who = clientName(j.ownerId) || 'Client'
+            return {
+              id: j.ownerId,
+              name: who,
+              initials: who.split(' ').filter(Boolean).slice(0, 2).map((x: string) => x[0]).join('').toUpperCase() || '?',
+              preview: (propById[j.propertyId]?.name || 'Their home'),
+              when: timeOf(j.windowStart) || '',
+              open: () => go({ c: 'thread', threadWith: 'owner:' + j.ownerId, draft: '' }),
+            }
+          })
+
+        // The client count is the studio's number, shown to an admin. A plain
+        // cleaner's second Today tile is their own week instead.
+        if (!v.me.isAdmin) {
           v.liveClientCount = null
         }
         v.hasJobs = shown.length > 0
@@ -3231,8 +3318,11 @@ export function useModel(props: ModelProps) {
     v.goRefSets = () => go({ o: 'gallery', gallery: 'reference', galleryFrom: 'account' })
     const isRef = s.gallery === 'reference'
     v.galleryTitle = isRef ? 'Reference photo sets' : 'Proof of service'
-    v.gallerySub = isRef ? 'How each room should look after every clean' : 'The Hartwell Estate · today, 11:06 AM – 12:31 PM'
-    v.galleryBadge = chip('gl0', 'onBrand', isRef ? 'Your standard' : '9 photos · timestamped')
+    v.galleryLive = v.liveOwner
+    v.galleryEmpty = v.liveOwner && !(s.beReports || []).some((r: Any) => Number(r.photoCount || 0) > 0)
+    v.galleryEmptyLine = isRef ? 'No reference photos yet. Add a home and upload a few shots of how each room should look — that becomes the standard every clean is checked against.' : 'No proof photos yet. After your first clean, every before/after shot lands here, private to you.'
+    v.gallerySub = isRef ? 'How each room should look after every clean' : (v.liveOwner ? 'Your proof photos, private to you' : 'The Hartwell Estate · today, 11:06 AM – 12:31 PM')
+    v.galleryBadge = chip('gl0', 'onBrand', isRef ? 'Your standard' : (v.liveOwner ? 'Private to you' : '9 photos · timestamped'))
     v.galleryTabs = [{ id: 'clean', label: 'Today’s clean' }, { id: 'reference', label: 'Reference set' }].map((t) => ({ label: t.label, on: s.gallery === t.id, pick: () => set({ gallery: t.id }) }))
     const gwashes = ['var(--photo-1)', 'var(--photo-2)', 'var(--photo-3)', 'var(--photo-4)']
     v.galleryShots = (isRef
@@ -3506,7 +3596,12 @@ export function useModel(props: ModelProps) {
       ] },
     }
     const menu = MENUS[s.role]
-    v.menuTitle = menu.title
+    // The owner menu title was built from the seed persona ("James's account").
+    // A live client's own name is already resolved in v.accountTitle — use it,
+    // so the hamburger heading is never someone else's name.
+    v.menuTitle = (v.liveOwner && s.role === 'owner' && v.accountTitle) ? v.accountTitle
+      : (liveSignedIn && v.bizName && s.role === 'cleaner') ? menu.title
+      : menu.title
     v.menuSub = menu.sub
     v.menuGroups = menu.groups
 

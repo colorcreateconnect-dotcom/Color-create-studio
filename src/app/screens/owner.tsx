@@ -492,7 +492,7 @@ function Account({ v }: { v: any }) {
         </Card>
         <SectionLabel>Your proof archive</SectionLabel>
         <Card flush>
-          <SupplyRow icon="📋" name="All service reports" sub="18 cleans · every photo & timestamp kept" right="›" onClick={v.goReport} />
+          <SupplyRow icon="📋" name="All service reports" sub={v.liveOwner ? "Every clean’s photos & timestamps, kept for you" : "18 cleans · every photo & timestamp kept"} right="›" onClick={v.goReport} />
           <SupplyRow icon="🖼️" name="Reference photo sets" sub="How each room should look after every clean" right="›" onClick={v.goRefSets} last />
         </Card>
         <Button variant="ghost" icon="💌" onClick={v.toastInvite}>Invite a friend to Ahleyia</Button>
@@ -712,6 +712,14 @@ function Cancel({ v }: { v: any }) {
 
 /* ------------------------------------------------------- QuoteReceived -- */
 function QuoteReceived({ v }: { v: any }) {
+  if (v.quoteEmpty) return (
+    <>
+      <DetailHeader gradient="magenta" onBack={v.goBack} title="Your tailored quote" subtitle="Nothing to review yet" />
+      <div style={css('padding:22px')}>
+        <Card><div style={css('font-size:13px;line-height:var(--leading-snug);color:var(--ink-soft)')}>No quote yet. Once your housekeeper reviews your home, your tailored price arrives here — one number, no surprises — and you can accept it in a tap.</div></Card>
+      </div>
+    </>
+  )
   return (
     <>
       <DetailHeader gradient="magenta" onBack={v.goBack} badge={v.badgeFromAhleyia} title="Your tailored quote" subtitle={v.quoteForLine} />
@@ -861,7 +869,8 @@ function Gallery({ v }: { v: any }) {
         <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap;margin-bottom:var(--stack-card)')}>
           {v.galleryTabs.map((t: any, i: number) => <Pill key={i} selected={t.on} onClick={t.pick}>{t.label}</Pill>)}
         </div>
-        <div style={css('display:grid;grid-template-columns:1fr 1fr;gap:10px')}>
+        {v.galleryEmpty && <Card><div style={css('font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>{v.galleryEmptyLine}</div></Card>}
+        {!v.galleryEmpty && <div style={css('display:grid;grid-template-columns:1fr 1fr;gap:10px')}>
           {v.galleryShots.map((g: any, i: number) => (
             <div key={i} style={{ ...css('position:relative;height:150px;border-radius:var(--radius-lg);overflow:hidden'), background: g.wash }}>
               <div style={css('position:absolute;bottom:0;left:0;right:0;height:70px;background:linear-gradient(transparent,rgba(0,0,0,.6))')} />
@@ -871,7 +880,7 @@ function Gallery({ v }: { v: any }) {
               </div>
             </div>
           ))}
-        </div>
+        </div>}
         <div style={css('height:var(--stack-card)')} />
         <NoteCard tone="pink" icon="🖼️">{v.galleryNote}</NoteCard>
         <Button variant="ghost" onClick={v.galleryBack}>{v.galleryBackLabel}</Button>
@@ -928,7 +937,7 @@ function Rate({ v }: { v: any }) {
 function Receipts({ v }: { v: any }) {
   return (
     <>
-      <DetailHeader onBack={v.goBack} badge={v.badgeOneCharge} title="Receipts" subtitle="One charge per clean · VISA ···· 4242" />
+      <DetailHeader onBack={v.goBack} badge={v.badgeOneCharge} title="Receipts" subtitle={v.liveOwner ? "One charge per clean, on arrival" : "One charge per clean · VISA ···· 4242"} />
       <div style={css('padding:22px')}>
         <NoteCard tone="money" icon="🧾"><b>One charge, on arrival.</b> Each line below is a single full-amount charge. The 50/50 split is how Ahleyia is <b>released</b> — never a second charge to you.</NoteCard>
         <SectionLabel right={v.chipJuly}>This month</SectionLabel>
@@ -977,16 +986,18 @@ function EditDetail({ v }: { v: any }) {
           </Card>
         )}
         {v.editCard && (<>
+          {(!v.liveOwner || v.liveCard) && (
           <Card>
             <div style={css('display:flex;align-items:center;gap:12px')}>
               <div style={css('width:42px;height:42px;border-radius:var(--radius-md);background:var(--surface-cream);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0')}>💳</div>
               <div style={css('flex:1')}>
-                <div style={css('font-size:14px;font-weight:var(--weight-semibold)')}>VISA ···· 4242</div>
-                <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Current card · exp 04/28</div>
+                <div style={css('font-size:14px;font-weight:var(--weight-semibold)')}>{v.liveOwner ? (v.liveCard?.line || "Card on file") : "VISA ···· 4242"}</div>
+                <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>{v.liveOwner ? 'Current card' : 'Current card · exp 04/28'}</div>
               </div>
               <Chip tone="ghost">Replacing</Chip>
             </div>
           </Card>
+          )}
           {v.squareReady ? (
             <SquareCardForm ownerId={v.beOwnerId} orgId={v.beOrgId} onSaved={v.onCardSaved} />
           ) : (<>

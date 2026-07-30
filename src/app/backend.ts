@@ -10,7 +10,7 @@ import { isSupabaseConfigured } from '../lib/config'
 import { restore, signInWithPassword, signUpWithPassword, signOut } from '../lib/supabase'
 import { getData, threadKeyForOwner } from '../lib/data'
 import type { User, PaymentMethod, Job, Property, Message, Quote, Report, Charge } from '../lib/data/types'
-import type { AvailabilityBlock } from '../lib/data'
+import type { AvailabilityBlock, Organization } from '../lib/data'
 export { threadKeyForOwner }
 import { ApiError } from '../lib/api'
 export { getData }
@@ -37,6 +37,8 @@ export interface Hydration {
   charges: Charge[]
   /** Hours the signed-in contractor is not working. */
   blocks: AvailabilityBlock[]
+  /** The signed-in account's studio, for the business name. */
+  org: Organization | null
   activeJobId?: string
 }
 
@@ -46,7 +48,7 @@ const ACTIVE_PAYMENT_STATES = ['scheduled', 'captured', 'deposit_released', 'awa
  *  drive the money-path actions and the live screens. Safe to call when signed
  *  out (returns signedIn:false) or when the backend is absent. */
 export async function hydrate(): Promise<Hydration> {
-  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [], clients: [], staff: [], messages: [], quotes: [], reports: [], charges: [], blocks: [] }
+  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [], clients: [], staff: [], messages: [], quotes: [], reports: [], charges: [], blocks: [], org: null }
   if (!backendActive()) return empty
   const session = await restore().catch(() => null)
   if (!session) return empty
@@ -72,8 +74,11 @@ export async function hydrate(): Promise<Hydration> {
   const charges = isOwner ? await data.chargesForJobs(jobs.map((j) => j.id)).catch(() => [] as Charge[]) : []
   // A contractor's own time off. Their jobs already imply their busy windows.
   const blocks = isOwner ? [] : await data.availabilityBlocks(user.id).catch(() => [] as AvailabilityBlock[])
+  // The studio's name, for the business header and settings. Null for a
+  // client with no org yet.
+  const org = user.orgId ? await data.organization(user.orgId).catch(() => null) : null
   const active = jobs.find((j) => ACTIVE_PAYMENT_STATES.includes(j.paymentState))
-  return { signedIn: true, user, card, jobs, properties, clients, staff, messages, quotes, reports, charges, blocks, activeJobId: active?.id }
+  return { signedIn: true, user, card, jobs, properties, clients, staff, messages, quotes, reports, charges, blocks, org, activeJobId: active?.id }
 }
 
 /** Current device position — the geofence input for check-in. Rejects clearly

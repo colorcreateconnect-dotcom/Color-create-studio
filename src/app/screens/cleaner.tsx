@@ -91,6 +91,7 @@ export function CleanerScreens(v: any) {
     </>
   )
 
+  if (v.cMap && v.liveChecklist) return <LiveClean v={v} />
   if (v.cMap) return (
     <>
       <DetailHeader onBack={v.goBack} badge={v.badgeStops} title="Friday’s Route" subtitle="Buckhead → Midtown → Sandy Springs · ~34 mi" />
@@ -118,10 +119,14 @@ export function CleanerScreens(v: any) {
     </>
   )
 
-  if (v.cCheckin) return <Checkin v={v} />
+  {/* The check-in, luxury-clean, assist and active-clean screens are seed
+      showcases built around fake homes (Hartwell, Ridgeview, Skyline). On a
+      live account they must never render — LiveClean shows the real open clean,
+      or an honest "no clean open" state. */}
+  if (v.cCheckin) return v.liveChecklist ? <LiveClean v={v} /> : <Checkin v={v} />
   if (v.cJob) return v.liveChecklist ? <LiveClean v={v} /> : <ActiveClean v={v} />
-  if (v.cLux) return <LuxClean v={v} />
-  if (v.cAssist) return <Assist v={v} />
+  if (v.cLux) return v.liveChecklist ? <LiveClean v={v} /> : <LuxClean v={v} />
+  if (v.cAssist) return v.liveChecklist ? <LiveClean v={v} /> : <Assist v={v} />
   if (v.cSupplies) return <Supplies v={v} />
 
   if (v.cShare) return (
@@ -130,7 +135,7 @@ export function CleanerScreens(v: any) {
       <div style={css('padding:22px')}>
         <Card padding={0}>
           <div style={css('background:var(--pink);padding:26px 22px;text-align:center;border-radius:22px 22px 0 0')}>
-            <div style={css('font-family:var(--font-serif-display);font-size:30px;line-height:1.05;color:var(--orange)')}>She’s Maid In <span style={{ color: 'var(--magenta)' }}>ATL</span></div>
+            <div style={css('font-family:var(--font-serif-display);font-size:26px;line-height:1.1;color:var(--orange)')}>{v.bizName}</div>
             <div style={css('font-family:var(--font-spaced);font-size:9.5px;letter-spacing:var(--tracking-spaced-wide);text-transform:uppercase;color:var(--orange-deep);margin-top:8px')}>Luxury Housekeeping</div>
             <div style={css('display:flex;gap:var(--gap-chip);justify-content:center;margin-top:14px')}>
               <Chip tone="refresh">🌱 Eco-conscious</Chip>
@@ -139,11 +144,11 @@ export function CleanerScreens(v: any) {
           </div>
           <div style={css('padding:18px;display:flex;align-items:center;gap:16px')}>
             <div style={css('background:#fff;border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:8px;flex-shrink:0')}>
-              <img src={QR} alt="QR code to Ahleyia’s public app" style={{ width: 96, height: 96, display: 'block', imageRendering: 'pixelated' }} />
+              <img src={QR} alt="QR code to your public card" style={{ width: 96, height: 96, display: 'block', imageRendering: 'pixelated' }} />
             </div>
             <div style={css('font-size:12px;line-height:var(--leading-snug);color:var(--ink-soft)')}>
-              <div style={css('color:var(--ink);font-weight:var(--weight-semibold);margin-bottom:4px')}>Scan → opens her public app</div>
-              AtlLuxuryCleaning.com<br />Ahleyia Kee · 404.259.3242
+              <div style={css('color:var(--ink);font-weight:var(--weight-semibold);margin-bottom:4px')}>Scan → opens your public card</div>
+              {v.shareContact}
             </div>
           </div>
         </Card>
@@ -153,7 +158,7 @@ export function CleanerScreens(v: any) {
             <Field icon="📱"><NativeInput type="tel" inputMode="tel" aria-label="Client’s number" placeholder="Client’s number" /></Field>
             <Button size="sm" onClick={v.toastSent}>Send</Button>
           </div>
-          <p style={css('margin:10px 0 0;font-size:11px;line-height:var(--leading-snug);color:var(--text-muted)')}>They get: “Ahleyia with She’s Maid In ATL — see my services & get your tailored quote: [link]”</p>
+          <p style={css('margin:10px 0 0;font-size:11px;line-height:var(--leading-snug);color:var(--text-muted)')}>{v.sharePromo}</p>
         </Card>
         <Button variant="ghost" icon="🔗" onClick={v.toastCopied}>Copy my card link</Button>
       </div>
@@ -164,7 +169,7 @@ export function CleanerScreens(v: any) {
   if (v.cProfile) return <MyWeek v={v} />
   if (v.cInbox) return <Inbox v={v} />
   if (v.cSettings) return <Settings v={v} />
-  if (v.cFlag) return <Flag v={v} />
+  if (v.cFlag) return v.liveChecklist ? <LiveClean v={v} /> : <Flag v={v} />
   if (v.cMove) return <Move v={v} />
   if (v.cPayouts) return <Payouts v={v} />
   if (v.cTax) return <Tax v={v} />
@@ -662,8 +667,8 @@ function MyWeek({ v }: { v: any }) {
           </div>
         </Card>
         <Card>
-          <SupplyRow icon="🏦" name="Payouts" sub="Bank connected · ID verified · Instant on" right="›" onClick={v.goPayouts} last />
-          <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--green-deep);background:var(--tint-green);border:1px solid var(--tint-green-line);border-radius:var(--radius-md);padding:10px 12px')}>You’re set up to get paid. Your 50% lands <b>instantly on arrival</b>, the rest the moment the owner approves.</div>
+          <SupplyRow icon="🏦" name="Payouts" sub={v.liveMoneyOff ? 'Set up when payments switch on' : 'Bank connected · ID verified · Instant on'} right="›" onClick={v.goPayouts} last />
+          {!v.liveMoneyOff && <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--green-deep);background:var(--tint-green);border:1px solid var(--tint-green-line);border-radius:var(--radius-md);padding:10px 12px')}>You’re set up to get paid. Your 50% lands <b>instantly on arrival</b>, the rest the moment the owner approves.</div>}
         </Card>
         <Card flush>
           <SupplyRow icon="🧴" name="Supplies" sub="Par levels, reorders and maintenance flags" right="›" onClick={v.goSupplies} />
@@ -678,12 +683,14 @@ function MyWeek({ v }: { v: any }) {
           <StatTile value={v.liveMoneyOff ? v.liveEarningsValue : '$4,280'} label={v.liveMoneyOff ? v.liveEarningsLabel : 'Earned this week'} color="var(--green-deep)" accent />
           <StatTile value={v.liveMoneyOff ? '0' : '0'} label="Owner flags" color="var(--green-deep)" />
         </div>
-        <SectionLabel>This week’s schedule</SectionLabel>
-        <Card flush>
-          <SupplyRow icon="M" name="2 turnovers · 1 refresh" sub="Buckhead · Midtown" right={v.chipDone} />
-          <SupplyRow icon="W" name="3 turnovers" sub="Sandy Springs" right={v.chipDone} />
-          <SupplyRow icon="F" name="3 cleans · today" sub="Buckhead · Midtown · Sandy Springs" right={v.chipToday} last />
-        </Card>
+        {!v.liveMoneyOff && (<>
+          <SectionLabel>This week’s schedule</SectionLabel>
+          <Card flush>
+            <SupplyRow icon="M" name="2 turnovers · 1 refresh" sub="Buckhead · Midtown" right={v.chipDone} />
+            <SupplyRow icon="W" name="3 turnovers" sub="Sandy Springs" right={v.chipDone} />
+            <SupplyRow icon="F" name="3 cleans · today" sub="Buckhead · Midtown · Sandy Springs" right={v.chipToday} last />
+          </Card>
+        </>)}
       </div>
     </>
   )
@@ -763,7 +770,7 @@ function Template({ v }: { v: any }) {
         <SectionLabel>Phases</SectionLabel>
         <Card flush>{v.tplPhases.map((p: any, i: number) => <SupplyRow key={i} icon={p.icon} name={p.title} sub={p.sub} right={p.count} last={p.last} />)}</Card>
         <NoteCard tone="eco" icon="🌱">Per-home standards ride on top: linens, scent, thermostat and house rules are set by each owner and shown to you at check-in.</NoteCard>
-        <Button variant="ghost" onClick={v.tplOpenJob}>{v.tplOpenLabel}</Button>
+        {v.tplShowOpen && <Button variant="ghost" onClick={v.tplOpenJob}>{v.tplOpenLabel}</Button>}
       </div>
     </>
   )
@@ -838,12 +845,19 @@ function Settings({ v }: { v: any }) {
           </div>
         </Card>
         <SectionLabel>Payouts</SectionLabel>
-        <Card flush>
-          <SupplyRow icon="🏦" name="Bank ···· 8821" sub="Deposits land here" right={v.chipReady} />
-          <SupplyRow icon="⚡" name="Instant payouts" sub="50% the moment you check in on site" right={v.chipOn} />
-          <SupplyRow icon="🧾" name="Tax documents" sub="1099s & yearly summaries" right="›" onClick={v.goTaxDocs} last />
-        </Card>
-        <NoteCard tone="money" icon="💰">Your 50% lands <b>instantly on arrival</b>, the rest the moment the owner approves — or automatically in 48h. Tips come to you whole.</NoteCard>
+        {v.liveMoneyOff ? (
+          <Card flush>
+            <SupplyRow icon="🏦" name="Payout account" sub="Set up when payments switch on" right="›" onClick={v.goPayouts} />
+            <SupplyRow icon="🧾" name="Tax documents" sub="Generated from real earnings, once payments are on" right="›" onClick={v.goTaxDocs} last />
+          </Card>
+        ) : (<>
+          <Card flush>
+            <SupplyRow icon="🏦" name="Bank ···· 8821" sub="Deposits land here" right={v.chipReady} />
+            <SupplyRow icon="⚡" name="Instant payouts" sub="50% the moment you check in on site" right={v.chipOn} />
+            <SupplyRow icon="🧾" name="Tax documents" sub="1099s & yearly summaries" right="›" onClick={v.goTaxDocs} last />
+          </Card>
+          <NoteCard tone="money" icon="💰">Your 50% lands <b>instantly on arrival</b>, the rest the moment the owner approves — or automatically in 48h. Tips come to you whole.</NoteCard>
+        </>)}
         <SectionLabel>The Kee Method™</SectionLabel>
         <Card flush>
           <SupplyRow icon="📋" name="Turnover template" sub="Vacation Rental Edition · 26 steps · 4 photo moments" right="›" onClick={v.goTplTurn} />
@@ -862,7 +876,7 @@ function Settings({ v }: { v: any }) {
           <Card flush>
             <SupplyRow icon="🧮" name="Standard rate" sub={v.rateStdLine} right="›" onClick={v.goQuote} />
             <SupplyRow icon="🧮" name="Deep clean rate" sub={v.rateDeepLine} right="›" onClick={v.goQuote} />
-            <SupplyRow icon="👤" name="Assistant split" sub="40% with a $50 minimum" right="›" onClick={v.goQuote} last />
+            {!v.bizLive && <SupplyRow icon="👤" name="Assistant split" sub="40% with a $50 minimum" right="›" onClick={v.goQuote} last />}
           </Card>
         </>)}
         <SectionLabel>Notifications</SectionLabel>
@@ -970,7 +984,7 @@ function AdminDash({ v }: { v: any }) {
       <div style={css('display:flex;align-items:center;gap:10px;padding:8px 22px 0')}>
         <div style={css('flex:1')}>
           <div style={css('font-family:var(--font-spaced);font-size:9px;letter-spacing:var(--tracking-spaced);text-transform:uppercase;color:var(--magenta)')}>Business · admin</div>
-          <div style={css('font-family:var(--font-serif-display);font-size:24px;line-height:1.1')}>She’s Maid In ATL</div>
+          <div style={css('font-family:var(--font-serif-display);font-size:24px;line-height:1.1')}>{v.bizName}</div>
         </div>
         <IconButton icon="💬" onClick={v.goInbox} />
         <IconButton icon="☰" onClick={v.openMenu} />
@@ -1186,21 +1200,21 @@ function Clients({ v }: { v: any }) {
 function BizSettings({ v }: { v: any }) {
   return (
     <>
-      <DetailHeader onBack={v.goBack} badge={v.badgeAdminOnly} title="Business settings" subtitle="She’s Maid In ATL · Metro Atlanta" />
+      <DetailHeader onBack={v.goBack} badge={v.badgeAdminOnly} title="Business settings" subtitle={v.bizSubtitle} />
       <div style={css('padding:22px')}>
         <SectionLabel>The business</SectionLabel>
         <Card flush>
-          <SupplyRow icon="🏦" name="Payouts & banking" sub="Bank ···· 8821 · instant payouts on" right="›" onClick={v.goPayouts} />
+          <SupplyRow icon="🏦" name="Payouts & banking" sub={v.bizBankLine} right="›" onClick={v.goPayouts} />
           <SupplyRow icon="🧾" name="Tax documents" sub="1099s · yearly summaries" right="›" onClick={v.goTaxDocs} />
-          <SupplyRow icon="💌" name="Digital card & QR" sub="AtlLuxuryCleaning.com · 404.259.3242" right="›" onClick={v.goShare} />
-          <SupplyRow icon="📍" name="Service area" sub="Buckhead · Midtown · Sandy Springs · +3" right="›" onClick={v.goArea} />
+          <SupplyRow icon="💌" name="Digital card & QR" sub={v.bizCardLine} right="›" onClick={v.goShare} />
+          <SupplyRow icon="📍" name="Service area" sub={v.bizAreaLine} right="›" onClick={v.goArea} />
           <SupplyRow icon="🔒" name="Master login & security" sub={v.adminEmailShown + ' · two-step on'} right="›" onClick={v.goAdminLogin} last />
         </Card>
         <SectionLabel>Roles & access</SectionLabel>
         <Card flush>
           <SupplyRow icon="👑" name="Admin" sub="You only · money, pricing, clients, templates" right={v.chipYou} />
-          <SupplyRow icon="🧽" name="Working staff" sub="You & Tiana · routes, checklists, own pay" right={v.chipTwoPeople} />
-          <SupplyRow icon="🏡" name="Clients" sub="9 accounts · their own homes only" right={v.chipNine} last />
+          <SupplyRow icon="🧽" name="Working staff" sub={v.bizStaffLine} right={v.bizLive ? undefined : v.chipTwoPeople} />
+          <SupplyRow icon="🏡" name="Clients" sub={v.bizClientsLine} right={v.bizLive ? undefined : v.chipNine} last />
         </Card>
         <NoteCard tone="cream" icon="👑"><b>Why you have both:</b> the admin role is the business — it never disappears when you take a job yourself. When you’re on site you use the working side like any cleaner, and get paid like one.</NoteCard>
         <SectionLabel>Brand assets</SectionLabel>
@@ -1208,7 +1222,7 @@ function BizSettings({ v }: { v: any }) {
           <div style={css('display:flex;align-items:center;gap:14px')}>
             <img src={ICON} alt="She’s M.I.A app icon" style={css('width:56px;height:56px;border-radius:14px;flex-shrink:0')} />
             <div style={css('flex:1')}>
-              <div style={css('font-size:13.5px;font-weight:var(--weight-semibold)')}>She’s M.I.A Housekeeping</div>
+              <div style={css('font-size:13.5px;font-weight:var(--weight-semibold)')}>{v.bizBrandName}</div>
               <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted);margin-top:2px')}>App icon, sticker, business cards & the printed Kee Method™ sheets</div>
             </div>
           </div>
@@ -1227,8 +1241,10 @@ function Area({ v }: { v: any }) {
       <DetailHeader onBack={v.goBack} badge={v.badgeAreaCount} title="Service area" subtitle="Where you take work · Metro Atlanta" />
       <div style={css('padding:22px')}>
         <NoteCard tone="pink" icon="📍">Leads outside your area still reach you — they just see a note that you’re booking selectively there. Tap a neighborhood to turn it on or off.</NoteCard>
-        <SectionLabel right={v.chipDriveTime}>Neighborhoods</SectionLabel>
-        <Card flush>{v.areaRows.map((a: any, i: number) => <SupplyRow key={i} icon={a.icon} name={a.name} sub={a.sub} right={a.right} last={a.last} onClick={a.toggle} />)}</Card>
+        <SectionLabel right={v.areaLive ? undefined : v.chipDriveTime}>Neighborhoods</SectionLabel>
+        {v.areaEmpty
+          ? <Card><div style={css('font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>{v.areaEmptyLine}</div></Card>
+          : <Card flush>{v.areaRows.map((a: any, i: number) => <SupplyRow key={i} icon={a.icon} name={a.name} sub={a.sub} right={a.right} last={a.last} onClick={a.toggle} />)}</Card>}
         <Card>
           <SectionLabel>How far you’ll drive between stops</SectionLabel>
           <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap')}>{v.driveOpts.map((d: any, i: number) => <Pill key={i} selected={d.on} onClick={d.pick}>{d.label}</Pill>)}</div>

@@ -28,6 +28,8 @@ export interface NewProperty {
 export interface DataSource {
   readonly name: string
   currentUser(): Promise<User | null>
+  /** The signed-in account's studio (organization). Name shown as the business. */
+  organization(orgId: string): Promise<Organization | null>
   orgClients(): Promise<User[]>
   /** Everyone who works for the studio — admins and cleaners. */
   orgStaff(): Promise<User[]>
@@ -155,6 +157,12 @@ export interface ProofPhoto {
   marketingConsent: boolean
 }
 
+/** A studio (organization) as the app shows it. */
+export interface Organization {
+  id: string; name: string
+  contactEmail?: string | null; contactPhone?: string | null; domain?: string | null
+}
+
 /** Shared thread key for an owner's conversation with the studio. */
 export const threadKeyForOwner = (ownerId: string) => `owner:${ownerId}`
 
@@ -266,6 +274,11 @@ class SupabaseData implements DataSource {
     const path = uid ? `users?id=eq.${uid}&select=*` : 'users?select=*&limit=1'
     const rows = await this.rest<any[]>(path)
     return rows[0] ? mapUser(rows[0]) : null
+  }
+  async organization(orgId: string) {
+    if (!orgId) return null
+    const rows = await this.rest<any[]>(`organizations?id=eq.${orgId}&select=id,name,contact_email,contact_phone,domain`)
+    return rows[0] ? { id: rows[0].id, name: rows[0].name, contactEmail: rows[0].contact_email ?? null, contactPhone: rows[0].contact_phone ?? null, domain: rows[0].domain ?? null } as Organization : null
   }
   async orgClients() { return (await this.rest<any[]>(`users?role=eq.owner&select=*&order=created_at`)).map(mapUser) }
   async orgStaff() { return (await this.rest<any[]>(`users?role=in.(org_admin,cleaner)&select=*&order=created_at`)).map(mapUser) }
@@ -499,6 +512,7 @@ class SupabaseData implements DataSource {
 class MockData implements DataSource {
   readonly name = 'mock'
   async currentUser() { return { id: 'ahleyia', orgId: 'org1', role: 'cleaner' } as User }
+  async organization() { return null as Organization | null }
   async orgClients() { return [] as User[] }
   async orgStaff() { return [] as User[] }
   async properties() { return [] as Property[] }
