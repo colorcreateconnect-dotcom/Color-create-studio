@@ -8,7 +8,7 @@
  * client is revoked — so "send it again" cannot leave two live links, and a
  * link she previously texted to a wrong number stops working. */
 import { sbSelect, sbInsert, sbUpdate, json } from './_shared/db'
-import { requireCaller, isOwnerOfBusiness } from './_shared/auth'
+import { requireCaller, isStaff } from './_shared/auth'
 import { newToken, hashToken, expiryFromNow } from './_shared/invite'
 import { notify, smsConfigured, MSG } from './_shared/sms'
 
@@ -18,8 +18,8 @@ export const handler = async (event: any) => {
   const auth = await requireCaller(event)
   if ('error' in auth) return auth.error
   const { caller } = auth
-  if (!isOwnerOfBusiness(caller)) {
-    return json(403, { error: 'Only the business owner can send an invitation', code: 'FORBIDDEN' })
+  if (!isStaff(caller) || !caller.orgId) {
+    return json(403, { error: 'Only the studio and its contractors can send an invitation', code: 'FORBIDDEN' })
   }
 
   let body: any
@@ -27,9 +27,14 @@ export const handler = async (event: any) => {
   const clientId = String(body?.clientId || '')
   if (!clientId) return json(400, { error: 'clientId is required' })
 
-  const [client] = await sbSelect('users', `id=eq.${clientId}&select=id,org_id,full_name,phone,sms_consent,sms_opted_out,onboarding_state`)
+  const [client] = await sbSelect('users', `id=eq.${clientId}&select=id,org_id,managed_by,full_name,phone,sms_consent,sms_opted_out,onboarding_state`)
   if (!client) return json(404, { error: 'Client not found' })
   if (client.org_id !== caller.orgId) return json(403, { error: 'That client isn’t yours', code: 'FORBIDDEN' })
+  // Same org isn't enough now that contractors have their own books: the studio
+  // owner may re-send for anyone, a contractor only for their own client.
+  if (caller.role !== 'org_admin' && client.managed_by !== caller.id) {
+    return json(403, { error: 'That client isn’t in your book', code: 'FORBIDDEN' })
+  }
   if (client.onboarding_state === 'active') {
     return json(409, { error: 'They’ve already set up their login — they can just sign in.', code: 'ALREADY_ACTIVE' })
   }

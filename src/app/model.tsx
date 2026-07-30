@@ -9,9 +9,10 @@ import { Chip, MetaTag, VerifiedBadge } from '../ds/components'
 import { residentialQuote, airbnbQuote, type Staging } from '../lib/pricing'
 import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/concierge'
 import { groupSteps, checklistProgress } from '../lib/checklist'
-import { SLOTS, windowFor, slotTaken } from '../lib/schedule'
+import { SLOTS, windowFor, slotHours } from '../lib/schedule'
 import { parseInviteInput, INVITE_PARSE_MESSAGE } from '../lib/inviteLink'
 import { viewsFor, mayRunBusiness } from '../lib/views'
+import { busyWindows, dayAvailability, dayIsFull, mergeBusy, busyMinutesBetween } from '../lib/availability'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
@@ -214,7 +215,7 @@ function initialState(props: ModelProps): Any {
     // stays empty in the sandbox/demo so every screen runs on seed data.
     gateEmail: '', gatePw: '', gatePwShown: false, gateErr: '',
     beReady: false, beSignedIn: false, beUser: null, beCard: null,
-    beJobs: [], beProps: [], beClients: [], beStaff: [], beActiveJobId: null, beBusy: false,
+    beJobs: [], beProps: [], beClients: [], beStaff: [], beBlocks: [], beActiveJobId: null, beBusy: false,
     beMsgs: [], beQuotes: [], beReports: [], beCharges: [], beThreadOwner: null,
     // The real checklist: rows of job_steps for the job that's open, ticked
     // straight into Postgres. beStepsJobId is what the effect watches.
@@ -223,6 +224,7 @@ function initialState(props: ModelProps): Any {
     npOwner: '', npName: '', npKind: 'residential', npArea: '', npBeds: '', npBaths: '', npErr: '',
     // Live scheduling: which month/day of the real calendar is in view
     calYM: null, calPick: null, calProp: '',
+    avDay: '', avReason: '', avWhole: false, avSlot: '10 AM – 12 PM', avErr: '',
     access: { routes: true, checklists: true, supplies: true, ownernotes: true },
     onotif: { reports: true, cleaning: true, supplies: true, summary: false },
     cnotif: { bookings: true, approvals: true, supplies: true },
@@ -352,7 +354,7 @@ export function useModel(props: ModelProps) {
       setState((st: Any) => {
         const patch: Any = {
           ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
-          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beStaff: h.staff, beActiveJobId: h.activeJobId ?? null,
+          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks, beActiveJobId: h.activeJobId ?? null,
           beMsgs: h.messages, beQuotes: h.quotes, beReports: h.reports, beCharges: h.charges,
         }
         // Land a signed-in user in their own zone — but only from the default
@@ -1900,7 +1902,8 @@ export function useModel(props: ModelProps) {
     const mayAdmin = v.me.isAdmin
     v.aDash = mayAdmin && s.role === 'cleaner' && s.c === 'admin'
     v.aTeam = mayAdmin && s.role === 'cleaner' && s.c === 'team'
-    v.aClients = mayAdmin && s.role === 'cleaner' && s.c === 'clients'
+    // A contractor's own book is theirs — the Clients screen is scoped below.
+    v.aClients = s.role === 'cleaner' && s.c === 'clients'
     v.aSettings = mayAdmin && s.role === 'cleaner' && s.c === 'bizsettings'
     // Rates, margins and the assistant split live in the Quote Builder. The
     // Team screen says these "can't be granted" — so they are the admin's.
@@ -2061,6 +2064,108 @@ export function useModel(props: ModelProps) {
       } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t book that day — try again')) }
     }
 
+    /* ================= a contractor's availability =======================
+       Two sources, one answer: the cleans they are booked on — their own
+       clients AND the ones the studio gave them, because it is one person — and
+       the hours they have blocked with no job behind them.
+
+       The rule lives in src/lib/availability.ts and is tested there. This turns
+       it into the calendar and the "my availability" screen, and `book-clean`
+       applies the same rule server-side so a stale calendar can't double-book
+       anyone. */
+    const myId = s.beUser?.id
+    const myWork = liveWork
+      ? (s.beJobs || []).filter((j: Any) => j.cleanerId === myId || j.createdBy === myId)
+      : []
+    const myBusy = liveWork
+      ? busyWindows(
+        myWork.map((j: Any) => ({
+          id: j.id, windowStart: j.windowStart, windowEnd: j.windowEnd, status: j.status,
+          propertyName: propById[j.propertyId]?.name || null,
+        })),
+        (s.beBlocks || []).map((b: Any) => ({ id: b.id, startsAt: b.startsAt, endsAt: b.endsAt, reason: b.reason })),
+      )
+      : []
+
+    if (liveStaffWork) {
+      const today0 = new Date(); today0.setHours(0, 0, 0, 0)
+      const weekEnd = today0.getTime() + 7 * 864e5
+      v.myBusyCount = myBusy.length
+      v.myHoursBooked = Math.round(busyMinutesBetween(myBusy, today0.getTime(), weekEnd) / 60)
+      v.myBlocks = (s.beBlocks || [])
+        .slice()
+        .sort((a: Any, b: Any) => String(a.startsAt).localeCompare(String(b.startsAt)))
+        .map((b: Any, i: number, arr: Any[]) => {
+          const from = new Date(b.startsAt), to = new Date(b.endsAt)
+          const allDay = from.getHours() === 0 && to.getTime() - from.getTime() >= 864e5 - 1
+          const day = from.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+          return {
+            id: b.id, icon: '🚫', name: day,
+            sub: (allDay ? 'All day' : (timeOf(b.startsAt) + '–' + timeOf(b.endsAt))) + (b.reason ? ' · ' + b.reason : ''),
+            last: i === arr.length - 1,
+            remove: () => removeBlock(b.id),
+          }
+        })
+      v.myBusyRows = mergeBusy(myBusy).map((w, i, arr) => {
+        const d = new Date(w.start)
+        return {
+          icon: '📅',
+          name: d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
+          sub: d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '–'
+            + new Date(w.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+          last: i === arr.length - 1,
+        }
+      })
+    }
+
+    const removeBlock = (id: string) => {
+      setState((t: Any) => ({ ...t, beBlocks: t.beBlocks.filter((b: Any) => b.id !== id) }))
+      getData().removeAvailabilityBlock(id).catch((e: any) => {
+        say(errMsg(e, 'Couldn’t free that up — try again'))
+        hydrate().then((h) => setState((t: Any) => ({ ...t, beBlocks: h.blocks }))).catch(() => {})
+      })
+    }
+
+    /* ---- "I'm not available" — a day or a window, with no job behind it ---- */
+    v.aAvail = s.role === 'cleaner' && s.c === 'avail'
+    v.goAvail = () => go({ c: 'avail', avDay: '', avErr: '' })
+    v.badgeAvail = chip('av0', 'onBrand', 'Your calendar')
+    v.avDay = s.avDay
+    v.setAvDay = (e: any) => set({ avDay: e.target.value, avErr: '' })
+    v.avReason = s.avReason
+    v.setAvReason = (e: any) => set({ avReason: e.target.value })
+    v.avWholeDay = s.avWhole
+    v.setAvWholeDay = (n: boolean) => set({ avWhole: n })
+    v.avWindows = SLOTS.map((label) => ({ label, on: s.avSlot === label, pick: () => set({ avSlot: label }) }))
+    v.avErr = s.avErr
+    v.blockTime = async () => {
+      const raw = (s.avDay || '').trim()
+      if (!raw) { set({ avErr: 'Pick the date you’re not available.' }); return }
+      const [y, m, d] = raw.split('-').map((x: string) => parseInt(x, 10))
+      if (!y || !m || !d) { set({ avErr: 'That date didn’t read — use the picker.' }); return }
+      let startAt: Date, endAt: Date
+      if (s.avWhole) {
+        startAt = new Date(y, m - 1, d, 0, 0, 0)
+        endAt = new Date(y, m - 1, d + 1, 0, 0, 0)
+      } else {
+        const w = windowFor(y, m - 1, d, String(s.avSlot || SLOTS[1]))
+        startAt = w.start; endAt = w.end
+      }
+      if (!backendActive() || !s.beUser?.id || !s.beUser?.orgId) {
+        set({ avErr: '', avDay: '' }); say('Marked unavailable ✓'); return
+      }
+      try {
+        set({ beBusy: true, avErr: '' })
+        const b = await getData().addAvailabilityBlock({
+          orgId: s.beUser.orgId, cleanerId: s.beUser.id,
+          startsAt: startAt.toISOString(), endsAt: endAt.toISOString(),
+          reason: (s.avReason || '').trim() || (s.avWhole ? 'Not working' : 'Unavailable'),
+        })
+        setState((t: Any) => ({ ...t, beBusy: false, beBlocks: t.beBlocks.concat([b]), avDay: '', avReason: '' }))
+        say(s.avWhole ? 'Day marked unavailable ✓' : 'Window marked unavailable ✓')
+      } catch (e) { set({ beBusy: false, avErr: errMsg(e, 'Couldn’t save that') }) }
+    }
+
     /* ---- the real booking calendar ----
        Replaces the July-2026 fixture with actual months and the org's actual
        jobs. Staff see every clean in the org and who has it; an owner sees
@@ -2080,16 +2185,35 @@ export function useModel(props: ModelProps) {
         if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) return
         set({ calYM: { y: d.getFullYear(), m: d.getMonth() }, calPick: null })
       }
+      // A contractor's calendar is their own work — the cleans assigned to them
+      // and the ones they booked for their own clients. The studio owner sees
+      // the organization's.
       const live = (s.beJobs || []).filter((j: Any) =>
         j.status !== 'cancelled' && j.windowStart
-        && (v.me.isAdmin || s.beUser?.role === 'owner' || j.cleanerId === s.beUser?.id))
+        && (v.me.isAdmin || s.beUser?.role === 'owner'
+          || j.cleanerId === s.beUser?.id || j.createdBy === s.beUser?.id))
       const onDay = (d: number) => live.filter((j: Any) => dayKey(j.windowStart) === ym.y + '-' + (ym.m + 1) + '-' + d)
       const pickedJobs = onDay(picked)
-      const bookedStarts = pickedJobs.map((j: Any) => j.windowStart)
-      const taken = (slot: string) => slotTaken(slot, bookedStarts)
-      const openSlotsLive = SLOTS.filter((x) => !taken(x))
-      const fullDay = openSlotsLive.length === 0
+      /* Which windows are actually free.
+         For staff this is their real availability — every clean they are on,
+         their own clients and the studio's, plus time off. For a client it is
+         just their own bookings, because they cannot see the studio's calendar
+         (RLS, correctly) and the studio confirms. */
+      const dayBusy = liveStaffWork
+        ? myBusy
+        : busyWindows(pickedJobs.map((j: Any) => ({
+          id: j.id, windowStart: j.windowStart, windowEnd: j.windowEnd, status: j.status,
+          propertyName: propById[j.propertyId]?.name || null,
+        })))
+      const dayWindows = dayAvailability(ym.y, ym.m, picked, SLOTS, slotHours, dayBusy)
+      const freeLabels = dayWindows.filter((w) => w.free).map((w) => w.label)
+      const taken = (slot: string) => !freeLabels.includes(slot)
+      const openSlotsLive = freeLabels
+      const fullDay = dayIsFull(dayWindows)
       const chosenSlot = openSlotsLive.indexOf(s.newWindow) >= 0 ? s.newWindow : (openSlotsLive[0] || null)
+      // Why a window can't be taken, so the row says something useful.
+      const whyBusy: Record<string, string> = {}
+      dayWindows.forEach((w) => { if (w.conflict) whyBusy[w.label] = w.conflict.reason })
 
       v.calMonth = monthLabel
       v.calPrev = () => step(-1)
@@ -2121,9 +2245,18 @@ export function useModel(props: ModelProps) {
         v.calDayRows = SLOTS.map((slot, i, arr) => {
           const isBusy = taken(slot)
           const chosen = chosenSlot === slot
-          return { icon: isBusy ? '🔒' : '✓', tile: null, name: slot, sub: isBusy ? 'Booked' : 'Available · two-hour arrival window', right: isBusy ? chip('co' + i, 'ghost', 'Booked') : (chosen ? chip('co' + i, 'refresh', '✓ Chosen') : chip('co' + i, 'refresh', 'Open')), last: i === arr.length - 1, go: isBusy ? null : () => set({ newWindow: slot }) }
+          return { icon: isBusy ? '🔒' : '✓', tile: null, name: slot, sub: isBusy ? (whyBusy[slot] || 'Booked') : 'Available · two-hour arrival window', right: isBusy ? chip('co' + i, 'ghost', 'Booked') : (chosen ? chip('co' + i, 'refresh', '✓ Chosen') : chip('co' + i, 'refresh', 'Open')), last: i === arr.length - 1, go: isBusy ? null : () => set({ newWindow: slot }) }
         })
       } else {
+        // Their windows, free and busy, so "when am I free on the 12th" is one
+        // glance rather than arithmetic against a list of jobs.
+        v.calWindowRows = dayWindows.map((w, i, arr) => ({
+          icon: w.free ? '✓' : '🔒', name: w.label,
+          sub: w.free ? 'Free' : (w.conflict?.reason || 'Busy'),
+          right: w.free ? chip('cw' + i, 'refresh', 'Free') : chip('cw' + i, 'ghost', 'Busy'),
+          last: i === arr.length - 1,
+        }))
+        v.calFreeCount = freeLabels.length
         v.calDayRows = pickedJobs.length
           ? pickedJobs.map((j: Any, i: number, arr: Any[]) => {
             const p = propById[j.propertyId] || {}
@@ -2264,7 +2397,8 @@ export function useModel(props: ModelProps) {
       // RLS lets staff read every org job (the calendar needs that), so the
       // narrowing is here, where the difference actually matters.
       const visible = (s.beJobs || []).filter((j: Any) =>
-        v.me.isAdmin || s.beUser?.role === 'owner' || j.cleanerId === s.beUser?.id)
+        v.me.isAdmin || s.beUser?.role === 'owner'
+        || j.cleanerId === s.beUser?.id || j.createdBy === s.beUser?.id)
       const allJobs = visible.filter((j: Any) => j.status !== 'cancelled')
       const jobsToday = allJobs.filter((j: Any) => dayKey(j.windowStart) === todayKey)
       // Nothing today? Show what IS next rather than an empty screen that
@@ -2455,17 +2589,37 @@ export function useModel(props: ModelProps) {
       }
     }
 
-    // Live admin: real clients from the org, with each one's property count.
+    /* ---- the book of business, whosever it is ----
+       Contractors have their own clients. Row-Level Security already means a
+       contractor's read returns only their own book plus whoever's home the
+       studio assigned them, so this doesn't re-filter what came back — it
+       labels it, because on the studio owner's screen the two are mixed and she
+       needs to see which is which. */
     v.liveAdmin = backendActive() && s.beSignedIn && (s.beUser?.role === 'org_admin' || s.beUser?.role === 'cleaner')
     if (v.liveAdmin) {
+      const meId = s.beUser?.id
       const counts: Any = {}
       ;(s.beProps || []).forEach((p: Any) => { counts[p.ownerId] = (counts[p.ownerId] || 0) + 1 })
       const rows = (s.beClients || []).map((u: Any, i: number, arr: Any[]) => {
         const nm = (u.fullName || (u.email || '').split('@')[0] || 'Client').trim()
         const n = counts[u.id] || 0
-        return { icon: (nm[0] || 'C').toUpperCase(), tile: cTile, name: nm, sub: n + (n === 1 ? ' property' : ' properties'), flag: null, right: null, last: i === arr.length - 1, go: null }
+        const mine = u.managedBy === meId
+        const invited = u.onboardingState === 'invited'
+        return {
+          icon: (nm[0] || 'C').toUpperCase(), tile: cTile, name: nm,
+          sub: n + (n === 1 ? ' property' : ' properties') + (invited ? ' · invite not claimed' : ''),
+          flag: null,
+          // Only worth saying on a screen where both appear.
+          right: v.me.isAdmin ? (mine ? null : (u.managedBy ? chip('cm' + u.id, 'ghost', 'Contractor’s') : null)) : null,
+          last: i === arr.length - 1, go: null,
+        }
       })
-      v.clientRows = rows.length ? rows : [{ icon: '✨', name: 'No clients yet', sub: 'Clients appear here as they join', flag: null, right: chip('cc0', 'refresh', 'Empty'), last: true, go: null }]
+      const emptyCopy = v.me.isAdmin
+        ? 'Clients appear here as they join'
+        : 'Add your first client and their home — they’re yours, not the studio’s'
+      v.clientRows = rows.length ? rows : [{ icon: '✨', name: 'No clients yet', sub: emptyCopy, flag: null, right: chip('cc0', 'refresh', 'Empty'), last: true, go: null }]
+      v.bookTitle = v.me.isAdmin ? 'Clients & properties' : 'My clients'
+      v.bookSubtitle = v.me.isAdmin ? undefined : 'Your own book — the studio doesn’t see it'
       // Real counts in the header, and none of the seed showcase numbers.
       const nc = (s.beClients || []).length, np = (s.beProps || []).length, nq = (s.beQuotes || []).length
       v.clientsSub = nc + (nc === 1 ? ' client' : ' clients') + ' · ' + np + (np === 1 ? ' property' : ' properties')
@@ -2736,17 +2890,23 @@ export function useModel(props: ModelProps) {
           item('✏️', 'New message', 'Write to an owner or a lead', () => go({ c: 'compose', draft: '' }), 'compose'),
           item('🔗', 'Your digital card', 'QR to scan, or text the link', () => go({ c: 'share' }), 'share'),
         ]) },
-        // The studio's own side. A cleaner she hired has no business here —
-        // billing, the client book and hiring belong to the owner.
+        /* Your own book. Contractors are not employees: the clients they bring
+           are theirs, and the studio never sees them. Same screens for
+           Ahleyia, whose book is the studio's. */
+        { title: v.me.isAdmin ? 'Clients & properties' : 'My clients', items: close([
+          item('🏡', v.me.isAdmin ? 'Clients & properties' : 'My clients', v.me.isAdmin ? 'Your book of business' : 'Your own book of business', () => go({ c: 'clients' }), 'clients'),
+          item('➕', 'Add a client', 'They set their own sign-in from a link', () => go({ c: 'addclient', newClientLink: '' }), 'addclient'),
+          item('🏠', 'Add a home for a client', 'A second property, or one you kept on paper', () => go({ c: 'addprop', npErr: '' }), 'addprop'),
+          item('📅', 'Book a clean', 'Pick a day and a window', () => go({ c: 'calendar' }), 'calendar'),
+          item('🚫', 'My availability', 'Days and hours you’re not working', () => go({ c: 'avail', avDay: '', avErr: '' }), 'avail'),
+        ]) },
+        // The studio's own side. A contractor has no business here — billing,
+        // hiring and the studio's pricing belong to the owner.
         ...(v.me.isAdmin ? [{ title: 'Business', items: close([
           item('👑', 'Business dashboard', 'Billing, people, pricing', () => go({ c: 'admin' }), 'admin'),
           item('🧮', 'Quote Builder', 'Your pricing rules, made tappable', () => go({ c: 'quote' }), 'quote'),
           item('👥', 'Team & certification', 'Splits and what they can see', () => go({ c: 'team' }), 'team'),
-          item('🧽', 'Add someone to your team', 'They set their own sign-in', () => go({ c: 'addstaff', newStaffLink: '' }), 'addstaff'),
-          item('🏡', 'Clients & properties', 'Your book of business', () => go({ c: 'clients' }), 'clients'),
-          item('➕', 'Add a client you already have', 'From before the app — send them a link', () => go({ c: 'addclient', newClientLink: '' }), 'addclient'),
-          item('🏠', 'Add a home for a client', 'A second property, or one you kept on paper', () => go({ c: 'addprop', npErr: '' }), 'addprop'),
-          item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' }), 'template'),
+          item('🧽', 'Add a contractor', 'They set their own sign-in', () => go({ c: 'addstaff', newStaffLink: '' }), 'addstaff'),
           item('📍', 'Service area', 'Where you take work', () => go({ c: 'area' }), 'area'),
           item('🔐', 'Master login & security', 'Business email, password, two-step', () => go({ role: 'visitor', p: 'adminlogin' }), 'adminlogin'),
         ]) }] : []),
@@ -2797,7 +2957,11 @@ export function useModel(props: ModelProps) {
        current destination marked. Admin is a view of the cleaner role here
        (the prototype models it as a fourth account), so the switcher maps to
        the zone each account lands in. */
-    const isAdminView = ['admin', 'team', 'clients', 'bizsettings', 'area', 'assign', 'calendar'].indexOf(s.c) >= 0
+    // Which of her two sides she is looking at. Only meaningful for someone who
+    // HAS a business side — a contractor on the Clients screen is looking at
+    // their own book, not at the studio's.
+    const isAdminView = v.me.isAdmin
+      && ['admin', 'team', 'clients', 'bizsettings', 'area', 'assign', 'calendar'].indexOf(s.c) >= 0
     const acctRole = s.role === 'cleaner' ? (isAdminView ? 'admin' : 'cleaner') : s.role
     /* What this person may look at.
      *
@@ -2954,6 +3118,9 @@ export function useModel(props: ModelProps) {
           beds: parseFloat(s.npBeds) || undefined,
           baths: parseFloat(s.npBaths) || undefined,
           baseEdition: s.npKind === 'airbnb' ? 'vacation_rental' : 'luxury_home',
+          // A contractor's home goes in THEIR book; the studio owner's is the
+          // studio's. RLS rejects anything else, so this has to be right.
+          managedBy: v.me.isAdmin ? null : s.beUser?.id,
         })
         const h = await hydrate()
         setState((t: Any) => ({
@@ -3059,7 +3226,9 @@ export function useModel(props: ModelProps) {
     }
 
     v.chipCurrent = chip('ac0', 'refresh', 'Current')
-    const acct = ACCOUNTS.find((a) => a[0] === acctRole) || ACCOUNTS[3]
+    // Fall back to whatever this account actually has — an account with one
+    // view has no row 3 to fall back to.
+    const acct = ACCOUNTS.find((a) => a[0] === acctRole) || ACCOUNTS[0] || ALL_ACCOUNTS[3]
     v.acctIcon = acct[1]; v.acctName = acct[2]; v.acctSub = acct[3]
     v.acctOpen = s.acctOpen
     v.openAcct = () => set({ acctOpen: true })

@@ -192,6 +192,12 @@ function Calendar({ v }: { v: any }) {
         </Card>
         <SectionLabel right={v.calDayChip}>{v.calDayTitle}</SectionLabel>
         <Card flush>{v.calDayRows.map((r: any, i: number) => <SupplyRow key={i} icon={r.icon} iconStyle={r.tile} name={r.name} sub={r.sub} right={r.right} last={r.last} onClick={r.go} />)}</Card>
+        {/* A contractor's own free/busy, so "when am I free" is one glance
+            rather than arithmetic against a list of jobs. */}
+        {v.calWindowRows && (<>
+          <SectionLabel right={v.calFreeCount + ' free'}>Your windows</SectionLabel>
+          <Card flush>{v.calWindowRows.map((r: any, i: number) => <SupplyRow key={i} icon={r.icon} name={r.name} sub={r.sub} right={r.right} last={r.last} />)}</Card>
+        </>)}
         {/* Live: put a real clean on the calendar for whichever home is picked. */}
         {v.calProps && v.calIsAdmin && (<>
           <NoteCard tone="cream" icon="⏱️">Five two-hour windows a day. Days at capacity are dimmed, and anything still unassigned shows an orange dot.</NoteCard>

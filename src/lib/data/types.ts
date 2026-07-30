@@ -19,6 +19,8 @@ export interface User {
   onboardingState?: 'invited' | 'active'
   /** Per-kind notification opt-outs. A missing key means "send it". */
   notifyPrefs?: Record<string, boolean>
+  /** For a client: whose book they are in. null = the studio's own. */
+  managedBy?: string | null
 }
 
 export interface Property {
@@ -27,11 +29,15 @@ export interface Property {
   beds?: number; baths?: number; sourceUrl?: string; referencePhotos: string[]
   productPreference: ProductPreference; signatureScent: Scent; standingNotes?: string
   baseEdition: EditionType; geofenceRadiusM: number
+  /** Whose book this home is in. null = the studio's own. */
+  managedBy?: string | null
 }
 
 /** Client-facing job — carries the single client_amount, never rate/hours/split. */
 export interface Job {
   id: string; propertyId: string; ownerId: string; cleanerId?: string
+  /** Who booked it — a contractor for their own client, or the studio. */
+  createdBy?: string | null
   type: 'turnover' | 'residential' | 'deep'; status: string; paymentState: PaymentState
   clientAmount: number; ecoFinish: boolean
   windowStart?: string; windowEnd?: string; submittedAt?: string

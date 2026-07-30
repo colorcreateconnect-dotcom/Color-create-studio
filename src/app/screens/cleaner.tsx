@@ -176,6 +176,7 @@ export function CleanerScreens(v: any) {
   if (v.aAddClient) return <AddClientScreen v={v} />
   if (v.aAddStaff) return <AddStaffScreen v={v} />
   if (v.aAddProp) return <AddPropertyScreen v={v} />
+  if (v.aAvail) return <Availability v={v} />
   if (v.aClients) return <Clients v={v} />
   if (v.aSettings) return <BizSettings v={v} />
   if (v.aArea) return <Area v={v} />
@@ -1002,11 +1003,69 @@ function Team({ v }: { v: any }) {
   )
 }
 
+/* -------------------------------------------------------- Availability --
+   Most of a contractor's calendar fills itself: a clean they're booked on is a
+   window they can't take another one in, whether it's their own client or one
+   the studio gave them. This screen is the other half — hours they're simply
+   not working, with no job behind them. */
+function Availability({ v }: { v: any }) {
+  return (
+    <>
+      <DetailHeader onBack={v.goBack} badge={v.badgeAvail} title="My availability" subtitle="What’s already booked, and when you’re not working" />
+      <div style={css('padding:22px')}>
+        <div style={css('display:flex;gap:var(--gap-tile);margin-bottom:var(--stack-card)')}>
+          <StatTile value={String(v.myHoursBooked ?? 0)} label="Hours booked this week" accent color="var(--orange)" style={{ flex: 1 }} />
+          <StatTile value={String(v.myBlocks?.length ?? 0)} label="Blocks you’ve set" color="var(--magenta)" style={{ flex: 1 }} />
+        </div>
+        <NoteCard tone="eco" icon="🗓️">Every clean you’re on already blocks its window — your own clients and the studio’s. Add a block here only for time that has no job behind it.</NoteCard>
+
+        <SectionLabel>Mark yourself unavailable</SectionLabel>
+        <Card>
+          <Field icon="📅"><NativeInput type="date" aria-label="Date" placeholder="Date" value={v.avDay} onChange={v.setAvDay} /></Field>
+          <div style={css('margin-top:12px;display:flex;gap:12px;align-items:flex-start')}>
+            <Checkbox checked={v.avWholeDay} onChange={v.setAvWholeDay} size={22} />
+            <div style={css('font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>The whole day</div>
+          </div>
+          {!v.avWholeDay && (<>
+            <div style={css('font-size:12px;font-weight:var(--weight-semibold);margin:16px 0 6px')}>Which window?</div>
+            <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap')}>
+              {v.avWindows.map((w: any, i: number) => <Pill key={i} selected={w.on} onClick={w.pick}>{w.label}</Pill>)}
+            </div>
+          </>)}
+          <div style={{ height: 12 }} />
+          <Field icon="✏️"><NativeInput type="text" aria-label="Reason (optional)" placeholder="Reason (optional)" value={v.avReason} onChange={v.setAvReason} /></Field>
+          <p style={css('margin:10px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>Only you see the reason. Ahleyia sees that you’re unavailable, so she doesn’t offer you work then.</p>
+        </Card>
+        {v.avErr && <NoteCard tone="pink" icon="⚠️">{v.avErr}</NoteCard>}
+        <Button variant="green" onClick={v.blockTime}>{v.beBusy ? 'Saving…' : 'Mark unavailable'}</Button>
+
+        {!!v.myBlocks?.length && (<>
+          <SectionLabel>Time you’ve blocked</SectionLabel>
+          <Card flush>
+            {v.myBlocks.map((b: any) => (
+              <SupplyRow key={b.id} icon={b.icon} name={b.name} sub={b.sub} last={b.last}
+                right={<span style={css('font-size:11.5px;color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={b.remove}>Free it up</span>} />
+            ))}
+          </Card>
+        </>)}
+
+        {!!v.myBusyRows?.length && (<>
+          <SectionLabel>Already booked</SectionLabel>
+          <Card flush>
+            {v.myBusyRows.map((r: any, i: number) => <SupplyRow key={i} icon={r.icon} name={r.name} sub={r.sub} last={r.last} />)}
+          </Card>
+          <NoteCard tone="pink" icon="🔒">These come from your cleans. Move or hand off a clean to free its window — a block here won’t override it.</NoteCard>
+        </>)}
+      </div>
+    </>
+  )
+}
+
 /* ------------------------------------------------------------- Clients -- */
 function Clients({ v }: { v: any }) {
   return (
     <>
-      <DetailHeader onBack={v.goBack} badge={v.badgeBook} title="Clients & properties" subtitle={v.clientsSub || '9 clients · 14 properties · 2 quotes out'} />
+      <DetailHeader onBack={v.goBack} badge={v.badgeBook} title={v.bookTitle || 'Clients & properties'} subtitle={v.clientsSub || '9 clients · 14 properties · 2 quotes out'} />
       <div style={css('padding:22px')}>
         {!v.liveBook && (
           <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap;margin-bottom:var(--stack-card)')}>
@@ -1016,8 +1075,10 @@ function Clients({ v }: { v: any }) {
         <Card flush>{v.clientRows.map((c: any, i: number) => <SupplyRow key={i} icon={c.icon} iconStyle={c.tile} name={c.name} sub={c.sub} flag={c.flag} right={c.right} last={c.last} onClick={c.go} />)}</Card>
         {v.liveBook
           ? (<>
-            <Button icon="➕" onClick={v.goAddClient}>Add a client you already have</Button>
+            {v.bookSubtitle && <NoteCard tone="pink" icon="🔒">{v.bookSubtitle}. You set their price, you keep the relationship.</NoteCard>}
+            <Button icon="➕" onClick={v.goAddClient}>Add a client</Button>
             <div style={css('margin-top:10px')}><Button variant="ghost" icon="🏠" onClick={v.goAddProp}>Add a home for a client</Button></div>
+            <div style={css('margin-top:10px')}><Button variant="ghost" icon="📅" onClick={v.goCalendar}>Book a clean</Button></div>
           </>)
           : <NoteCard tone="money" icon="📈"><b>Recurring clients are the business.</b> 7 of your 9 are on a weekly or biweekly cadence — that’s $12,400 of this month’s billing you didn’t have to sell twice.</NoteCard>}
         <Button variant="ghost" icon="💌" onClick={v.goShare}>Share your card with a new lead</Button>

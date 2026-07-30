@@ -134,6 +134,20 @@ so the clickable prototype never breaks.
   and the housekeeper, so she has two views of one account. `mayRunBusiness()`
   reads the same rule, so the menu, the screens and the switcher cannot
   disagree about what an account is.
+- **Contractors** (`0010_contractor_book.sql`) — a cleaner is an independent
+  contractor, so their clients are theirs. `managed_by` on `users` and
+  `properties` says whose book a client or a home is in (NULL = the studio's);
+  `created_by` on `jobs` says who booked a clean. The policies changed from "any
+  staff, same org" to "the org admin sees the organization; a contractor sees
+  their own book plus the client and home of a clean assigned to them" — which
+  also means internal pricing on a job a contractor booked is theirs and the
+  studio's is not.
+- **Availability** (`src/lib/availability.ts`) — busy windows come from two
+  places and are answered as one list: the cleans a contractor is on (their own
+  clients AND the studio's, because it is one person) and hours they have
+  blocked with no job behind them. `dayAvailability()` turns that into the five
+  arrival windows with a reason on each, and `book-clean` applies the same
+  function server-side, so the calendar being stale cannot double-book anyone.
 - **Roles** — `org_admin` owns the business; `cleaner` works. The app hides the
   Business group (dashboard, client book, hiring, pricing) from a cleaner AND
   the endpoints that create people (`create-client`, `create-staff`,

@@ -20,6 +20,9 @@ export interface NewProperty {
   type: 'airbnb' | 'residential' | 'loved_one'
   neighborhood?: string; beds?: number; baths?: number; sourceUrl?: string
   productPreference?: string; signatureScent?: string; baseEdition?: string
+  /** Whose book to file it in. A contractor MUST pass their own id — RLS
+   *  rejects anything else — and the studio owner passes null. */
+  managedBy?: string | null
 }
 
 export interface DataSource {
@@ -59,6 +62,29 @@ export interface DataSource {
   markNotificationsRead(ids?: string[]): Promise<void>
   /** Save which notices this person wants. */
   saveNotifyPrefs(userId: string, prefs: Record<string, boolean>): Promise<void>
+  /** Hours this contractor is not working, with no job behind them. */
+  availabilityBlocks(cleanerId: string): Promise<AvailabilityBlock[]>
+  /** Block a window. RLS: your own calendar only. */
+  addAvailabilityBlock(input: NewBlock): Promise<AvailabilityBlock>
+  /** Unblock one. */
+  removeAvailabilityBlock(id: string): Promise<void>
+}
+
+/** Hours a contractor has marked as not working. */
+export interface AvailabilityBlock {
+  id: string
+  cleanerId: string
+  startsAt: string
+  endsAt: string
+  reason: string | null
+}
+
+export interface NewBlock {
+  orgId: string
+  cleanerId: string
+  startsAt: string
+  endsAt: string
+  reason?: string
 }
 
 /** A notice as the app shows it. */
@@ -100,6 +126,7 @@ function mapUser(r: any): User {
     id: r.id, orgId: r.org_id ?? null, role: r.role, fullName: r.full_name,
     phone: r.phone, email: r.email, onboardingState: r.onboarding_state ?? undefined,
     notifyPrefs: (r.notify_prefs && typeof r.notify_prefs === 'object') ? r.notify_prefs : undefined,
+    managedBy: r.managed_by ?? null,
   }
 }
 function mapProperty(r: any): Property {
@@ -111,6 +138,7 @@ function mapProperty(r: any): Property {
     productPreference: r.product_preference, signatureScent: r.signature_scent,
     standingNotes: r.standing_notes, baseEdition: r.base_edition,
     geofenceRadiusM: num(r.geofence_radius_m) ?? 150,
+    managedBy: r.managed_by ?? null,
   }
 }
 function mapJob(r: any): Job {
@@ -119,6 +147,7 @@ function mapJob(r: any): Job {
     type: r.type, status: r.status, paymentState: r.payment_state,
     clientAmount: Number(r.client_amount), ecoFinish: !!r.eco_finish,
     windowStart: r.window_start, windowEnd: r.window_end, submittedAt: r.submitted_at,
+    createdBy: r.created_by ?? null,
   }
 }
 function mapQuote(r: any): Quote {
@@ -132,6 +161,9 @@ function mapPaymentMethod(r: any): PaymentMethod {
 }
 function mapMessage(r: any): Message {
   return { id: r.id, threadKey: r.thread_key, senderId: r.sender_id ?? undefined, body: r.body, photoKey: r.photo_key ?? undefined, createdAt: r.created_at }
+}
+function mapBlock(r: any): AvailabilityBlock {
+  return { id: r.id, cleanerId: r.cleaner_id, startsAt: r.starts_at, endsAt: r.ends_at, reason: r.reason ?? null }
 }
 function mapNotice(r: any): Notice {
   return {
@@ -197,6 +229,7 @@ class SupabaseData implements DataSource {
       org_id: input.orgId, owner_id: input.ownerId, name: input.name, type: input.type,
       neighborhood: input.neighborhood ?? null, beds: input.beds ?? null, baths: input.baths ?? null,
       source_url: input.sourceUrl ?? null,
+      managed_by: input.managedBy ?? null,
       product_preference: input.productPreference ?? 'eco_non_toxic',
       signature_scent: input.signatureScent ?? 'eucalyptus_mint',
       base_edition: input.baseEdition ?? 'vacation_rental',
@@ -317,6 +350,24 @@ class SupabaseData implements DataSource {
     })
     if (!res.ok) throw new Error(`Could not save that setting (${res.status})`)
   }
+  async availabilityBlocks(cleanerId: string) {
+    const rows = await this.rest<any[]>(`availability_blocks?cleaner_id=eq.${cleanerId}&select=id,cleaner_id,starts_at,ends_at,reason&order=starts_at`)
+    return rows.map(mapBlock)
+  }
+  async addAvailabilityBlock(input: NewBlock) {
+    const [row] = await this.restPost<any>('availability_blocks', {
+      org_id: input.orgId, cleaner_id: input.cleanerId,
+      starts_at: input.startsAt, ends_at: input.endsAt, reason: input.reason ?? null,
+    })
+    return mapBlock(row)
+  }
+  async removeAvailabilityBlock(id: string) {
+    const res = await fetch(`${this.url}/rest/v1/availability_blocks?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: this.headers({ Prefer: 'return=minimal' }),
+    })
+    if (!res.ok) throw new Error(`Could not remove that (${res.status})`)
+  }
   async chargesForJobs(jobIds: string[]) {
     if (!jobIds.length) return [] as Charge[]
     const list = jobIds.map((id) => `"${id}"`).join(',')
@@ -355,6 +406,11 @@ class MockData implements DataSource {
   async createPropertyFor(input: NewProperty) { return this.createProperty(input) }
   async setJobStatus() { /* demo: nothing to persist */ }
   async buildJobSteps() { return 0 }
+  async availabilityBlocks() { return [] as AvailabilityBlock[] }
+  async addAvailabilityBlock(input: NewBlock) {
+    return { id: 'mock-block', cleanerId: input.cleanerId, startsAt: input.startsAt, endsAt: input.endsAt, reason: input.reason ?? null }
+  }
+  async removeAvailabilityBlock() { /* demo: nothing to persist */ }
   async notifications() { return [] as Notice[] }
   async markNotificationsRead() { /* demo: nothing to persist */ }
   async saveNotifyPrefs() { /* demo: nothing to persist */ }

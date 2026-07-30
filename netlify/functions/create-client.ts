@@ -9,7 +9,7 @@
  * The client themselves later supplies email, password and card. Nothing here
  * charges anything. */
 import { sbSelect, sbInsert, sbUpdate, json } from './_shared/db'
-import { requireCaller, isOwnerOfBusiness } from './_shared/auth'
+import { requireCaller, isStaff } from './_shared/auth'
 import { newToken, hashToken, expiryFromNow, createAuthUser, deleteAuthUser, emailLooksValid } from './_shared/invite'
 
 const PROPERTY_TYPES = ['airbnb', 'residential', 'loved_one']
@@ -20,9 +20,15 @@ export const handler = async (event: any) => {
   const auth = await requireCaller(event)
   if ('error' in auth) return auth.error
   const { caller } = auth
-  if (!isOwnerOfBusiness(caller)) {
-    return json(403, { error: 'Only the business owner can add a client', code: 'FORBIDDEN' })
+  // Cleaners here are independent contractors, so a client belongs to whoever
+  // brought them: the studio when Ahleyia adds one, that contractor when they
+  // do. `managed_by` is what makes the difference, and it is set from the
+  // VERIFIED caller — never from the request body — so nobody can file a client
+  // into somebody else's book.
+  if (!isStaff(caller) || !caller.orgId) {
+    return json(403, { error: 'Only the studio and its contractors can add a client', code: 'FORBIDDEN' })
   }
+  const managedBy = caller.role === 'org_admin' ? null : caller.id
 
   let body: any
   try { body = JSON.parse(event.body || '{}') } catch { return json(400, { error: 'Bad JSON' }) }
@@ -60,12 +66,14 @@ export const handler = async (event: any) => {
       await sbUpdate('users', `id=eq.${authUser.id}`, {
         org_id: caller.orgId, role: 'owner', full_name: fullName,
         phone: phone ?? null, email: email ?? null, onboarding_state: 'invited',
+        managed_by: managedBy,
         sms_consent: !!smsConsent, sms_consent_at: smsConsent ? new Date().toISOString() : null,
       })
     } else {
       await sbInsert('users', [{
         id: authUser.id, org_id: caller.orgId, role: 'owner', full_name: fullName,
         phone: phone ?? null, email: email ?? null, onboarding_state: 'invited',
+        managed_by: managedBy,
         sms_consent: !!smsConsent, sms_consent_at: smsConsent ? new Date().toISOString() : null,
       }])
     }
@@ -74,6 +82,7 @@ export const handler = async (event: any) => {
     const [property] = await sbInsert('properties', [{
       org_id: caller.orgId,
       owner_id: authUser.id,
+      managed_by: managedBy,
       name: propertyName,
       type,
       address: address ?? null,

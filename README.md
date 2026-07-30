@@ -64,6 +64,11 @@ credentials (which can't be provisioned in a sandbox). Highlights:
 - **Price privacy** — enforced at the DB (internal pricing in tables owners
   can't select), at the serializer (`stripForClient`), and in the UI.
 - **GPS geofence** gates check-in (recomputed server-side).
+- **Contractors, not employees** — a cleaner's clients are their own. They add
+  their own clientele, homes and cleans; `managed_by` records whose book each
+  belongs to and Row-Level Security enforces it, so one contractor cannot read
+  another's book and neither can the studio. Their own bookings and the studio's
+  compete for the same hours, which is what drives availability.
 - **One way in** — email + password for every role. A client Ahleyia added sets
   their own password on the single-use invite link she sends them. No texted
   codes, so getting into the app needs no SMS provider and costs nothing.

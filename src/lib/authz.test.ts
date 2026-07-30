@@ -79,3 +79,57 @@ describe('isOwnerOfBusiness — hiring, the client book and pricing', () => {
     expect(canActOnJob(cleaner, job)).toBe(true)
   })
 })
+
+describe('contractor books — who may book which home', () => {
+  const ORG = 'org-1'
+  // The rule as book-clean applies it, asserted directly so the three ways in
+  // stay three. A contractor booking against somebody else's client would be
+  // booking against somebody else's price and arrangement.
+  const mayBook = (
+    c: { id: string; role: string; orgId: string | null } | null,
+    prop: { org_id: string; owner_id: string; managed_by: string | null },
+  ) => {
+    if (!c) return false
+    const ownsIt = c.id === prop.owner_id
+    const adminHere = c.role === 'org_admin' && !!c.orgId && c.orgId === prop.org_id
+    const managesIt = (c.role === 'cleaner' || c.role === 'org_admin') && prop.managed_by === c.id
+    return ownsIt || adminHere || managesIt
+  }
+
+  const admin = { id: 'ahleyia', role: 'org_admin', orgId: ORG }
+  const tiana = { id: 'tiana', role: 'cleaner', orgId: ORG }
+  const marcus = { id: 'marcus', role: 'cleaner', orgId: ORG }
+  const client = { id: 'client-1', role: 'owner', orgId: ORG }
+
+  const studioHome = { org_id: ORG, owner_id: 'client-1', managed_by: null }
+  const tianaHome = { org_id: ORG, owner_id: 'client-2', managed_by: 'tiana' }
+
+  it('a client books their own home', () => {
+    expect(mayBook(client, studioHome)).toBe(true)
+  })
+
+  it('the studio owner books anything in her organization', () => {
+    expect(mayBook(admin, studioHome)).toBe(true)
+    expect(mayBook(admin, tianaHome)).toBe(true)
+  })
+
+  it('a contractor books a home in their own book', () => {
+    expect(mayBook(tiana, tianaHome)).toBe(true)
+  })
+
+  it('DENIES a contractor booking the studio’s client', () => {
+    expect(mayBook(tiana, studioHome)).toBe(false)
+  })
+
+  it('DENIES a contractor booking another contractor’s client', () => {
+    expect(mayBook(marcus, tianaHome)).toBe(false)
+  })
+
+  it('DENIES a client booking somebody else’s home', () => {
+    expect(mayBook(client, tianaHome)).toBe(false)
+  })
+
+  it('DENIES an admin from a different organization', () => {
+    expect(mayBook({ id: 'x', role: 'org_admin', orgId: 'org-2' }, studioHome)).toBe(false)
+  })
+})

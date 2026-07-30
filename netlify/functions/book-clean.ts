@@ -12,6 +12,7 @@
 import { sbSelect, sbInsert, json } from './_shared/db'
 import { requireCaller, isStaff } from './_shared/auth'
 import { sendNotice } from './_shared/notify'
+import { busyWindows, conflictIn } from '../../src/lib/availability'
 import { airbnbQuote, residentialQuote, type Staging } from '../../src/lib/pricing'
 
 const EDITION_FOR: Record<string, 'vacation_rental' | 'luxury_home'> = {
@@ -32,13 +33,20 @@ export const handler = async (event: any) => {
   const { propertyId, windowStart, windowEnd, type, staging, hours, ecoFinish, cleanerId } = body
   if (!propertyId) return json(400, { error: 'propertyId is required' })
 
-  const [prop] = await sbSelect('properties', `id=eq.${propertyId}&select=id,org_id,owner_id,type,beds,base_edition`)
+  const [prop] = await sbSelect('properties', `id=eq.${propertyId}&select=id,org_id,owner_id,managed_by,type,beds,base_edition`)
   if (!prop) return json(404, { error: 'Property not found' })
 
-  // --- authorize against THIS property ---
+  /* --- authorize against THIS property ---
+     Three ways in, and no others: the client booking their own home, the studio
+     owner booking anything in her organization, or a contractor booking a home
+     in their OWN book. A contractor may not book against the studio's client or
+     another contractor's — that is somebody else's arrangement and price. */
   const ownsIt = caller.id === prop.owner_id
-  const staffHere = isStaff(caller) && !!caller.orgId && caller.orgId === prop.org_id
-  if (!ownsIt && !staffHere) return json(403, { error: 'You can’t book a clean for that property', code: 'FORBIDDEN' })
+  const adminHere = caller.role === 'org_admin' && !!caller.orgId && caller.orgId === prop.org_id
+  const managesIt = isStaff(caller) && prop.managed_by === caller.id
+  if (!ownsIt && !adminHere && !managesIt) {
+    return json(403, { error: 'You can’t book a clean for that property', code: 'FORBIDDEN' })
+  }
 
   // --- price it with the shared engine (client sees ONE number) ---
   const jobType: 'turnover' | 'residential' | 'deep' =
@@ -55,11 +63,40 @@ export const handler = async (event: any) => {
   const editionType = EDITION_FOR[jobType]
   const [edition] = await sbSelect('editions', `type=eq.${editionType}&select=id&limit=1`)
 
+  /* --- nobody is expected in two homes at once ---
+     A contractor's own clients and the studio's compete for the same hours,
+     because it is one person. Checked here rather than only in the calendar:
+     the calendar can be stale, and this is the endpoint that commits. */
+  const assignedTo = cleanerId ?? (isStaff(caller) ? caller.id : null)
+  if (assignedTo && windowStart) {
+    const start = new Date(windowStart)
+    const end = windowEnd ? new Date(windowEnd) : new Date(start.getTime() + 2 * 3600_000)
+    if (!isNaN(start.getTime())) {
+      const theirJobs = await sbSelect('jobs', `or=(cleaner_id.eq.${assignedTo},created_by.eq.${assignedTo})&status=neq.cancelled&select=id,window_start,window_end,status`)
+      const theirBlocks = await sbSelect('availability_blocks', `cleaner_id=eq.${assignedTo}&select=id,starts_at,ends_at,reason`)
+      const busy = busyWindows(
+        theirJobs.map((j: any) => ({ id: j.id, windowStart: j.window_start, windowEnd: j.window_end, status: j.status })),
+        theirBlocks.map((b: any) => ({ id: b.id, startsAt: b.starts_at, endsAt: b.ends_at, reason: b.reason })),
+      )
+      const clash = conflictIn({ start: start.getTime(), end: end.getTime() }, busy)
+      if (clash) {
+        return json(409, {
+          error: assignedTo === caller.id
+            ? `You’re not free then — ${clash.reason.toLowerCase()}.`
+            : 'They’re not free in that window.',
+          code: 'NOT_AVAILABLE',
+          reason: clash.reason,
+        })
+      }
+    }
+  }
+
   const [job] = await sbInsert('jobs', [{
     org_id: prop.org_id,
     property_id: prop.id,
     owner_id: prop.owner_id,
-    cleaner_id: cleanerId ?? (isStaff(caller) ? caller.id : null),
+    created_by: caller.id,
+    cleaner_id: assignedTo,
     type: jobType,
     edition_id: edition?.id ?? null,
     window_start: windowStart ?? null,
@@ -108,8 +145,8 @@ export const handler = async (event: any) => {
     }
   }
 
-  // Tell the client it's on the calendar — unless they booked it themselves,
-  // in which case they were just looking at the confirmation.
+  // Tell the client it's on the calendar — unless they booked it themselves, in
+  // which case they were just looking at the confirmation.
   if (!ownsIt) {
     const [named] = await sbSelect('properties', `id=eq.${prop.id}&select=name`)
     await sendNotice('booked', { orgId: prop.org_id, userId: prop.owner_id }, {

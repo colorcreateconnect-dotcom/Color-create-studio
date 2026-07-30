@@ -36,6 +36,15 @@ sign-in at all. The rule lives in `src/lib/views.ts` and is unit-tested: a
 cleaner has one view, a client has one view, the owner has her two real ones,
 and signed out you get the public storefront.
 
+**Cleaners are independent contractors, not employees.** A contractor's clients
+are theirs: they add their own clientele, their own homes and their own cleans,
+and neither Ahleyia nor another contractor can read that book. `managed_by` says
+whose book a client or a home is in — `NULL` means the studio's — and Row-Level
+Security enforces it, so the app hiding a screen is never the only thing
+stopping anyone. Their own bookings and the ones the studio assigns them compete
+for the same hours, because it is one person, and that is what drives their
+availability.
+
 **Every account is a real account.** Ahleyia adds a cleaner, they claim their
 link and get their own working day — their name, their route, their checklist,
 their notifications. There is deliberately **no way for a stranger to create a
@@ -111,13 +120,14 @@ Or run the individual files in order if you prefer:
 7. `supabase/migrations/0007_sms_consent.sql` — recorded consent to be texted
 8. `supabase/migrations/0008_job_steps_phase.sql` — the phase on each checklist step
 9. `supabase/migrations/0009_notifications.sql` — notices + push subscriptions
-10. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
+10. `supabase/migrations/0010_contractor_book.sql` — contractor-owned clients, homes and jobs; availability
+11. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
 
 **Already ran `setup.sql` before?** Do **not** re-run it — it would stop at
 `type "user_role" already exists`. Run **`supabase/upgrade.sql`** instead: it
 contains only the newer parts (invitations, SMS consent, the checklist's phase
-columns, and notifications), is safe to run more than once, and leaves your data
-untouched.
+columns, notifications, and the contractor ownership model), is safe to run more
+than once, and leaves your data untouched.
 Verified against a database in exactly that state — applied, then applied again
 with no errors.
 
@@ -232,6 +242,8 @@ demo never breaks.
 | Business dashboard | Real month, real counts, and a "Needs you" list built from what's actually outstanding — unassigned cleans, unclaimed invitations, open quotes. |
 | Views are not interchangeable | On a real deployment the zone comes from the signed-in account and nothing else. `?role=`, `?chrome=` and `?fill=` — the design-review switches that open a zone on seed data with no sign-in — are ignored outright. The account button shows your own account; the only second row it can ever show is Ahleyia's other view of her own account (business / working). |
 | Every account is its own | The greeting, avatar initials, profile, settings and role label all come from the signed-in account. A cleaner she hires sees their own name and their own route, never "Ahleyia Kee · Founder". |
+| A contractor's own book | Their clients, homes and cleans, in the app alongside the studio's work. `managed_by` (a client, a home) and `created_by` (a clean) record whose it is; RLS gives a contractor their own book plus the client and home of a clean the studio assigned them, and nothing else. Verified against real Postgres: one contractor cannot see another's client, home, clean, internal pricing or time off. |
+| Availability | Derived, not typed in twice. Every clean a contractor is on blocks its window — their own client's and the studio's alike — and they can block hours with no job behind them (a day off, another commitment). The calendar shows each window free or busy with the reason, and `book-clean` applies the same rule server-side, so a stale calendar can't put anyone in two homes at once. Ahleyia can see when a contractor is unavailable, because she has to schedule around it, but cannot invent time off on their behalf. |
 | A hired cleaner's app | Their own route (jobs assigned to them), their checklist, their notifications and settings. The Business group — dashboard, client book, hiring, pricing, service area — is not in their menu, and `create-client` / `create-staff` / `send-invite` reject a non-admin caller, so hiding the button is not the only thing stopping it. |
 | Adding a cleaner | The owner adds them (name + a phone or email); the account is provisioned straight away so she can assign work, and they set their own email and password from a single-use link. Anyone with only the code (a link mangled in a chat app) can paste it on **"I'm a cleaner with an invite"**. |
 | Notifications | Real `notifications` rows: a feed per person, unread count, mark-read, and a nudge on Home when something is waiting. Written by the functions (arrival, booking, payout, invite claimed) and by Ahleyia ("on my way", "report ready"). |
