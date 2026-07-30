@@ -78,12 +78,13 @@ export const handler = async (event: any) => {
   let stepsError: string | undefined
   if (edition?.id) {
     try {
-      const phases = await sbSelect('phases', `edition_id=eq.${edition.id}&select=id,ord&order=ord`)
+      const phases = await sbSelect('phases', `edition_id=eq.${edition.id}&select=id,ord,title&order=ord`)
       if (phases.length) {
         const ids = phases.map((p: any) => `"${p.id}"`).join(',')
         const steps = await sbSelect('steps', `phase_id=in.(${ids})&select=id,phase_id,ord,text,photo_required&order=ord`)
         const phaseOrd: Record<string, number> = {}
-        phases.forEach((p: any) => { phaseOrd[p.id] = p.ord })
+        const phaseTitle: Record<string, string> = {}
+        phases.forEach((p: any) => { phaseOrd[p.id] = p.ord; phaseTitle[p.id] = p.title })
         const ordered = steps.slice().sort((a: any, b: any) =>
           (phaseOrd[a.phase_id] - phaseOrd[b.phase_id]) || (a.ord - b.ord))
         if (ordered.length) {
@@ -93,6 +94,10 @@ export const handler = async (event: any) => {
             ord: i + 1,
             text: st.text,
             photo_required: !!st.photo_required,
+            // The phase travels with the step, so reading the checklist needs
+            // no joins back through steps → phases.
+            phase_title: phaseTitle[st.phase_id] ?? null,
+            phase_ord: phaseOrd[st.phase_id] ?? null,
           })))
           stepCount = ordered.length
         }

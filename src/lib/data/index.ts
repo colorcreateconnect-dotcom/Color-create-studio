@@ -39,6 +39,34 @@ export interface DataSource {
   orgQuotes(): Promise<Quote[]>
   createQuote(input: { orgId: string; ownerId: string; propertyId?: string; clientAmount: number; cadence?: string }): Promise<Quote>
   chargesForJobs(jobIds: string[]): Promise<Charge[]>
+  /** The real checklist for a job, in Kee Method order. */
+  liveJobSteps(jobId: string): Promise<LiveStep[]>
+  /** Tick / untick one step. RLS: staff in the job's org. */
+  setJobStep(stepRowId: string, completed: boolean): Promise<void>
+  /** Every job in the org — the scheduling calendar reads this. */
+  orgJobs(): Promise<Job[]>
+  /** Add a property for a client (staff) or yourself (owner). */
+  createPropertyFor(input: NewProperty): Promise<Property>
+  /** Move a job through its working states. Staff only (RLS). */
+  setJobStatus(jobId: string, patch: JobProgress): Promise<void>
+  /** Instantiate the Kee Method for a job whose checklist is missing. */
+  buildJobSteps(jobId: string): Promise<number>
+}
+
+/** The working-state fields a cleaner moves as she does the job. Money state
+ *  is deliberately absent — that only ever moves through the functions. */
+export interface JobProgress {
+  status?: 'scheduled' | 'in_progress' | 'complete' | 'cancelled'
+  startedAt?: string
+  finishedAt?: string
+  submittedAt?: string
+}
+
+/** A checklist row as the cleaner works it. */
+export interface LiveStep {
+  id: string; ord: number; text: string
+  photoRequired: boolean; completed: boolean
+  phaseTitle: string | null; phaseOrd: number | null
 }
 
 /** Shared thread key for an owner's conversation with the studio. */
@@ -48,7 +76,7 @@ export const threadKeyForOwner = (ownerId: string) => `owner:${ownerId}`
 const num = (v: any): number | undefined => (v == null ? undefined : Number(v))
 
 function mapUser(r: any): User {
-  return { id: r.id, orgId: r.org_id ?? null, role: r.role, fullName: r.full_name, phone: r.phone, email: r.email }
+  return { id: r.id, orgId: r.org_id ?? null, role: r.role, fullName: r.full_name, phone: r.phone, email: r.email, onboardingState: r.onboarding_state ?? undefined }
 }
 function mapProperty(r: any): Property {
   return {
@@ -173,6 +201,68 @@ class SupabaseData implements DataSource {
     })
     return mapQuote(row)
   }
+  async liveJobSteps(jobId: string) {
+    const rows = await this.rest<any[]>(`job_steps?job_id=eq.${jobId}&select=id,ord,text,photo_required,completed,phase_title,phase_ord&order=phase_ord.nullsfirst,ord`)
+    return rows.map((r) => ({
+      id: r.id, ord: r.ord, text: r.text,
+      photoRequired: !!r.photo_required, completed: !!r.completed,
+      phaseTitle: r.phase_title ?? null, phaseOrd: r.phase_ord ?? null,
+    }))
+  }
+  async setJobStep(stepRowId: string, completed: boolean) {
+    const res = await fetch(`${this.url}/rest/v1/job_steps?id=eq.${stepRowId}`, {
+      method: 'PATCH',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+      body: JSON.stringify({ completed }),
+    })
+    if (!res.ok) throw new Error(`Could not save that step (${res.status})`)
+  }
+  async orgJobs() { return (await this.rest<any[]>(`jobs?select=*&order=window_start.nullslast`)).map(mapJob) }
+  async createPropertyFor(input: NewProperty) { return this.createProperty(input) }
+  async setJobStatus(jobId: string, patch: JobProgress) {
+    const body: Record<string, unknown> = {}
+    if (patch.status) body.status = patch.status
+    if (patch.startedAt) body.started_at = patch.startedAt
+    if (patch.finishedAt) body.finished_at = patch.finishedAt
+    if (patch.submittedAt) body.submitted_at = patch.submittedAt
+    if (!Object.keys(body).length) return
+    const res = await fetch(`${this.url}/rest/v1/jobs?id=eq.${jobId}`, {
+      method: 'PATCH',
+      headers: this.headers({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) throw new Error(`Could not update that job (${res.status})`)
+  }
+  /* Repair path for a job whose checklist never got built — a job booked
+     before the templates were seeded, or one whose step insert failed after
+     the job row was already committed. Staff-only by RLS on job_steps. */
+  async buildJobSteps(jobId: string) {
+    const existing = await this.rest<any[]>(`job_steps?job_id=eq.${jobId}&select=id&limit=1`)
+    if (existing.length) return 0
+    const [job] = await this.rest<any[]>(`jobs?id=eq.${jobId}&select=id,type,edition_id`)
+    if (!job) throw new Error('That job no longer exists')
+    let editionId: string | null = job.edition_id
+    if (!editionId) {
+      const type = job.type === 'turnover' ? 'vacation_rental' : 'luxury_home'
+      const [ed] = await this.rest<any[]>(`editions?type=eq.${type}&select=id&limit=1`)
+      editionId = ed?.id ?? null
+    }
+    if (!editionId) throw new Error('No Kee Method template is set up yet')
+    const phases = await this.rest<any[]>(`phases?edition_id=eq.${editionId}&select=id,ord,title&order=ord`)
+    if (!phases.length) throw new Error('That template has no phases yet')
+    const ids = phases.map((p) => `"${p.id}"`).join(',')
+    const steps = await this.rest<any[]>(`steps?phase_id=in.(${ids})&select=id,phase_id,ord,text,photo_required&order=ord`)
+    const ord: Record<string, number> = {}, title: Record<string, string> = {}
+    phases.forEach((p) => { ord[p.id] = p.ord; title[p.id] = p.title })
+    const ordered = steps.slice().sort((a, b) => (ord[a.phase_id] - ord[b.phase_id]) || (a.ord - b.ord))
+    if (!ordered.length) throw new Error('That template has no steps yet')
+    await this.restPost('job_steps', ordered.map((st, i) => ({
+      job_id: jobId, step_id: st.id, ord: i + 1, text: st.text,
+      photo_required: !!st.photo_required,
+      phase_title: title[st.phase_id] ?? null, phase_ord: ord[st.phase_id] ?? null,
+    })))
+    return ordered.length
+  }
   async chargesForJobs(jobIds: string[]) {
     if (!jobIds.length) return [] as Charge[]
     const list = jobIds.map((id) => `"${id}"`).join(',')
@@ -204,6 +294,12 @@ class MockData implements DataSource {
     return { id: 'mock-quote', status: 'sent', clientAmount: i.clientAmount, cadence: i.cadence } as Quote
   }
   async chargesForJobs() { return [] as Charge[] }
+  async liveJobSteps() { return [] as LiveStep[] }
+  async setJobStep() { /* demo: nothing to persist */ }
+  async orgJobs() { return [] as Job[] }
+  async createPropertyFor(input: NewProperty) { return this.createProperty(input) }
+  async setJobStatus() { /* demo: nothing to persist */ }
+  async buildJobSteps() { return 0 }
 }
 
 let singleton: DataSource | null = null

@@ -10,7 +10,7 @@ import {
   DetailHeader, JobCard, ProgressRing, PhaseAccordion, ChecklistTask, SupplyRow,
   PriceBox, Stepper, TextField, Checkbox,
 } from '../../ds/components'
-import { AddClientScreen, AddStaffScreen } from './invite'
+import { AddClientScreen, AddStaffScreen, AddPropertyScreen } from './invite'
 
 const ICON = './assets/brand/app-icon.png'
 const QR = './assets/brand/share-card-qr.png'
@@ -56,7 +56,17 @@ export function CleanerScreens(v: any) {
           </Card>
           <NoteCard tone="eco" icon="✨">Quiet days are good days to restock. Two units are below par on paper towels.</NoteCard>
         </>)}
-        {v.hasJobs && (<>
+        {/* Live account: the route is the jobs that are actually booked. */}
+        {v.hideSeedRoute && v.hasJobs && (<>
+          <SectionLabel>{v.liveNextLabel}</SectionLabel>
+          {v.liveJobCards.map((j: any) => (
+            <JobCard key={j.id} name={j.name} address={j.address} type={j.type} typeTone={j.tone}
+              guestOut={j.guestOut} guestIn={j.guestIn} metas={j.metas}
+              progress={j.progress} progressLabel={j.progressLabel} onClick={j.open} />
+          ))}
+          <NoteCard tone="eco" icon="✅">Open a home to work its Kee Method™ checklist. Every tick saves as you go — the owner’s report writes itself.</NoteCard>
+        </>)}
+        {!v.hideSeedRoute && v.hasJobs && (<>
           <SectionLabel action="Map view" onAction={v.goMap}>Today’s route</SectionLabel>
           <NoteCard tone="money" icon="📍"><b>You’re at the Hartwell Estate.</b> Check in to charge the owner’s card and release your 50% now.
             <div style={css('margin-top:10px')}><Button variant="green" size="sm" onClick={v.goCheckin}>Check in & start</Button></div>
@@ -98,7 +108,7 @@ export function CleanerScreens(v: any) {
   )
 
   if (v.cCheckin) return <Checkin v={v} />
-  if (v.cJob) return <ActiveClean v={v} />
+  if (v.cJob) return v.liveChecklist ? <LiveClean v={v} /> : <ActiveClean v={v} />
   if (v.cLux) return <LuxClean v={v} />
   if (v.cAssist) return <Assist v={v} />
   if (v.cSupplies) return <Supplies v={v} />
@@ -154,6 +164,7 @@ export function CleanerScreens(v: any) {
   if (v.aTeam) return <Team v={v} />
   if (v.aAddClient) return <AddClientScreen v={v} />
   if (v.aAddStaff) return <AddStaffScreen v={v} />
+  if (v.aAddProp) return <AddPropertyScreen v={v} />
   if (v.aClients) return <Clients v={v} />
   if (v.aSettings) return <BizSettings v={v} />
   if (v.aArea) return <Area v={v} />
@@ -224,6 +235,67 @@ function Checkin({ v }: { v: any }) {
           <NoteCard tone="warn" icon="💡"><b>While you wait:</b> stay on site if you can — most cards clear within a few minutes of the owner updating them. Your window doesn’t close until 4:00.</NoteCard>
           <Button onClick={v.retryCharge}>Try the payment again</Button>
           <div style={css('margin-top:10px')}><Button variant="ghost" onClick={v.openHartwell}>Message the owner</Button></div>
+        </>)}
+      </div>
+    </>
+  )
+}
+
+/* ----------------------------------------------------------- Live clean --
+   The same screen as ActiveClean, driven by rows in job_steps instead of the
+   seed showcase. Every tick is written to Postgres as it happens, so the
+   checklist survives a closed tab, a dead battery, or a different phone. */
+function LiveClean({ v }: { v: any }) {
+  if (v.liveNoOpenJob) return (
+    <>
+      <DetailHeader onBack={v.goBack} badge={v.badgeAddProp} title="No clean open" subtitle="Open a home from Today to start its checklist" />
+      <div style={css('padding:22px')}>
+        <Card tone="blush">
+          <div style={css('text-align:center;padding:6px 4px')}>
+            <div style={css('font-size:34px')}>✅</div>
+            <div style={css('font-family:var(--font-serif-display);font-size:23px;line-height:1.1;margin-top:10px')}>Nothing in progress</div>
+            <p style={css('margin:8px auto 16px;max-width:250px;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Pick a home on Today and its Kee Method™ checklist opens here.</p>
+            <Button icon="🏠" onClick={v.goToday}>Go to today’s route</Button>
+          </div>
+        </Card>
+      </div>
+    </>
+  )
+  return (
+    <>
+      <DetailHeader onBack={v.goBack} badge={v.liveJobBadge} title={v.liveJobName} subtitle={v.liveJobSub}>
+        <ProgressRing value={v.livePct} size={64} done={v.liveDone} total={v.liveTotal} onBrand />
+      </DetailHeader>
+      <div style={css('padding:22px')}>
+        {v.liveOwnerName && (
+          <Card flush>
+            <SupplyRow icon="👤" name={v.liveOwnerName} sub="Client on this job" right={v.liveAmount} last />
+          </Card>
+        )}
+        {v.liveStepsBusy && <NoteCard tone="cream" icon="⏳">Loading this home’s checklist…</NoteCard>}
+        {v.liveStepsErr && <NoteCard tone="warn" icon="⚠️">{v.liveStepsErr}</NoteCard>}
+        {v.liveNoSteps && (
+          <NoteCard tone="warn" icon="📋">This job doesn’t have a checklist yet.
+            <div style={css('margin-top:10px')}><Button variant="ghost" size="sm" onClick={v.buildChecklist}>Build it from the Kee Method™</Button></div>
+          </NoteCard>
+        )}
+        {!!v.liveTotal && (<>
+          <NoteCard tone="eco" icon="🌱"><b>The Kee Method™.</b> Work top to bottom — it’s built so you finish with only the floors left. Each tick saves the moment you make it.</NoteCard>
+          <SectionLabel right={v.liveDone + ' of ' + v.liveTotal}>Today’s checklist</SectionLabel>
+          {v.livePhases.map((ph: any, i: number) => (
+            <PhaseAccordion key={i} icon={ph.icon} title={ph.title} done={ph.done} total={ph.total} open={ph.open} onToggle={ph.toggle}>
+              {ph.steps.map((st: any, j: number) => (
+                <ChecklistTask key={j} checked={st.on} onChange={st.toggle} photoRequired={st.photo} photoAdded={st.added} onAddPhoto={st.photo ? st.add : undefined} photoWash={st.wash} photoStamp={st.stamp}>{st.label}</ChecklistTask>
+              ))}
+            </PhaseAccordion>
+          ))}
+          <NoteCard tone="pink" icon="⏱️">Running behind or need to hand this off? Move it — the owner is never charged when the change is on your side.
+            <div style={css('margin-top:10px')}><Button variant="ghost" size="sm" onClick={v.goMove}>Move or hand off</Button></div>
+          </NoteCard>
+          {v.liveJobDone
+            ? <NoteCard tone="money" icon="✓">This clean is closed out. The owner has the report.</NoteCard>
+            : <Button variant="green" onClick={v.liveComplete}>Complete & send owner report</Button>}
+          <p style={css('margin:10px 2px 0;font-size:11px;color:var(--text-muted);text-align:center')}>Owner is notified with your timestamps the moment you close it out</p>
         </>)}
       </div>
     </>
@@ -795,7 +867,7 @@ function AdminDash({ v }: { v: any }) {
           {v.liveClientCount != null ? (<>
             <StatTile value={v.liveClientCount} label="Clients" color="var(--magenta)" accent />
             <StatTile value={v.livePropCountAll} label="Properties" color="var(--green-deep)" />
-            <StatTile value={v.liveTodayCount} label="Cleans booked" color="var(--orange)" />
+            <StatTile value={v.liveJobCountAll} label="Cleans booked" color="var(--orange)" />
             <StatTile value={v.liveQuoteCount} label="Quotes sent" color="var(--green-deep)" />
           </>) : (<>
             <StatTile value="$18,240" label="Billed to clients" color="var(--magenta)" accent />
@@ -804,18 +876,25 @@ function AdminDash({ v }: { v: any }) {
             <StatTile value="100%" label="Photo-verified" color="var(--green-deep)" />
           </>)}
         </div>
-        <SectionLabel right={v.chipTwoOpen}>Needs you</SectionLabel>
-        <Card flush>
-          <SupplyRow icon="🧮" name="Quote waiting to be sent" sub="Buckhead lead · 3-bed Airbnb · asked 2 hours ago" right={v.chipDo} onClick={v.goQuote} />
-          <SupplyRow icon="⏳" name="1 payment awaiting owner approval" sub="Hartwell Estate · $110 releases automatically in 47h" right={v.chipWatch} onClick={v.goPayouts} />
-          <SupplyRow icon="👤" name="Tiana’s certification renews Aug 12" sub="Kee Method™ recert · 19 days" right="›" onClick={v.goTeam} last />
-        </Card>
+        <SectionLabel right={v.liveNeedsChip || v.chipTwoOpen}>Needs you</SectionLabel>
+        {v.liveNeeds
+          ? (v.liveNeeds.length
+            ? <Card flush>{v.liveNeeds.map((r: any, i: number) => <SupplyRow key={i} icon={r.icon} name={r.name} sub={r.sub} right={r.right} onClick={r.go} last={r.last} />)}</Card>
+            : <NoteCard tone="eco" icon="✓">Nothing waiting on you. Every clean is assigned and every client is set up.</NoteCard>)
+          : (
+            <Card flush>
+              <SupplyRow icon="🧮" name="Quote waiting to be sent" sub="Buckhead lead · 3-bed Airbnb · asked 2 hours ago" right={v.chipDo} onClick={v.goQuote} />
+              <SupplyRow icon="⏳" name="1 payment awaiting owner approval" sub="Hartwell Estate · $110 releases automatically in 47h" right={v.chipWatch} onClick={v.goPayouts} />
+              <SupplyRow icon="👤" name="Tiana’s certification renews Aug 12" sub="Kee Method™ recert · 19 days" right="›" onClick={v.goTeam} last />
+            </Card>
+          )}
         <SectionLabel>Run the business</SectionLabel>
         <Card flush>
           <SupplyRow icon="📅" name="Booking calendar" sub="Every clean, and who has it" right="›" onClick={v.goCalendar} />
-          <SupplyRow icon="📌" name="Assign jobs" sub={v.assignRowSub} right={v.assignRowChip} onClick={v.goAssign} />
-          <SupplyRow icon="👥" name="Team & certification" sub="1 assistant · splits · who can see what" right="›" onClick={v.goTeam} />
-          <SupplyRow icon="🏡" name="Clients & properties" sub="9 clients · 14 properties · 2 quotes out" right="›" onClick={v.goClients} />
+          {!v.liveNeeds && <SupplyRow icon="📌" name="Assign jobs" sub={v.assignRowSub} right={v.assignRowChip} onClick={v.goAssign} />}
+          {v.liveNeeds && <SupplyRow icon="🏠" name="Add a home for a client" sub="Manually, for a client you already have" right="›" onClick={v.goAddProp} />}
+          <SupplyRow icon="👥" name="Team & certification" sub={v.liveTeamSub || '1 assistant · splits · who can see what'} right="›" onClick={v.goTeam} />
+          <SupplyRow icon="🏡" name="Clients & properties" sub={v.clientsSub || '9 clients · 14 properties · 2 quotes out'} right="›" onClick={v.goClients} />
           <SupplyRow icon="🧮" name="Pricing rules" sub="$50/hr floor · deep $65 · 40% assistant split" right="›" onClick={v.goQuote} />
           <SupplyRow icon="📋" name="Kee Method™ templates" sub="Turnover 26 · Luxury home 31" right="›" onClick={v.goTplTurn} />
           <SupplyRow icon="⚙️" name="Business settings" sub="Payouts, brand, service area, access" right="›" onClick={v.goBizSettings} last />
@@ -885,13 +964,20 @@ function Team({ v }: { v: any }) {
 function Clients({ v }: { v: any }) {
   return (
     <>
-      <DetailHeader onBack={v.goBack} badge={v.badgeBook} title="Clients & properties" subtitle="9 clients · 14 properties · 2 quotes out" />
+      <DetailHeader onBack={v.goBack} badge={v.badgeBook} title="Clients & properties" subtitle={v.clientsSub || '9 clients · 14 properties · 2 quotes out'} />
       <div style={css('padding:22px')}>
-        <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap;margin-bottom:var(--stack-card)')}>
-          {v.clientFilters.map((c: any, i: number) => <Pill key={i} selected={c.on} onClick={c.pick}>{c.label}</Pill>)}
-        </div>
+        {!v.liveBook && (
+          <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap;margin-bottom:var(--stack-card)')}>
+            {v.clientFilters.map((c: any, i: number) => <Pill key={i} selected={c.on} onClick={c.pick}>{c.label}</Pill>)}
+          </div>
+        )}
         <Card flush>{v.clientRows.map((c: any, i: number) => <SupplyRow key={i} icon={c.icon} iconStyle={c.tile} name={c.name} sub={c.sub} flag={c.flag} right={c.right} last={c.last} onClick={c.go} />)}</Card>
-        <NoteCard tone="money" icon="📈"><b>Recurring clients are the business.</b> 7 of your 9 are on a weekly or biweekly cadence — that’s $12,400 of this month’s billing you didn’t have to sell twice.</NoteCard>
+        {v.liveBook
+          ? (<>
+            <Button icon="➕" onClick={v.goAddClient}>Add a client you already have</Button>
+            <div style={css('margin-top:10px')}><Button variant="ghost" icon="🏠" onClick={v.goAddProp}>Add a home for a client</Button></div>
+          </>)
+          : <NoteCard tone="money" icon="📈"><b>Recurring clients are the business.</b> 7 of your 9 are on a weekly or biweekly cadence — that’s $12,400 of this month’s billing you didn’t have to sell twice.</NoteCard>}
         <Button variant="ghost" icon="💌" onClick={v.goShare}>Share your card with a new lead</Button>
       </div>
     </>

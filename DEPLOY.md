@@ -11,13 +11,16 @@ Done and verified on the deployed site:
   (real org clients + property counts), real sign-out
 - Money-path endpoints live in functions (simulated adapter until Square keys)
 
-Also live: messaging (both directions), quotes (admin sends → client sees and
+Also live: **the working checklist** (real `job_steps`, ticked straight into
+Postgres), **scheduling** (a real calendar of real jobs, booking through
+`book-clean`), **manual property entry** (a home added to a client she already
+has), messaging (both directions), quotes (admin sends → client sees and
 accepts), receipts, the cleaner route and the business dashboard numbers — see
 §7 for the full table.
 
-Still seed/sample content (same pattern when needed): service reports,
-schedule/calendar, supplies. Needs your input: Square keys (real payments), an
-SMS provider in Supabase Auth (client phone OTP), custom domain (optional).
+Still seed/sample content (same pattern when needed): service reports, supplies,
+payouts, My Week. Needs your input: Square keys (real payments), an SMS provider
+in Supabase Auth (client phone OTP), custom domain (optional).
 
 This is the runbook to take the app live on **your Supabase project** with
 payments deferred. It's written so that adding Square later is just a few env
@@ -81,13 +84,15 @@ Or run the individual files in order if you prefer:
 5. `supabase/migrations/0005_auth_users.sql` — **auth → app user linkage (required)**
 6. `supabase/migrations/0006_client_invites.sql` — client invitations
 7. `supabase/migrations/0007_sms_consent.sql` — recorded consent to be texted
-8. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
+8. `supabase/migrations/0008_job_steps_phase.sql` — the phase on each checklist step
+9. `supabase/seed.sql` — the organization + The Kee Method™ (reference data)
 
 **Already ran `setup.sql` before?** Do **not** re-run it — it would stop at
 `type "user_role" already exists`. Run **`supabase/upgrade.sql`** instead: it
-contains only the newer parts (invitations + SMS consent), is safe to run more
-than once, and leaves your data untouched. Verified against a database in
-exactly that state.
+contains only the newer parts (invitations, SMS consent, and the checklist's
+phase columns), is safe to run more than once, and leaves your data untouched.
+Verified against a database in exactly that state — applied, then applied again
+with no errors.
 
 `0005` installs a trigger so every Supabase Auth signup automatically gets a
 `public.users` row (self-signups default to role `owner`, no org). Without it,
@@ -192,7 +197,12 @@ demo never breaks.
 | Messaging | One real thread per client (`thread_key = owner:<id>`), both directions, RLS-scoped. |
 | Quotes | Admin writes a real `quotes` row + posts it on the client's thread; the client sees the real amount and accepts by replying. |
 | Receipts | Real `charges` rows with an honest empty state. |
-| Route + dashboard | Real counts; honest empty route (jobs are created server-side by design). |
+| Today's route | The org's real jobs for today (or the next ones up), each opening its own checklist. The seed showcase homes never appear on a live account. |
+| The checklist | Real `job_steps` rows, grouped into the Kee Method's phases. Each tick is a `PATCH` under RLS; the first tick moves the job to `in_progress`; "Complete" closes it out. A failed write puts the tick back where it was. A job whose checklist never got built can be repaired from the template in one tap. |
+| Booking calendar | Real months (never before the current one), real jobs as dots, the day's real bookings listed, and free two-hour windows computed from what's actually booked. Staff pick the home; the button creates a real job. |
+| Owner schedule | The client's real upcoming cleans, with window and price. Reschedule / add / cancel open the real thread with the ask written for them. |
+| Add a home for a client | Staff write a `properties` row for an existing client (RLS: their own org only). It's bookable immediately. |
+| Business dashboard | Real month, real counts, and a "Needs you" list built from what's actually outstanding — unassigned cleans, unclaimed invitations, open quotes. |
 
 ### Booking a clean (server-side by design)
 
@@ -206,7 +216,15 @@ charges** — the one capture still happens at geofenced check-in.
 
 The booking calendar's "Book <day>" button calls it. Verified against real
 Postgres: a 2-bed turnover prices to $142 and instantiates all 26 steps in
-Kee Method order.
+Kee Method order, each stamped with its phase.
+
+### The checklist is enforced at the database, not the UI
+
+`job_steps` has a staff-only write policy, so a client can read their own
+checklist (it is their proof) but cannot tick it. Verified against real
+Postgres: staff tick a step and move a job's status (1 row each); the job's own
+owner attempting both changes **0 rows**; a different client of the same studio
+sees no steps, no jobs and no properties at all.
 
 ### Every privileged function authenticates its caller
 

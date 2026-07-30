@@ -126,7 +126,18 @@ function Calendar({ v }: { v: any }) {
         </Card>
         <SectionLabel right={v.calDayChip}>{v.calDayTitle}</SectionLabel>
         <Card flush>{v.calDayRows.map((r: any, i: number) => <SupplyRow key={i} icon={r.icon} iconStyle={r.tile} name={r.name} sub={r.sub} right={r.right} last={r.last} onClick={r.go} />)}</Card>
-        {v.calIsAdmin && (<>
+        {/* Live: put a real clean on the calendar for whichever home is picked. */}
+        {v.calProps && v.calIsAdmin && (<>
+          <NoteCard tone="cream" icon="⏱️">Five two-hour windows a day. Days at capacity are dimmed, and anything still unassigned shows an orange dot.</NoteCard>
+          <Card>
+            <SectionLabel>Book a clean</SectionLabel>
+            {v.calNoProps
+              ? <p style={css('margin:0;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>No properties yet — add a client’s home first and it shows up here.</p>
+              : <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap')}>{v.calProps.map((p: any, i: number) => <Pill key={i} selected={p.on} onClick={p.pick}>{p.label}</Pill>)}</div>}
+          </Card>
+          {!v.calNoProps && <Button variant="green" onClick={v.calBook}>{v.calBookLabel}</Button>}
+        </>)}
+        {!v.calProps && v.calIsAdmin && (<>
           <NoteCard tone="cream" icon="⏱️">Five two-hour windows a day. Days at capacity are dimmed, and anything still unassigned shows an orange dot.</NoteCard>
           <Button onClick={v.goAssign}>Assign this week’s cleans</Button>
         </>)}

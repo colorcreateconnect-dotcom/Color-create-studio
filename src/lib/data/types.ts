@@ -12,7 +12,12 @@ export type PaymentState =
   | 'awaiting_approval' | 'approved' | 'auto_approved_48h' | 'final_released'
   | 'settled' | 'disputed' | 'refunded'
 
-export interface User { id: string; orgId: string | null; role: Role; fullName?: string; phone?: string; email?: string }
+export interface User {
+  id: string; orgId: string | null; role: Role
+  fullName?: string; phone?: string; email?: string
+  /** 'invited' = provisioned by the studio, hasn't claimed their login yet. */
+  onboardingState?: 'invited' | 'active'
+}
 
 export interface Property {
   id: string; orgId: string; ownerId: string; name: string; type: PropertyType

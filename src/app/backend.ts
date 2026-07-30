@@ -50,9 +50,10 @@ export async function hydrate(): Promise<Hydration> {
   const user = await data.currentUser().catch(() => null)
   if (!user) return { ...empty, signedIn: true }
   const isOwner = user.role === 'owner'
-  const jobs = await data
-    .jobs(isOwner ? { ownerId: user.id } : { cleanerId: user.id })
-    .catch(() => [] as Job[])
+  // An owner sees their own jobs. Staff see the whole org's — including cleans
+  // nobody is assigned to yet, which are exactly the ones the schedule has to
+  // surface. (Filtering to cleaner_id = me hid every unassigned job.)
+  const jobs = await (isOwner ? data.jobs({ ownerId: user.id }) : data.orgJobs()).catch(() => [] as Job[])
   // Owner sees their own properties; staff/admin see the whole org's + its clients.
   const properties = await (isOwner ? data.properties(user.id) : data.orgProperties()).catch(() => [] as Property[])
   const clients = isOwner ? [] : await data.orgClients().catch(() => [] as User[])

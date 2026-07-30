@@ -8,6 +8,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Chip, MetaTag, VerifiedBadge } from '../ds/components'
 import { residentialQuote, airbnbQuote, type Staging } from '../lib/pricing'
 import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/concierge'
+import { groupSteps, checklistProgress } from '../lib/checklist'
+import { SLOTS, windowFor, slotTaken } from '../lib/schedule'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
@@ -58,7 +60,7 @@ const AMEN: Any[] = [
   { id: 'm5', icon: '🚿', name: 'Shampoo', def: 0 },
 ]
 const PHASES = [[1, 6], [7, 11], [12, 18], [19, 22], [23, 26]]
-const SLOTS = ['8 – 10 AM', '10 AM – 12 PM', '12 – 2 PM', '2 – 4 PM', '4 – 6 PM']
+
 const DAY_BOOKINGS: Any = {
   24: [
     { slot: '10 AM – 12 PM', kind: 'turnover', name: 'Skyline Loft 12B', who: 'Tiana' },
@@ -209,6 +211,13 @@ function initialState(props: ModelProps): Any {
     beReady: false, beSignedIn: false, beUser: null, beCard: null,
     beJobs: [], beProps: [], beClients: [], beActiveJobId: null, beBusy: false,
     beMsgs: [], beQuotes: [], beReports: [], beCharges: [], beThreadOwner: null,
+    // The real checklist: rows of job_steps for the job that's open, ticked
+    // straight into Postgres. beStepsJobId is what the effect watches.
+    beSteps: [], beStepsJobId: null, beStepsBusy: false, beStepsErr: '', bePhaseOpen: 1,
+    // Manual property entry (staff adding a home for a client they already have)
+    npOwner: '', npName: '', npKind: 'residential', npArea: '', npBeds: '', npBaths: '', npErr: '',
+    // Live scheduling: which month/day of the real calendar is in view
+    calYM: null, calPick: null, calProp: '',
     access: { routes: true, checklists: true, supplies: true, ownernotes: true },
     onotif: { reports: true, cleaning: true, supplies: true, summary: false },
     cnotif: { bookings: true, approvals: true, supplies: true },
@@ -311,6 +320,27 @@ export function useModel(props: ModelProps) {
     return () => { alive = false }
   }, [])
 
+  /* The open job's real checklist. Loads whenever a different job is opened;
+     ticks are written back one row at a time by toggleLiveStep below. */
+  useEffect(() => {
+    const jobId = s.beStepsJobId
+    if (!backendActive() || !jobId) return
+    let alive = true
+    setState((st: Any) => ({ ...st, beStepsBusy: true, beStepsErr: '' }))
+    getData().liveJobSteps(jobId)
+      .then((rows) => {
+        if (!alive) return
+        setState((st: Any) => (st.beStepsJobId === jobId ? { ...st, beSteps: rows, beStepsBusy: false } : st))
+      })
+      .catch((e) => {
+        if (!alive) return
+        setState((st: Any) => (st.beStepsJobId === jobId
+          ? { ...st, beSteps: [], beStepsBusy: false, beStepsErr: errMsg(e, 'Couldn’t load this checklist') }
+          : st))
+      })
+    return () => { alive = false }
+  }, [s.beStepsJobId])
+
   /* An invitation link was opened — load what Ahleyia already filled in. The
      token is the credential here, so this runs before any sign-in. */
   useEffect(() => {
@@ -400,7 +430,12 @@ export function useModel(props: ModelProps) {
       cleanerTabs: [{ icon: '🏠', label: 'Today' }, { icon: '✅', label: 'Active' }, { icon: '💬', label: 'Inbox' }, { icon: '👤', label: 'My Week' }],
       ownerTabs: [{ icon: '🏡', label: 'Homes' }, { icon: '📋', label: 'Reports' }, { icon: '🧴', label: 'Supplies' }, { icon: '💬', label: 'Messages' }],
       cTab: s.cTab, oTab: s.oTab,
-      pickCTab: (i: number) => set({ cTab: i, c: ['today', 'job', 'inbox', 'profile'][i], hist: [], menuOpen: false }),
+      // The Active tab opens whatever job is actually in play. On a live account
+      // that means the real one — never the seed showcase clean.
+      pickCTab: (i: number) => set((st: Any) => ({
+        cTab: i, c: ['today', 'job', 'inbox', 'profile'][i], hist: [], menuOpen: false,
+        ...(i === 1 && !st.beStepsJobId && st.beActiveJobId ? { beStepsJobId: st.beActiveJobId } : {}),
+      })),
       pickOTab: (i: number) => set({ oTab: i, o: ['home', 'report', 'supplies', 'messages'][i], hist: [], menuOpen: false }),
       toastOn: s.toastOn, toastMsg: s.toast,
       sheetOpen: s.sheetOpen,
@@ -462,6 +497,37 @@ export function useModel(props: ModelProps) {
         { name: '4+ Bedroom', sub: 'Full Kee Method™ turnover', chip: chip('t4', 'deep', 'from $185'), last: true },
       ],
     }
+
+    /* ================= the real day: jobs, checklist, scheduling =========
+       These read rows that exist in Postgres. With no backend configured
+       `liveWork` is false, every live field below stays undefined, and the
+       screens fall back to the seed showcase — the demo is untouched. */
+    const liveWork = backendActive() && s.beSignedIn && !!s.beUser
+    const liveStaffWork = liveWork && s.beUser.role !== 'owner'
+    const propById: Any = {}
+    ;(s.beProps || []).forEach((p: Any) => { propById[p.id] = p })
+    const clientById: Any = {}
+    ;(s.beClients || []).forEach((c: Any) => { clientById[c.id] = c })
+    const clientName = (id: string) => {
+      const u = clientById[id]
+      return (u?.fullName || (u?.email || '').split('@')[0] || 'Client').trim()
+    }
+    const jobType = (j: Any) => j.type === 'turnover' ? 'Turnover' : (j.type === 'deep' ? 'Deep clean' : 'Refresh clean')
+    const jobTone = (j: Any) => j.type === 'turnover' ? 'turn' : 'refresh'
+    const timeOf = (iso?: string) => {
+      if (!iso) return null
+      const d = new Date(iso)
+      if (isNaN(d.getTime())) return null
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    }
+    const dayKey = (iso?: string) => {
+      if (!iso) return ''
+      const d = new Date(iso)
+      if (isNaN(d.getTime())) return ''
+      return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()
+    }
+    const PROGRESS: Any = { scheduled: 0, in_progress: 55, complete: 100, cancelled: 0 }
+    const PROGRESS_LABEL: Any = { scheduled: 'Not started', in_progress: 'In progress', complete: 'Complete · report sent', cancelled: 'Cancelled' }
 
     v.scopeOpts = ['Whole home', 'Main level', 'Bathrooms only', 'Kitchen & living', 'Bonus / guest areas', 'A loved one’s home'].map((label) => ({
       label, on: !!s.scopes[label],
@@ -1560,18 +1626,9 @@ export function useModel(props: ModelProps) {
       if (!live || !target) {
         go({ o: 'schedule' }); say('Booked · July ' + s.calDay + ', ' + pickedSlot + ' 📅'); return
       }
-      // Turn "10 AM – 12 PM" on the chosen July day into a real window.
-      const hourOf = (txt: string) => {
-        const m = /(\d+)(?::(\d+))?\s*(AM|PM)/i.exec(txt || '')
-        if (!m) return 10
-        let h = parseInt(m[1], 10) % 12
-        if (/PM/i.test(m[3])) h += 12
-        return h
-      }
-      const parts = String(pickedSlot).split('–')
+      // Turn the chosen window on the chosen July day into real timestamps.
       const y = new Date().getFullYear()
-      const startAt = new Date(y, 6, Number(s.calDay), hourOf(parts[0]), 0, 0)
-      const endAt = new Date(y, 6, Number(s.calDay), hourOf(parts[1] || parts[0]) || hourOf(parts[0]) + 2, 0, 0)
+      const { start: startAt, end: endAt } = windowFor(y, 6, Number(s.calDay), String(pickedSlot))
       try {
         set({ beBusy: true })
         const r = await api.bookClean({
@@ -1587,6 +1644,150 @@ export function useModel(props: ModelProps) {
         }))
         say('Booked · July ' + s.calDay + ' · $' + Number(r.clientAmount).toFixed(0) + ' 📅')
       } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t book that day — try again')) }
+    }
+
+    /* ---- the real booking calendar ----
+       Replaces the July-2026 fixture with actual months and the org's actual
+       jobs. Staff see every clean in the org and who has it; an owner sees
+       their own bookings (RLS gives them nothing else) and claims a window,
+       which creates a real job through book-clean. */
+    if (liveWork) {
+      const now = new Date()
+      const ym = s.calYM || { y: now.getFullYear(), m: now.getMonth() }
+      const first = new Date(ym.y, ym.m, 1)
+      const daysIn = new Date(ym.y, ym.m + 1, 0).getDate()
+      const isThisMonth = ym.y === now.getFullYear() && ym.m === now.getMonth()
+      const picked = s.calPick && s.calPick <= daysIn ? s.calPick : (isThisMonth ? now.getDate() : 1)
+      const monthLabel = first.toLocaleDateString([], { month: 'long', year: 'numeric' })
+      const step = (n: number) => {
+        const d = new Date(ym.y, ym.m + n, 1)
+        // Never page back past the current month — those days can't be booked.
+        if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) return
+        set({ calYM: { y: d.getFullYear(), m: d.getMonth() }, calPick: null })
+      }
+      const live = (s.beJobs || []).filter((j: Any) => j.status !== 'cancelled' && j.windowStart)
+      const onDay = (d: number) => live.filter((j: Any) => dayKey(j.windowStart) === ym.y + '-' + (ym.m + 1) + '-' + d)
+      const pickedJobs = onDay(picked)
+      const bookedStarts = pickedJobs.map((j: Any) => j.windowStart)
+      const taken = (slot: string) => slotTaken(slot, bookedStarts)
+      const openSlotsLive = SLOTS.filter((x) => !taken(x))
+      const fullDay = openSlotsLive.length === 0
+      const chosenSlot = openSlotsLive.indexOf(s.newWindow) >= 0 ? s.newWindow : (openSlotsLive[0] || null)
+
+      v.calMonth = monthLabel
+      v.calPrev = () => step(-1)
+      v.calNext = () => step(1)
+      v.calBadge = chip('cal0', 'onBrand', live.length + (live.length === 1 ? ' clean booked' : ' cleans booked'))
+      const cellsLive: Any[] = []
+      for (let i = 0; i < first.getDay(); i++) cellsLive.push({ day: '', dots: [], bg: 'transparent', border: 'transparent', color: 'var(--text-muted)', cursor: 'default', opacity: '1', weight: '400', pick: () => {} })
+      for (let d = 1; d <= daysIn; d++) {
+        const list = onDay(d)
+        const past = isThisMonth && d < now.getDate()
+        const sel = d === picked
+        const dots = (s.role === 'owner'
+          ? list.map(() => 'var(--ink-soft)')
+          : list.map((j: Any) => j.type === 'turnover' ? 'var(--magenta)' : 'var(--green)')).slice(0, 3)
+        if (s.role !== 'owner' && list.some((j: Any) => !j.cleanerId)) dots.push('var(--orange)')
+        cellsLive.push({
+          day: String(d), dots: dots.slice(0, 4),
+          bg: sel ? 'var(--pink-blush)' : (list.length ? 'var(--surface-cream)' : 'var(--surface-card)'),
+          border: sel ? 'var(--magenta)' : 'var(--border-default)', color: sel ? 'var(--magenta-deep)' : 'var(--ink)',
+          cursor: past ? 'default' : 'pointer', opacity: past ? '.35' : '1', weight: sel ? '600' : '400',
+          pick: past ? () => {} : () => set({ calPick: d }),
+        })
+      }
+      v.calCells = cellsLive
+      const dayLabel = new Date(ym.y, ym.m, picked).toLocaleDateString([], { month: 'long', day: 'numeric' })
+      v.calDayTitle = s.role === 'owner' ? dayLabel + ' · her times' : dayLabel
+      v.calDayChip = fullDay ? chip('cd0', 'turn', 'Fully booked') : chip('cd0', 'refresh', openSlotsLive.length + (s.role === 'owner' ? ' times open' : ' windows free'))
+      if (s.role === 'owner') {
+        v.calDayRows = SLOTS.map((slot, i, arr) => {
+          const isBusy = taken(slot)
+          const chosen = chosenSlot === slot
+          return { icon: isBusy ? '🔒' : '✓', tile: null, name: slot, sub: isBusy ? 'Booked' : 'Available · two-hour arrival window', right: isBusy ? chip('co' + i, 'ghost', 'Booked') : (chosen ? chip('co' + i, 'refresh', '✓ Chosen') : chip('co' + i, 'refresh', 'Open')), last: i === arr.length - 1, go: isBusy ? null : () => set({ newWindow: slot }) }
+        })
+      } else {
+        v.calDayRows = pickedJobs.length
+          ? pickedJobs.map((j: Any, i: number, arr: Any[]) => {
+            const p = propById[j.propertyId] || {}
+            return {
+              icon: j.type === 'turnover' ? '🏠' : '🏡', tile: null,
+              name: p.name || 'Property',
+              sub: (timeOf(j.windowStart) || 'Time TBC') + ' · ' + (j.cleanerId ? clientName(j.ownerId) : 'needs assigning'),
+              right: j.cleanerId ? chip('cr' + i, 'refresh', 'Assigned') : chip('cr' + i, 'low', 'ASSIGN'),
+              last: i === arr.length - 1,
+              go: () => go({ role: 'cleaner', c: 'job', cTab: 1, beStepsJobId: j.id }),
+            }
+          })
+          : [{ icon: '✨', name: 'Nothing booked yet', sub: 'Five two-hour windows open', right: chip('cr9', 'refresh', 'Open'), last: true, go: null }]
+      }
+
+      // Which home is being booked. An owner picks from their own; staff pick
+      // any property in the org, so a clean can be put on the calendar for a
+      // client who called instead of tapping.
+      const bookable = (s.beProps || [])
+      v.calProps = bookable.map((p: Any) => ({
+        label: p.name + (liveStaffWork && p.ownerId ? ' · ' + clientName(p.ownerId) : ''),
+        on: s.calProp ? s.calProp === p.id : bookable[0]?.id === p.id,
+        pick: () => set({ calProp: p.id }),
+      }))
+      const target = bookable.find((p: Any) => p.id === s.calProp) || bookable[0] || null
+      v.calNoProps = bookable.length === 0
+      v.calBookLabel = fullDay ? 'Pick another day' : 'Book ' + dayLabel + ' · ' + chosenSlot
+      v.calBook = async () => {
+        if (fullDay) { say('That day is fully booked — try another'); return }
+        if (!target) { say(liveStaffWork ? 'Add a property first' : 'No home on your account yet'); return }
+        const { start: startAt, end: endAt } = windowFor(ym.y, ym.m, picked, String(chosenSlot))
+        try {
+          set({ beBusy: true })
+          const r = await api.bookClean({
+            propertyId: target.id,
+            windowStart: startAt.toISOString(),
+            windowEnd: endAt.toISOString(),
+            staging: 'standard',
+          })
+          const h = await hydrate()
+          setState((t: Any) => ({
+            ...t, beBusy: false, beJobs: h.jobs, beProps: h.properties, beActiveJobId: h.activeJobId ?? null,
+            ...(s.beUser.role === 'owner' ? { o: 'schedule' } : { c: 'today', cTab: 0 }), hist: [],
+          }))
+          say('Booked · ' + dayLabel + ' · $' + Number(r.clientAmount).toFixed(0) + ' 📅')
+        } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t book that day — try again')) }
+      }
+    }
+
+    /* ---- an owner's real schedule ----
+       The seed screen lists three showcase bookings. On a live account it
+       lists the jobs that exist. Reschedule / add / cancel open the real
+       thread with the ask written for them — Ahleyia moves it, which is how
+       it actually works. */
+    if (liveWork && s.beUser.role === 'owner') {
+      const mine = (s.beJobs || [])
+        .filter((j: Any) => j.status !== 'cancelled' && j.status !== 'complete')
+        .sort((a: Any, b: Any) => String(a.windowStart || '').localeCompare(String(b.windowStart || '')))
+      const askAbout = (j: Any, text: string) => () => {
+        const when = j.windowStart ? new Date(j.windowStart).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }) : 'my next clean'
+        const p = propById[j.propertyId] || {}
+        set({ threadWith: 'ahleyia', o: 'thread', draft: text.replace('{when}', when).replace('{home}', p.name || 'my home') })
+      }
+      v.badgeUpcoming = chip('sc0', 'onBrand', mine.length + (mine.length === 1 ? ' booked' : ' booked'))
+      v.bookings = mine.map((j: Any) => {
+        const p = propById[j.propertyId] || {}
+        const d = j.windowStart ? new Date(j.windowStart) : null
+        const when = d && !isNaN(d.getTime()) ? d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : 'Date to confirm'
+        const win = timeOf(j.windowStart) ? timeOf(j.windowStart) + ' – ' + (timeOf(j.windowEnd) || '') : 'Window to confirm'
+        return {
+          name: p.name || 'Your home',
+          service: jobType(j) + (j.ecoFinish === false ? '' : ' · eco finish'),
+          note: '⏱ Two-hour arrival window. She texts when she’s on her way.',
+          chip: chip('bk' + j.id, j.type === 'turnover' ? 'turn' : 'deep', j.status === 'in_progress' ? 'In progress' : when),
+          metas: [mt('bm1' + j.id, '📅', when), mt('bm2' + j.id, '⏱', win), mt('bm3' + j.id, '💳', '$' + Number(j.clientAmount || 0).toFixed(0))],
+          reschedule: askAbout(j, 'Could we move my clean on {when}?'),
+          addService: askAbout(j, 'Could we add a service to {home} on {when}?'),
+          cancel: askAbout(j, 'I need to cancel my clean on {when} — sorry for the notice.'),
+        }
+      })
+      v.liveNoBookings = mine.length === 0
     }
 
     // service area
@@ -1641,6 +1842,179 @@ export function useModel(props: ModelProps) {
       v.liveCleanerName = meNm.charAt(0).toUpperCase() + meNm.slice(1)
     }
 
+    if (liveWork) {
+      const today = new Date()
+      const todayKey = dayKey(today.toISOString())
+      const allJobs = (s.beJobs || []).filter((j: Any) => j.status !== 'cancelled')
+      const jobsToday = allJobs.filter((j: Any) => dayKey(j.windowStart) === todayKey)
+      // Nothing today? Show what IS next rather than an empty screen that
+      // reads like the app is broken.
+      const upcoming = allJobs
+        .filter((j: Any) => j.windowStart && new Date(j.windowStart).getTime() >= today.getTime())
+        .sort((a: Any, b: Any) => String(a.windowStart).localeCompare(String(b.windowStart)))
+      const shown = jobsToday.length ? jobsToday : upcoming.slice(0, 3)
+      v.liveJobCards = shown.map((j: Any) => {
+        const p = propById[j.propertyId] || {}
+        const start = timeOf(j.windowStart), end = timeOf(j.windowEnd)
+        // Guest-out / guest-in are a turnover's whole reason for being timed;
+        // a residential clean just has an arrival window.
+        const isTurn = j.type === 'turnover'
+        const metas: any[] = []
+        if (!isTurn && start) metas.push(mt('lj' + j.id + 'w', '⏱', 'Window ' + start + '–' + (end || '')))
+        if (p.beds) metas.push(mt('lj' + j.id + 'b', '🛏', p.beds + ' bed'))
+        if (p.baths) metas.push(mt('lj' + j.id + 'a', '🛁', p.baths + ' bath'))
+        if (liveStaffWork && j.ownerId) metas.push(mt('lj' + j.id + 'o', '👤', clientName(j.ownerId)))
+        if (!j.cleanerId && liveStaffWork) metas.push(mt('lj' + j.id + 'u', '⚠️', 'Needs assigning'))
+        return {
+          id: j.id,
+          name: p.name || 'Property',
+          address: '📍 ' + (p.neighborhood || 'Metro Atlanta'),
+          type: jobType(j), tone: jobTone(j),
+          guestOut: isTurn ? (start || undefined) : undefined,
+          guestIn: isTurn ? (end || undefined) : undefined,
+          metas,
+          progress: PROGRESS[j.status] ?? 0,
+          progressLabel: PROGRESS_LABEL[j.status] || 'Scheduled',
+          open: () => go({ role: 'cleaner', c: 'job', cTab: 1, beStepsJobId: j.id }),
+        }
+      })
+      v.liveHasJobsToday = jobsToday.length > 0
+      v.liveNextLabel = jobsToday.length ? 'Today’s route' : (upcoming.length ? 'Coming up' : 'Nothing booked yet')
+      v.liveTodayCount = String(jobsToday.length)
+      if (liveStaffWork) {
+        v.hasJobs = shown.length > 0
+        v.noJobs = shown.length === 0
+        v.todayLine = jobsToday.length
+          ? today.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
+            + ' · ' + jobsToday.length + (jobsToday.length === 1 ? ' property' : ' properties') + ' on today’s route'
+          : (upcoming.length ? 'Nothing today — your next clean is below' : 'No cleans scheduled yet')
+        // The route map, the assign screen and the seed check-in banner all
+        // describe homes that don't exist on a live account.
+        v.hideSeedRoute = true
+
+        /* ---- the business dashboard, on real numbers ---- */
+        v.chipJulyBiz = chip('ad2', 'ghost', today.toLocaleDateString([], { month: 'long', year: 'numeric' }))
+        v.liveJobCountAll = String(allJobs.length)
+        const needAssign = allJobs.filter((j: Any) => !j.cleanerId && j.status === 'scheduled')
+        const toInvite = (s.beClients || []).filter((c: Any) => c.onboardingState === 'invited')
+        const openQuotes = (s.beQuotes || []).filter((q: Any) => q.status === 'sent' || q.status === 'draft')
+        const needs: Any[] = []
+        if (needAssign.length) needs.push({
+          icon: '📌', name: needAssign.length + (needAssign.length === 1 ? ' clean needs assigning' : ' cleans need assigning'),
+          sub: needAssign.map((j: Any) => (propById[j.propertyId]?.name || 'Property')).slice(0, 2).join(' · '),
+          right: chip('nu1', 'turn', 'Do it'), go: () => go({ c: 'calendar' }),
+        })
+        if (toInvite.length) needs.push({
+          icon: '💌', name: toInvite.length + (toInvite.length === 1 ? ' client hasn’t claimed their link' : ' clients haven’t claimed their links'),
+          sub: toInvite.map((c: Any) => clientName(c.id)).slice(0, 2).join(' · '),
+          right: chip('nu2', 'ghost', 'Resend'), go: () => go({ c: 'clients' }),
+        })
+        if (openQuotes.length) needs.push({
+          icon: '🧮', name: openQuotes.length + (openQuotes.length === 1 ? ' quote out' : ' quotes out'),
+          sub: 'Waiting on the client to accept', right: chip('nu3', 'ghost', 'Tracking'), go: () => go({ c: 'quote' }),
+        })
+        if ((s.beProps || []).length === 0) needs.push({
+          icon: '🏠', name: 'Add your first home', sub: 'A client’s property is what everything hangs off',
+          right: chip('nu4', 'turn', 'Do it'), go: () => go({ c: 'addprop', npErr: '' }),
+        })
+        v.liveNeeds = needs.map((r, i) => ({ ...r, last: i === needs.length - 1 }))
+        v.liveNeedsChip = needs.length ? chip('ad3', 'turn', needs.length + ' open') : chip('ad3', 'refresh', '✓ All clear')
+        v.liveTeamSub = 'Splits · certification · who can see what'
+      }
+      // Open the Kee Method for whichever job is actually in play.
+      const openable = shown[0] || allJobs[0]
+      if (openable) v.goJob = () => go({ role: 'cleaner', c: 'job', cTab: 1, beStepsJobId: s.beActiveJobId || openable.id })
+    }
+
+    /* ---- the checklist a cleaner actually works from ---- */
+    const openJob = liveWork && s.beStepsJobId
+      ? (s.beJobs || []).find((j: Any) => j.id === s.beStepsJobId) || null
+      : null
+    // True for every live cleaner, job open or not — the seed showcase
+    // checklist must never appear on a real account.
+    v.liveChecklist = liveStaffWork
+    v.liveNoOpenJob = liveStaffWork && !openJob
+    if (openJob) {
+      const prop = propById[openJob.propertyId] || {}
+      const rows: Any[] = s.beSteps || []
+      const { done: doneN, total: totalN, pct: livePct } = checklistProgress(rows as any)
+      const toggleStep = (row: Any) => {
+        const next = !row.completed
+        setState((st: Any) => ({ ...st, beSteps: st.beSteps.map((x: Any) => x.id === row.id ? { ...x, completed: next } : x) }))
+        getData().setJobStep(row.id, next).then(() => {
+          // The first tick IS the start of the clean — no separate "start"
+          // button to forget. A failure here is cosmetic; the tick is saved.
+          if (!next || openJob.status !== 'scheduled') return
+          const at = new Date().toISOString()
+          getData().setJobStatus(openJob.id, { status: 'in_progress', startedAt: at }).then(() => {
+            setState((st: Any) => ({ ...st, beJobs: st.beJobs.map((j: Any) => j.id === openJob.id ? { ...j, status: 'in_progress' } : j) }))
+          }).catch(() => { /* status catches up on the next load */ })
+        }).catch((e: any) => {
+          // Put the tick back where it was — the row on screen must never
+          // disagree with the row in the database.
+          setState((st: Any) => ({ ...st, beSteps: st.beSteps.map((x: Any) => x.id === row.id ? { ...x, completed: !next } : x) }))
+          say(errMsg(e, 'Couldn’t save that step — try again'))
+        })
+      }
+      // Group by the phase stamped on each row at instantiation. Rows created
+      // before phases were stamped fall into one "The Kee Method" group.
+      const PHASE_ICON = ['🔍', '🧺', '✨', '🧴', '📋']
+      v.livePhases = groupSteps(rows as any).map((g, i) => {
+        const n = i + 1
+        return {
+          icon: PHASE_ICON[(g.ord ? g.ord - 1 : i) % PHASE_ICON.length] || '✨',
+          title: (g.ord ? g.ord + ' · ' : '') + g.title,
+          done: g.done, total: g.total,
+          open: s.bePhaseOpen === n,
+          toggle: () => setState((st: Any) => ({ ...st, bePhaseOpen: st.bePhaseOpen === n ? 0 : n })),
+          steps: g.steps.map((r: Any) => ({
+            label: r.text, on: !!r.completed, photo: !!r.photoRequired,
+            added: false, wash: 'var(--photo-1)', stamp: '',
+            toggle: () => toggleStep(r),
+            add: () => say('Photo proof arrives with the camera step — not wired yet'),
+          })),
+        }
+      })
+      v.liveJobName = prop.name || 'This property'
+      v.liveJobSub = '📍 ' + (prop.neighborhood || 'Metro Atlanta')
+        + (timeOf(openJob.windowStart) ? '  ·  window ' + timeOf(openJob.windowStart) + '–' + (timeOf(openJob.windowEnd) || '') : '')
+      v.liveJobBadge = chip('lj0', 'onBrand', jobType(openJob) + (openJob.ecoFinish === false ? '' : ' · eco finish'))
+      v.liveDone = doneN
+      v.liveTotal = totalN
+      v.livePct = livePct
+      v.liveStepsBusy = s.beStepsBusy
+      v.liveStepsErr = s.beStepsErr
+      v.liveNoSteps = !s.beStepsBusy && !s.beStepsErr && totalN === 0
+      v.liveJobDone = openJob.status === 'complete'
+      v.liveOwnerName = liveStaffWork && openJob.ownerId ? clientName(openJob.ownerId) : null
+      v.liveAmount = liveStaffWork ? '$' + Number(openJob.clientAmount || 0).toFixed(0) : null
+      // Repair: a job can exist without a checklist if it was booked before the
+      // Kee Method was seeded. One tap builds it from the template.
+      v.buildChecklist = async () => {
+        try {
+          set({ beStepsBusy: true })
+          const n = await getData().buildJobSteps(openJob.id)
+          const fresh = await getData().liveJobSteps(openJob.id)
+          setState((st: Any) => ({ ...st, beSteps: fresh, beStepsBusy: false, beStepsErr: '' }))
+          say(n ? 'Checklist ready · ' + n + ' steps ✓' : 'Checklist loaded ✓')
+        } catch (e) { set({ beStepsBusy: false }); say(errMsg(e, 'Couldn’t build the checklist')) }
+      }
+      v.liveComplete = async () => {
+        if (totalN && doneN < totalN) { say((totalN - doneN) + ' steps still open — finish those first'); return }
+        try {
+          set({ beBusy: true })
+          const now = new Date().toISOString()
+          await getData().setJobStatus(openJob.id, { status: 'complete', finishedAt: now, submittedAt: now })
+          setState((st: Any) => ({
+            ...st, beBusy: false, beStepsJobId: null, beSteps: [],
+            beJobs: st.beJobs.map((j: Any) => j.id === openJob.id ? { ...j, status: 'complete' } : j),
+            c: 'today', cTab: 0, hist: [],
+          }))
+          say('Clean complete — owner notified 📸')
+        } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t close out that job')) }
+      }
+    }
+
     // Live admin: real clients from the org, with each one's property count.
     v.liveAdmin = backendActive() && s.beSignedIn && (s.beUser?.role === 'org_admin' || s.beUser?.role === 'cleaner')
     if (v.liveAdmin) {
@@ -1652,6 +2026,11 @@ export function useModel(props: ModelProps) {
         return { icon: (nm[0] || 'C').toUpperCase(), tile: cTile, name: nm, sub: n + (n === 1 ? ' property' : ' properties'), flag: null, right: null, last: i === arr.length - 1, go: null }
       })
       v.clientRows = rows.length ? rows : [{ icon: '✨', name: 'No clients yet', sub: 'Clients appear here as they join', flag: null, right: chip('cc0', 'refresh', 'Empty'), last: true, go: null }]
+      // Real counts in the header, and none of the seed showcase numbers.
+      const nc = (s.beClients || []).length, np = (s.beProps || []).length, nq = (s.beQuotes || []).length
+      v.clientsSub = nc + (nc === 1 ? ' client' : ' clients') + ' · ' + np + (np === 1 ? ' property' : ' properties')
+        + (nq ? ' · ' + nq + (nq === 1 ? ' quote out' : ' quotes out') : '')
+      v.liveBook = true
     }
 
     // 45 · tax documents
@@ -1924,6 +2303,7 @@ export function useModel(props: ModelProps) {
           item('🧽', 'Add someone to your team', 'They set their own sign-in', () => go({ c: 'addstaff', newStaffLink: '' }), 'addstaff'),
           item('🏡', 'Clients & properties', 'Your book of business', () => go({ c: 'clients' }), 'clients'),
           item('➕', 'Add a client you already have', 'From before the app — send them a link', () => go({ c: 'addclient', newClientLink: '' }), 'addclient'),
+          item('🏠', 'Add a home for a client', 'A second property, or one you kept on paper', () => go({ c: 'addprop', npErr: '' }), 'addprop'),
           item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' }), 'template'),
           item('📍', 'Service area', 'Where you take work', () => go({ c: 'area' }), 'area'),
           item('⚙️', 'Settings', 'Your account and notifications', () => go({ c: 'settings' }), 'settings'),
@@ -2068,6 +2448,54 @@ export function useModel(props: ModelProps) {
         else if (r.smsReason === 'no_number') say('No mobile number on file for them')
         else say('Couldn’t text it — the link is here to copy')
       } catch (e) { set({ beBusy: false }); say(errMsg(e, 'Couldn’t send that text')) }
+    }
+
+    /* ---- add a home to a client she already has ----
+       A client can own more than one property, and most of hers came from
+       before the app. This writes straight to `properties` — no invitation,
+       because the client already exists. */
+    v.aAddProp = s.role === 'cleaner' && s.c === 'addprop'
+    v.goAddProp = () => set({ c: 'addprop', npErr: '', npName: '', npArea: '', npBeds: '', npBaths: '', npOwner: '' })
+    v.badgeAddProp = chip('np0', 'onBrand', 'Add a home')
+    const npField = (k: string) => (e: any) => set({ [k]: e.target.value })
+    v.npName = s.npName; v.setNpName = npField('npName')
+    v.npArea = s.npArea; v.setNpArea = npField('npArea')
+    v.npBeds = s.npBeds; v.setNpBeds = (e: any) => set({ npBeds: e.target.value.replace(/[^0-9.]/g, '') })
+    v.npBaths = s.npBaths; v.setNpBaths = (e: any) => set({ npBaths: e.target.value.replace(/[^0-9.]/g, '') })
+    v.npErr = s.npErr
+    v.npKinds = [
+      { id: 'residential', label: '🏡 Their home' },
+      { id: 'airbnb', label: '🏠 Airbnb / rental' },
+      { id: 'loved_one', label: '👪 A loved one’s' },
+    ].map((t) => ({ label: t.label, on: s.npKind === t.id, pick: () => set({ npKind: t.id }) }))
+    v.npOwners = (s.beClients || []).map((c: Any) => ({
+      label: clientName(c.id), on: s.npOwner === c.id, pick: () => set({ npOwner: c.id }),
+    }))
+    v.npNoClients = liveStaffWork && (s.beClients || []).length === 0
+    v.saveNewProperty = async () => {
+      const name = (s.npName || '').trim()
+      if (!name) { set({ npErr: 'What should we call this home?' }); return }
+      if (!backendActive()) { set({ npErr: '', npName: '', c: 'clients' }); say('Home added ✓'); return }
+      const ownerId = s.npOwner || (s.beClients || [])[0]?.id
+      if (!ownerId) { set({ npErr: 'Add the client first — then their home.' }); return }
+      const orgId = s.beUser?.orgId
+      if (!orgId) { set({ npErr: 'Your account isn’t linked to the business yet.' }); return }
+      try {
+        set({ beBusy: true, npErr: '' })
+        await getData().createPropertyFor({
+          orgId, ownerId, name, type: s.npKind,
+          neighborhood: (s.npArea || '').trim() || undefined,
+          beds: parseFloat(s.npBeds) || undefined,
+          baths: parseFloat(s.npBaths) || undefined,
+          baseEdition: s.npKind === 'airbnb' ? 'vacation_rental' : 'luxury_home',
+        })
+        const h = await hydrate()
+        setState((t: Any) => ({
+          ...t, beBusy: false, beProps: h.properties, beClients: h.clients,
+          npName: '', npArea: '', npBeds: '', npBaths: '', c: 'clients', hist: [],
+        }))
+        say(name + ' added ✓')
+      } catch (e) { set({ beBusy: false, npErr: errMsg(e, 'Couldn’t add that home') }) }
     }
 
     /* ---- add someone to the team: same invitation, cleaner side ---- */

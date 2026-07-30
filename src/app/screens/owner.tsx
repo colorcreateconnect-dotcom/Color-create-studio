@@ -484,6 +484,16 @@ function Schedule({ v }: { v: any }) {
       <div style={css('padding:22px')}>
         <NoteCard tone="cream" icon="⏱️"><b>Your two-hour arrival window.</b> Ahleyia arrives inside the window you pick — you’ll get a “on her way” notification when she leaves her last stop. No all-day waiting.</NoteCard>
         <SectionLabel right={v.chipThisWeek}>Scheduled</SectionLabel>
+        {v.liveNoBookings && (
+          <Card tone="blush">
+            <div style={css('text-align:center;padding:6px 4px')}>
+              <div style={css('font-size:34px')}>📅</div>
+              <div style={css('font-family:var(--font-serif-display);font-size:23px;line-height:1.1;margin-top:10px')}>Nothing booked yet</div>
+              <p style={css('margin:8px auto 16px;max-width:250px;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Pick a day that suits you — she arrives inside the two-hour window you choose.</p>
+              <Button icon="📅" onClick={v.goCalendar}>See her open days</Button>
+            </div>
+          </Card>
+        )}
         {v.bookings.map((b: any, i: number) => (
           <Card key={i}>
             <div style={css('display:flex;align-items:flex-start;justify-content:space-between;gap:10px')}>

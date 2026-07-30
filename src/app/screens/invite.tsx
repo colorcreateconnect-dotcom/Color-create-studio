@@ -212,6 +212,52 @@ export function AddClientScreen({ v }: { v: any }) {
   )
 }
 
+/** Add a home to a client she already has. No invitation here — the client
+    exists, so this writes the property straight to their account. */
+export function AddPropertyScreen({ v }: { v: any }) {
+  return (
+    <>
+      <DetailHeader onBack={v.goClients} badge={v.badgeAddProp} title="Add a home" subtitle="For a client already in your book" />
+      <div style={css('padding:22px')}>
+        {v.npNoClients
+          ? (
+            <NoteCard tone="pink" icon="👤">No clients yet — add the client first and their home comes with them.
+              <div style={css('margin-top:10px')}><Button variant="ghost" size="sm" onClick={v.goAddClient}>Add a client</Button></div>
+            </NoteCard>
+          )
+          : (<>
+            <Card>
+              <SectionLabel>Whose home is it?</SectionLabel>
+              <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap')}>
+                {v.npOwners.map((o: any, i: number) => <Chip key={i} tone={o.on ? 'refresh' : 'ghost'} onClick={o.pick} style={{ cursor: 'pointer' }}>{o.label}</Chip>)}
+              </div>
+            </Card>
+
+            <Card>
+              <SectionLabel>The home</SectionLabel>
+              <Field icon="🏡"><NativeInput type="text" aria-label="Home name" placeholder="e.g. The Ridgeview Home" value={v.npName} onChange={v.setNpName} /></Field>
+              <div style={{ height: 8 }} />
+              <Field icon="📍"><NativeInput type="text" autoComplete="off" aria-label="Neighborhood" placeholder="Neighborhood" value={v.npArea} onChange={v.setNpArea} /></Field>
+              <div style={css('font-size:12px;font-weight:var(--weight-semibold);margin:16px 0 6px')}>What kind of home?</div>
+              <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap')}>
+                {v.npKinds.map((t: any, i: number) => <Chip key={i} tone={t.on ? 'refresh' : 'ghost'} onClick={t.pick} style={{ cursor: 'pointer' }}>{t.label}</Chip>)}
+              </div>
+              <div style={css('display:flex;gap:8px;margin-top:14px')}>
+                <Field><NativeInput type="tel" inputMode="numeric" aria-label="Beds" placeholder="Beds" value={v.npBeds} onChange={v.setNpBeds} /></Field>
+                <Field><NativeInput type="tel" inputMode="numeric" aria-label="Baths" placeholder="Baths" value={v.npBaths} onChange={v.setNpBaths} /></Field>
+              </div>
+              <p style={css('margin:12px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>Beds and baths set the turnover price and the Kee Method™ template this home gets.</p>
+            </Card>
+
+            {v.npErr && <NoteCard tone="pink" icon="⚠️">{v.npErr}</NoteCard>}
+            <Button variant="green" onClick={v.saveNewProperty}>{v.beBusy ? 'Adding…' : 'Add this home'}</Button>
+            <p style={css('margin:10px 2px 0;font-size:11px;line-height:var(--leading-snug);color:var(--text-muted);text-align:center')}>It shows up on the booking calendar straight away.</p>
+          </>)}
+      </div>
+    </>
+  )
+}
+
 /** The studio's "add someone to my team" form — the cleaner counterpart of
     AddClientScreen. Same shape, same one-time link; only the fields differ,
     because a cleaner has no home and no price. */
