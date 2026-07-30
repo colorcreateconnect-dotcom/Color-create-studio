@@ -95,6 +95,18 @@ export function createStaff(input: {
   return post('create-staff', input)
 }
 
+/* ---- start your own studio (an independent contractor, nobody's employee) ----
+   Signing up makes you a client, because the signup trigger will not let anyone
+   choose their own role. This promotes the account that is calling into a NEW
+   organization it also creates — there is no way to name an existing one, so it
+   cannot be aimed at somebody else's studio. */
+export interface BecomeContractorResult {
+  ok: true; orgId: string; studioName: string; role: 'org_admin'
+}
+export function becomeContractor(input: { studioName?: string } = {}): Promise<BecomeContractorResult> {
+  return post('become-contractor', input)
+}
+
 /* ---- text a client their invitation link (staff only; server picks recipient) ---- */
 export interface SendInviteResult {
   ok: true; inviteUrl: string; expiresAt: string

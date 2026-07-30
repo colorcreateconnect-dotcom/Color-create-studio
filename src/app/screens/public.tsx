@@ -39,6 +39,7 @@ export function PublicScreens(v: any) {
         <Button variant="ghost" onClick={v.goSignup}>Create my account</Button>
         <Button variant="ghost" onClick={v.goGate}>Client sign in</Button>
         <Button variant="ghost" icon="🧽" onClick={v.goStaffSetup}>I’m a cleaner with an invite</Button>
+        <Button variant="ghost" icon="🧺" onClick={v.goProSignup}>I clean for a living — start my own book</Button>
         <div style={css('margin-top:14px;text-align:center;font-size:11.5px;color:var(--text-muted)')}><span style={css('color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.goAdminLogin}>Business sign in</span></div>
         <div style={css('margin-top:14px;text-align:center;font-family:var(--font-spaced);font-size:9px;letter-spacing:var(--tracking-spaced);text-transform:uppercase;color:var(--text-muted)')}>Luxury rooted in generations of excellence</div>
       </div>
@@ -146,6 +147,71 @@ export function PublicScreens(v: any) {
           <SupplyRow icon="🧽" name="Staff sign in" sub="Cleaners use their email and password" right="›" onClick={v.goStaffSignIn} />
           <SupplyRow icon="🏡" name="Client sign in" sub="Owners and hosts" right="›" onClick={v.goGate} last />
         </Card>
+      </div>
+    </>
+  )
+
+  /* An independent housekeeper starting their own book. Deliberately one screen:
+     they are not being onboarded into anyone's business, they are opening their
+     own, and the only things actually required are a sign-in and a name for it.
+     Clients, homes and cleans get added from inside. */
+  if (v.vProSignup) return (
+    <>
+      <DetailHeader
+        gradient="magenta"
+        onBack={v.goBack}
+        badge={v.badgeEco}
+        title={v.proDone ? 'You’re set up' : 'Your own book'}
+        subtitle={v.proDone ? v.proStudioShown : 'For housekeepers running their own clients'}
+      />
+      <div style={css('padding:22px')}>
+        {!v.proDone && (<>
+          <NoteCard tone="pink" icon="🧺">This is your business, not a job. Your clients, your homes, your schedule, your numbers — nobody else in the app can see any of it.</NoteCard>
+          <Card>
+            <SectionLabel>You & your sign-in</SectionLabel>
+            <Field icon="👤"><NativeInput type="text" autoComplete="name" aria-label="Full name" placeholder="Full name" value={v.proName} onChange={v.setProName} /></Field>
+            <div style={{ height: 8 }} />
+            <Field icon="💌"><NativeInput type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} aria-label="Email" placeholder="Email address" value={v.proEmail} onChange={v.setProEmail} /></Field>
+            <div style={{ height: 8 }} />
+            <Field icon="🔐">
+              <NativeInput type={v.proPwType} autoComplete="new-password" aria-label="Choose a password" placeholder="Choose a password" value={v.proPw} onChange={v.setProPw} />
+              <span style={css('font-size:11px;color:var(--magenta);cursor:pointer')} onClick={v.toggleProPw}>{v.proPwToggle}</span>
+            </Field>
+          </Card>
+          <Card>
+            <SectionLabel>What’s it called?</SectionLabel>
+            <Field icon="🏷"><NativeInput type="text" aria-label="Your studio's name" placeholder="Your studio’s name (optional)" value={v.proStudio} onChange={v.setProStudio} /></Field>
+            <p style={css('margin:10px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>Leave it blank and it’ll be <b>{v.proStudioShown}</b>. You can rename it later.</p>
+          </Card>
+          <Card>
+            <div style={css('display:flex;gap:12px;align-items:flex-start')}>
+              <Checkbox checked={v.proTerms} onChange={v.setProTerms} size={22} />
+              <div style={css('font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>I agree to the service terms and privacy policy. I understand I’m an independent contractor running my own book — <b>not an employee</b> — and my clients’ details stay mine.</div>
+            </div>
+          </Card>
+        </>)}
+        {v.proDone && (<>
+          <Card tone="blush">
+            <div style={css('text-align:center')}>
+              <div style={css('width:56px;height:56px;border-radius:50%;background-image:var(--gradient-eco);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto')}>✓</div>
+              <div style={css('font-family:var(--font-serif-display);font-size:24px;line-height:1.1;margin-top:12px')}>{v.proStudioShown}</div>
+              <p style={css('margin:8px auto 0;max-width:262px;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>{v.proNeedsConfirm
+                ? 'Confirm your email, then sign in — your studio finishes setting itself up the moment you do.'
+                : 'Your studio is live. Add your first client, then their home, then put a clean on the calendar.'}</p>
+            </div>
+          </Card>
+          <Card flush>
+            <SupplyRow icon="🧺" name={v.proStudioShown} sub="Your studio — one person, you" right={v.chipReady} />
+            <SupplyRow icon="👤" name={v.proName} sub="Independent contractor" right={v.chipReady} />
+            <SupplyRow icon="💌" name={v.proEmail} sub="Your sign-in" right={v.chipReady} last />
+          </Card>
+          <NoteCard tone="money" icon="📅">Every clean you take on blocks its window automatically, so you can’t be booked into two homes at once — whoever books it.</NoteCard>
+        </>)}
+        {v.proErr && <NoteCard tone="pink" icon="⚠️">{v.proErr}</NoteCard>}
+        {!v.proDone && <Button onClick={v.proSubmit}>{v.proBtnLabel}</Button>}
+        {v.proDone && !v.proNeedsConfirm && <Button onClick={v.proEnter}>Open my studio</Button>}
+        {v.proDone && v.proNeedsConfirm && <Button variant="ghost" onClick={v.goGate}>Sign in</Button>}
+        {!v.proDone && <div style={css('margin-top:14px;text-align:center;font-size:11.5px;color:var(--text-muted)')}>Ahleyia added you to her team? <span style={css('color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.goStaffSetup}>Use your invite instead</span></div>}
       </div>
     </>
   )

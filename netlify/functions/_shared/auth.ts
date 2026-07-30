@@ -59,6 +59,17 @@ export const isStaff = (c: Caller | null) => !!c && (c.role === 'cleaner' || c.r
  *  enforced where it counts. */
 export const isOwnerOfBusiness = (c: Caller | null) => !!c && c.role === 'org_admin' && !!c.orgId
 
+/** May this account start a studio of its own?
+ *
+ *  Only someone who is in none. An independent contractor signing up is an
+ *  `owner` with no org (the signup trigger allows nothing else — see migration
+ *  0011), and promoting them creates a new organization. Anyone already in one
+ *  is refused rather than moved: Ahleyia's cleaner walking out would strand the
+ *  jobs she assigned them, and a contractor "starting again" would abandon
+ *  their own client book. Leaving a studio is a separate act with consequences,
+ *  so it does not happen as a side effect of tapping a sign-up button. */
+export const mayStartOwnStudio = (c: Caller | null) => !!c && !c.orgId
+
 /** 401 response for an unauthenticated caller. */
 export const unauthorized = () => json(401, { error: 'Sign in to continue', code: 'UNAUTHENTICATED' })
 /** 403 response when the caller is known but not allowed to do this. */

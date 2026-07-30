@@ -23,6 +23,12 @@ import { pushSupport, enablePush, disablePush, currentEndpoint } from '../lib/pu
 
 type Any = Record<string, any>
 
+/* Parked between signing up and being able to act on it: Supabase may hold a
+   new account back for email confirmation, and the studio can only be created
+   once there is a session to create it against. Holds the studio name they
+   typed, or '' for "use my own name". */
+const PRO_INTENT = 'smia-start-my-studio'
+
 /* ------------------------------------------------------------ seed data -- */
 const PEOPLE: Any = {
   ahleyia: { title: 'Ahleyia Kee', sub: 'Founder · your housekeeper', badge: '⭐ 4.98 rating' },
@@ -202,6 +208,9 @@ function initialState(props: ModelProps): Any {
     adminEmail: '', adminPw: '', pwShown: false, adminRemember: true,
     suStep: 1, suName: '', suPhone: '', suEmail: '', suPw: '', suPwShown: false, suErr: '',
     suNeedsConfirm: false, suAddress: '', suTerms: false,
+    // A housekeeper starting their own book, rather than a client booking one.
+    proName: '', proEmail: '', proPw: '', proPwShown: false, proStudio: '',
+    proTerms: false, proErr: '', proDone: false, proNeedsConfirm: false,
     suKind: 'Airbnb host', suScopeMap: {}, suCadenceVal: 'Weekly',
     quoteScopeMap: { 'Main level': true, 'Primary suite': true }, quoteCadenceVal: 'Weekly',
     suHood: 'Midtown', suContactPref: 'Text me', suSourcePref: 'Her card / QR',
@@ -368,6 +377,42 @@ export function useModel(props: ModelProps) {
     }).catch(() => { if (alive) setState((st: Any) => ({ ...st, beReady: true })) })
     return () => { alive = false }
   }, [])
+
+  /* Finish setting up a housekeeper who signed up to run their own book.
+     Signing up can only ever produce a client — the database trigger will not
+     let anyone name their own role — so the studio is created afterwards, by a
+     function, against their own token. It happens here rather than inline
+     because Supabase may hold a new account back for email confirmation: no
+     session comes back from signup, and the promotion has to wait until they
+     actually sign in. The intent is parked in localStorage until it can run. */
+  useEffect(() => {
+    if (!backendActive() || !state.beSignedIn || !state.beUser) return
+    // Already somewhere — either it worked, or they were invited into a studio.
+    if (state.beUser.role !== 'owner' || state.beUser.orgId) return
+    let intent: string | null = null
+    try { intent = window.localStorage.getItem(PRO_INTENT) } catch { return }
+    if (intent == null) return
+    let alive = true
+    const clear = () => { try { window.localStorage.removeItem(PRO_INTENT) } catch { /* private mode */ } }
+    api.becomeContractor(intent ? { studioName: intent } : {})
+      .then(() => hydrate())
+      .then((h) => {
+        clear()
+        if (!alive) return
+        setState((st: Any) => ({
+          ...st, beUser: h.user, beJobs: h.jobs, beProps: h.properties,
+          beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks,
+          role: 'cleaner', c: 'admin', cTab: 0, p: 'welcome',
+        }))
+        say('Your studio is live 🎉')
+      })
+      .catch(() => {
+        // A stale flag, or they're already in someone's studio. Drop it rather
+        // than retry on every load — this must never become a loop.
+        clear()
+      })
+    return () => { alive = false }
+  }, [state.beSignedIn, state.beUser?.id, state.beUser?.role, state.beUser?.orgId])
 
   /* A notification was tapped. Two ways in: the app was closed and the service
      worker opened it with ?open=<link>, or the app was already open and the SW
@@ -1654,6 +1699,79 @@ export function useModel(props: ModelProps) {
       if (!r.ok) { set({ inviteEntryErr: INVITE_PARSE_MESSAGE[r.reason] }); return }
       setState((t: Any) => ({ ...t, inviteToken: r.token, inviteLoading: true, inviteError: '', invitePreview: null, p: 'invite', inviteEntryErr: '' }))
     }
+
+    /* ---- "I clean for a living" — their own book, not her team ----
+       The invite flow above is for someone Ahleyia hires: she authorizes them,
+       and they work her jobs. This is for an independent contractor who found
+       the app on their own. Nobody hired them, so nobody has to authorize them
+       — but they don't join her studio either. They get their own, with one
+       person in it, and their client book is theirs. She never sees it.
+
+       Signing up cannot make you staff (0011: the trigger ignores any role in
+       the metadata, precisely so a stranger can't ask to be an admin). So this
+       creates an ordinary account and then calls `become-contractor`, which
+       creates a NEW organization — never an existing one — and promotes them
+       inside it. */
+    v.vProSignup = s.role === 'visitor' && s.p === 'prosignup'
+    v.goProSignup = () => go({
+      p: 'prosignup', proName: '', proEmail: '', proPw: '', proStudio: '',
+      proTerms: false, proErr: '', proDone: false, proNeedsConfirm: false,
+    })
+    v.proName = s.proName
+    v.setProName = (e: any) => set({ proName: e.target.value, proErr: '' })
+    v.proEmail = s.proEmail
+    v.setProEmail = (e: any) => set({ proEmail: e.target.value, proErr: '' })
+    v.proPw = s.proPw
+    v.setProPw = (e: any) => set({ proPw: e.target.value, proErr: '' })
+    v.proPwType = s.proPwShown ? 'text' : 'password'
+    v.proPwToggle = s.proPwShown ? 'Hide' : 'Show'
+    v.toggleProPw = () => set({ proPwShown: !s.proPwShown })
+    v.proStudio = s.proStudio
+    v.setProStudio = (e: any) => set({ proStudio: e.target.value, proErr: '' })
+    v.proTerms = s.proTerms
+    // Takes the new value from the checkbox rather than flipping a captured
+    // one — same shape as the client sign-up's terms box.
+    v.setProTerms = (n: boolean) => set({ proTerms: n, proErr: '' })
+    v.proErr = s.proErr
+    v.proDone = s.proDone
+    v.proNeedsConfirm = s.proNeedsConfirm
+    // What their studio will be called, shown back to them before they commit.
+    v.proStudioShown = s.proStudio.trim()
+      || ((s.proName || '').trim() ? (s.proName || '').trim() + '’s housekeeping' : 'My housekeeping')
+    v.proBtnLabel = s.beBusy ? 'Setting up…' : 'Start my studio'
+    v.proSubmit = async () => {
+      if (!s.proName.trim()) { set({ proErr: 'Your name first.' }); return }
+      if (!s.proEmail.trim() || s.proEmail.indexOf('@') < 0) { set({ proErr: 'An email — it’s your sign-in.' }); return }
+      if ((s.proPw || '').length < 8) { set({ proErr: 'Pick a password of at least 8 characters.' }); return }
+      if (!s.proTerms) { set({ proErr: 'Please agree to the terms to continue.' }); return }
+      if (!backendActive()) { set({ proDone: true, proErr: '' }); say('Studio created 🎉'); return }
+      try {
+        set({ beBusy: true, proErr: '' })
+        // Parked first: if Supabase holds the account back for confirmation the
+        // promotion has to happen on their first real sign-in instead.
+        try { window.localStorage.setItem(PRO_INTENT, s.proStudio.trim()) } catch { /* private mode */ }
+        const r = await signUpWithPassword(s.proEmail.trim().toLowerCase(), s.proPw, { full_name: s.proName.trim() })
+        if (r.needsConfirmation) {
+          setState((t: Any) => ({ ...t, beBusy: false, proDone: true, proNeedsConfirm: true, proPw: '' }))
+          say('Check your email to confirm 💌'); return
+        }
+        const res = await api.becomeContractor(s.proStudio.trim() ? { studioName: s.proStudio.trim() } : {})
+        try { window.localStorage.removeItem(PRO_INTENT) } catch { /* private mode */ }
+        const h = await hydrate()
+        setState((t: Any) => ({
+          ...t, beBusy: false, proDone: true, proPw: '', proNeedsConfirm: false,
+          proStudio: res.studioName,
+          beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs,
+          beProps: h.properties, beClients: h.clients, beStaff: h.staff, beBlocks: h.blocks,
+        }))
+        say('Your studio is live 🎉')
+      } catch (e) {
+        try { window.localStorage.removeItem(PRO_INTENT) } catch { /* private mode */ }
+        set({ beBusy: false, proErr: errMsg(e, 'Couldn’t set that up') })
+      }
+    }
+    // Into their own business side — the same app Ahleyia runs, their numbers.
+    v.proEnter = () => go({ role: 'cleaner', c: 'admin', cTab: 0, p: 'welcome' })
 
     v.vStaffSetup = s.role === 'visitor' && s.p === 'staffsetup'
     v.goStaffSetup = () => go({ p: 'invitecode', inviteEntry: '', inviteEntryErr: '' })
