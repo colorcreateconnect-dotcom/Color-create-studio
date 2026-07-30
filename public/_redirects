@@ -6,8 +6,9 @@
 # _headers — are honoured either way, so the app routes correctly however it got
 # deployed.
 #
-# The function path is listed first and left alone so it can never be swallowed
-# by the catch-all. (Netlify matches functions before redirects, so this is
-# belt-and-braces, not load-bearing.)
-/.netlify/functions/*  /.netlify/functions/:splat  200
-/*                     /index.html                 200
+# There is deliberately no rule for /.netlify/functions/*. Netlify rejects any
+# redirect whose source starts with /.netlify ("Invalid /.netlify path in
+# redirect source") and warns on every deploy. It is also unnecessary: function
+# routes are matched before redirects, so the catch-all below cannot swallow
+# them.
+/*  /index.html  200
