@@ -228,6 +228,29 @@ export function PublicScreens(v: any) {
     </>
   )
 
+  if (v.vInviteEntry) return (
+    <>
+      <DetailHeader gradient="magenta" onBack={v.goBack} badge={v.badgeSafe} title="Set up your account" subtitle="With the invitation Ahleyia sent you" />
+      <div style={css('padding:22px')}>
+        <NoteCard tone="pink" icon="💌"><b>Got the link?</b> Just tap it — it opens your account straight away. Paste it here if tapping it didn’t work.</NoteCard>
+        <Card>
+          <SectionLabel>Your invitation</SectionLabel>
+          <Field icon="🔗"><NativeInput type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} aria-label="Invitation link or code" placeholder="Paste the link, or the code from it" value={v.inviteEntry} onChange={v.setInviteEntry} /></Field>
+          <p style={css('margin:10px 0 0;font-size:11.5px;line-height:var(--leading-snug);color:var(--text-muted)')}>Next you’ll set the email and password you’ll sign in with. It works once, and expires 14 days after she sent it.</p>
+        </Card>
+        {v.inviteEntryErr && <NoteCard tone="pink" icon="⚠️">{v.inviteEntryErr}</NoteCard>}
+        <Button onClick={v.useInviteCode}>Continue</Button>
+        <div style={css('margin-top:var(--stack-card)')}>
+          <Card tone="dashed">
+            <p style={css('margin:0;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Cleaning accounts are created by the studio, so keys and access notes stay with people she has actually taken on. Ask Ahleyia to add you and she’ll send your link.</p>
+          </Card>
+        </div>
+        <div style={css('margin-top:14px;text-align:center;font-size:11.5px;color:var(--text-muted)')}>Already set it up? <span style={css('color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.goGate}>Sign in</span></div>
+        <div style={css('margin-top:10px;text-align:center;font-size:11.5px;color:var(--text-muted)')}><span style={css('color:var(--magenta);cursor:pointer;text-decoration:underline')} onClick={v.previewStaffWalkthrough}>See what setting up involves</span></div>
+      </div>
+    </>
+  )
+
   if (v.vInvite) return <InviteScreen v={v} />
   if (v.vPortfolio) return <PortfolioScreen v={v} />
   if (v.vStaffSetup) return <StaffSetup v={v} />
@@ -373,7 +396,7 @@ function StaffSetup({ v }: { v: any }) {
             <SupplyRow icon="👤" name="Background check" sub="Running · 1–3 days" right={v.chipPendingCheck} last />
           </Card>
           <NoteCard tone="money" icon="💰">Your first job pays 50% the moment you check in. Nothing is deducted for joining — she takes her share from the business side, not your pay.</NoteCard>
-          <Button onClick={v.enterStaffApp}>Open my working day</Button>
+          <Button onClick={v.enterStaffApp}>{v.enterStaffLabel}</Button>
         </>)}
         {v.staffNotDone && (<>
           <Button onClick={v.staffNext}>{v.staffNextLabel}</Button>

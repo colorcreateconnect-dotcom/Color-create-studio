@@ -63,7 +63,9 @@ export const handler = async (event: any) => {
   // Ahleyia sent this link by hand; she should hear when it lands.
   const [claimant] = await sbSelect('users', `id=eq.${invite.owner_id}&select=full_name`)
   const staff = await sbSelect('users', `org_id=eq.${invite.org_id}&role=in.(org_admin,cleaner)&select=id`)
-  await Promise.all(staff.map((u: any) =>
+  // Not the person who just claimed it — a new cleaner does not need a notice
+  // telling them they finished setting up.
+  await Promise.all(staff.filter((u: any) => u.id !== invite.owner_id).map((u: any) =>
     sendNotice('invite_claimed', { orgId: invite.org_id, userId: u.id }, {
       subject: claimant?.full_name || undefined, link: 'clients',
     })))

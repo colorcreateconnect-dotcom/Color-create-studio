@@ -8,7 +8,7 @@
  * client is revoked — so "send it again" cannot leave two live links, and a
  * link she previously texted to a wrong number stops working. */
 import { sbSelect, sbInsert, sbUpdate, json } from './_shared/db'
-import { requireCaller, isStaff } from './_shared/auth'
+import { requireCaller, isOwnerOfBusiness } from './_shared/auth'
 import { newToken, hashToken, expiryFromNow } from './_shared/invite'
 import { notify, smsConfigured, MSG } from './_shared/sms'
 
@@ -18,8 +18,8 @@ export const handler = async (event: any) => {
   const auth = await requireCaller(event)
   if ('error' in auth) return auth.error
   const { caller } = auth
-  if (!isStaff(caller) || !caller.orgId) {
-    return json(403, { error: 'Only the studio can send an invitation', code: 'FORBIDDEN' })
+  if (!isOwnerOfBusiness(caller)) {
+    return json(403, { error: 'Only the business owner can send an invitation', code: 'FORBIDDEN' })
   }
 
   let body: any

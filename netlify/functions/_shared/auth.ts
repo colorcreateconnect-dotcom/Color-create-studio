@@ -53,6 +53,12 @@ export async function getCaller(event: any): Promise<Caller | null> {
 
 export const isStaff = (c: Caller | null) => !!c && (c.role === 'cleaner' || c.role === 'org_admin')
 
+/** The business owner. Hiring, the client book and pricing are hers, not any
+ *  cleaner's — a cleaner she takes on gets a working day, not the studio. The
+ *  app's menu hides those destinations from a cleaner; this is the same rule
+ *  enforced where it counts. */
+export const isOwnerOfBusiness = (c: Caller | null) => !!c && c.role === 'org_admin' && !!c.orgId
+
 /** 401 response for an unauthenticated caller. */
 export const unauthorized = () => json(401, { error: 'Sign in to continue', code: 'UNAUTHENTICATED' })
 /** 403 response when the caller is known but not allowed to do this. */

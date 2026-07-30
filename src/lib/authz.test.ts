@@ -4,7 +4,7 @@
  * Security — so the rule enforced in code IS the only thing standing between a
  * request and someone else's money. They are asserted here directly. */
 import { describe, it, expect } from 'vitest'
-import { canActOnJob, isStaff, type Caller } from '../../netlify/functions/_shared/auth'
+import { canActOnJob, isStaff, isOwnerOfBusiness, type Caller } from '../../netlify/functions/_shared/auth'
 
 const ORG = 'org-1'
 const OTHER_ORG = 'org-2'
@@ -53,5 +53,29 @@ describe('canActOnJob', () => {
   it('does not treat a null cleaner_id as a match for a caller with no id match', () => {
     const unassigned = { owner_id: 'owner-1', cleaner_id: null, org_id: ORG }
     expect(canActOnJob(otherOwner, unassigned)).toBe(false)
+  })
+})
+
+describe('isOwnerOfBusiness — hiring, the client book and pricing', () => {
+  it('is the org admin, and only the org admin', () => {
+    expect(isOwnerOfBusiness(admin)).toBe(true)
+    expect(isOwnerOfBusiness(cleaner)).toBe(false)
+    expect(isOwnerOfBusiness(owner)).toBe(false)
+    expect(isOwnerOfBusiness(null)).toBe(false)
+  })
+
+  it('DENIES a cleaner she hired — they get a working day, not the studio', () => {
+    // The app hides the Business menu from a cleaner; this is the same rule
+    // where it counts, so hiding the button is not the only thing stopping it.
+    expect(isOwnerOfBusiness(otherCleaner)).toBe(false)
+  })
+
+  it('DENIES an admin with no organization', () => {
+    expect(isOwnerOfBusiness({ id: 'a', role: 'org_admin', orgId: null })).toBe(false)
+  })
+
+  it('does not weaken isStaff — a cleaner still works jobs', () => {
+    expect(isStaff(cleaner)).toBe(true)
+    expect(canActOnJob(cleaner, job)).toBe(true)
   })
 })

@@ -30,19 +30,21 @@ export function CleanerScreens(v: any) {
       <div style={css('display:flex;align-items:center;gap:10px;padding:8px 22px 0')}>
         <div style={css('flex:1;font-family:var(--font-serif-display);font-size:19px;color:var(--orange)')}>Maid In <span style={{ color: 'var(--magenta)' }}>ATL</span></div>
         <IconButton icon="☰" onClick={v.openMenu} />
-        <IconButton icon="👑" onClick={v.goAdmin} />
+        {v.meIsAdmin && <IconButton icon="👑" onClick={v.goAdmin} />}
         <IconButton icon="💬" onClick={v.goInbox} />
-        <Avatar initials="AK" size={38} onClick={v.goSettings} style={{ cursor: 'pointer' }} />
+        <Avatar initials={v.meInitials} size={38} onClick={v.goSettings} style={{ cursor: 'pointer' }} />
       </div>
       <div style={css('padding:16px 22px 22px')}>
         <div style={css('font-size:13px;color:var(--text-muted)')}>Good morning,</div>
-        <div style={css('font-family:var(--font-serif-display);font-size:30px;line-height:1.1')}>{v.liveCleanerName || 'Ahleyia'} 👋</div>
+        <div style={css('font-family:var(--font-serif-display);font-size:30px;line-height:1.1')}>{v.meFirst} 👋</div>
         <div style={css('font-size:12px;color:var(--text-muted);margin-top:4px')}>{v.todayLine || 'Friday, July 24 · 3 properties on today’s route'}</div>
         <div style={css('display:flex;gap:var(--gap-tile);margin:16px 0 4px')}>
           <StatTile value={v.liveTodayCount ?? '3'} label="Cleans today" accent color="var(--orange)" style={{ flex: 1 }} />
           {v.liveClientCount != null
             ? <StatTile value={v.liveClientCount} label="Clients" color="var(--magenta)" style={{ flex: 1 }} />
-            : <StatTile value="2" label="Turnovers before 4pm" color="var(--magenta)" style={{ flex: 1 }} />}
+            : (v.liveWeekCount != null
+              ? <StatTile value={v.liveWeekCount} label="Cleans this week" color="var(--magenta)" style={{ flex: 1 }} />
+              : <StatTile value="2" label="Turnovers before 4pm" color="var(--magenta)" style={{ flex: 1 }} />)}
         </div>
         {v.unreadNudge && (
           <Card onClick={v.unreadNudge.go} style={{ cursor: 'pointer' }}>
@@ -584,12 +586,12 @@ function MyWeek({ v }: { v: any }) {
       <div style={css('padding:16px 22px 22px')}>
         <Card tone="blush">
           <div style={css('display:flex;align-items:center;gap:14px')}>
-            <Avatar initials="AK" size={66} />
+            <Avatar initials={v.meInitials} size={66} />
             <div>
-              <div style={css('font-family:var(--font-serif-display);font-size:22px;line-height:1.1')}>Ahleyia Kee</div>
-              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Founder · Lead Housekeeper</div>
-              <div style={css('display:flex;gap:var(--gap-chip);margin-top:8px')}>
-                <Chip tone="turn">⭐ 4.98 rating</Chip><Chip tone="ghost">312 cleans</Chip><Chip tone="deep">👑 Admin</Chip>
+              <div style={css('font-family:var(--font-serif-display);font-size:22px;line-height:1.1')}>{v.meName}</div>
+              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>{v.meTitle}</div>
+              <div style={css('display:flex;gap:var(--gap-chip);margin-top:8px;flex-wrap:wrap')}>
+                {v.meChips}
               </div>
             </div>
           </div>
@@ -731,11 +733,11 @@ function Settings({ v }: { v: any }) {
       <div style={css('padding:22px')}>
         <Card tone="blush">
           <div style={css('display:flex;align-items:center;gap:14px')}>
-            <Avatar initials="AK" size={66} />
+            <Avatar initials={v.meInitials} size={66} />
             <div>
-              <div style={css('font-family:var(--font-serif-display);font-size:22px;line-height:1.1')}>Ahleyia Kee</div>
-              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Founder · Lead Housekeeper · 404.259.3242</div>
-              <div style={css('display:flex;gap:var(--gap-chip);margin-top:8px')}><Chip tone="refresh">✓ ID verified</Chip><Chip tone="ghost">Staff account</Chip></div>
+              <div style={css('font-family:var(--font-serif-display);font-size:22px;line-height:1.1')}>{v.meName}</div>
+              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>{v.meLine}</div>
+              <div style={css('display:flex;gap:var(--gap-chip);margin-top:8px;flex-wrap:wrap')}>{v.meChips}</div>
             </div>
           </div>
         </Card>
@@ -752,11 +754,13 @@ function Settings({ v }: { v: any }) {
           <SupplyRow icon="📋" name="Luxury home template" sub="Residential base · 31 steps" right="›" onClick={v.goTplLux} />
           <SupplyRow icon="📷" name="Photo-proof steps" sub="Before · beds staged · restaged to listing · after" right="›" onClick={v.goTplTurn} last />
         </Card>
-        <SectionLabel right={v.chipYou}>Business admin</SectionLabel>
-        <Card flush>
-          <SupplyRow icon="👑" name="Business dashboard" sub="Billing, team, clients & brand" right="›" onClick={v.goAdmin} />
-          <SupplyRow icon="👥" name="Team & certification" sub="1 assistant · splits · access" right="›" onClick={v.goTeam} last />
-        </Card>
+        {v.meIsAdmin && (<>
+          <SectionLabel right={v.chipYou}>Business admin</SectionLabel>
+          <Card flush>
+            <SupplyRow icon="👑" name="Business dashboard" sub="Billing, team, clients & brand" right="›" onClick={v.goAdmin} />
+            <SupplyRow icon="👥" name="Team & certification" sub={v.teamSub} right="›" onClick={v.goTeam} last />
+          </Card>
+        </>)}
         <SectionLabel right={v.badgePrivateGhost}>Your pricing rules</SectionLabel>
         <Card flush>
           <SupplyRow icon="🧮" name="Standard rate" sub="$50/hr floor" right="›" onClick={v.goQuote} />
@@ -873,7 +877,7 @@ function AdminDash({ v }: { v: any }) {
         <IconButton icon="💬" onClick={v.goInbox} />
         <IconButton icon="☰" onClick={v.openMenu} />
         <IconButton icon="⚙️" onClick={v.goBizSettings} />
-        <Avatar initials="AK" size={38} />
+        <Avatar initials={v.meInitials} size={38} />
       </div>
       <div style={css('padding:14px 22px 22px')}>
         <div style={css('display:flex;gap:var(--gap-chip);margin-bottom:var(--stack-card)')}>
@@ -932,31 +936,47 @@ function Team({ v }: { v: any }) {
       <div style={css('padding:22px')}>
         <Card tone="blush">
           <div style={css('display:flex;align-items:center;gap:14px')}>
-            <Avatar initials="AK" size={52} />
+            <Avatar initials={v.meInitials} size={52} />
             <div style={css('flex:1')}>
-              <div style={css('font-size:15px;font-weight:var(--weight-semibold)')}>Ahleyia Kee</div>
-              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Founder · admin & lead housekeeper</div>
+              <div style={css('font-size:15px;font-weight:var(--weight-semibold)')}>{v.meName}</div>
+              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>{v.meTitle}</div>
               <div style={css('display:flex;gap:var(--gap-chip);margin-top:8px;flex-wrap:wrap')}><Chip tone="deep">👑 Admin</Chip><Chip tone="refresh">🧽 Working staff</Chip></div>
             </div>
           </div>
           <div style={css('margin-top:12px;font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft);background:var(--surface-cream);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 12px')}>Both roles on one login. Admin sees the money and the method; the working side is what any cleaner sees.</div>
         </Card>
-        <SectionLabel right={v.chipOneAsst}>Assistants</SectionLabel>
-        <Card>
-          <div style={css('display:flex;align-items:center;gap:14px')}>
-            <Avatar initials="TJ" size={52} />
-            <div style={css('flex:1')}>
-              <div style={css('font-size:15px;font-weight:var(--weight-semibold)')}>Tiana J.</div>
-              <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Assistant · 41 shared jobs</div>
-            </div>
-            {v.chipCertified}
-          </div>
-          <div style={css('height:1px;background:var(--border-default);margin:14px 0')} />
-          <div style={css('font-size:12px;font-weight:var(--weight-semibold);margin-bottom:8px')}>Her split on shared jobs</div>
-          <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap')}>{v.splitOpts.map((sp: any, i: number) => <Pill key={i} selected={sp.on} onClick={sp.pick}>{sp.label}</Pill>)}</div>
-          <div style={css('margin-top:12px;font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft);background:var(--tint-green);border:1px solid var(--tint-green-line);border-radius:var(--radius-md);padding:10px 12px')}>{v.splitLine}</div>
-        </Card>
-        <SectionLabel>What she can see</SectionLabel>
+        <SectionLabel right={v.liveTeam ? undefined : v.chipOneAsst}>{v.liveTeam ? 'Your team' : 'Assistants'}</SectionLabel>
+        {v.liveTeam
+          ? (v.liveTeamEmpty
+            ? (
+              <Card tone="dashed">
+                <p style={css('margin:0;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Just you so far. Add a cleaner and they set up their own sign-in from a link you send — then you can assign them work.</p>
+              </Card>
+            )
+            : (
+              <Card flush>
+                {v.liveTeam.map((m: any, i: number, arr: any[]) => (
+                  <SupplyRow key={m.id} icon={m.initials} iconStyle={v.akTile} name={m.name} sub={m.sub} right={m.chip} last={i === arr.length - 1} />
+                ))}
+              </Card>
+            ))
+          : (
+            <Card>
+              <div style={css('display:flex;align-items:center;gap:14px')}>
+                <Avatar initials="TJ" size={52} />
+                <div style={css('flex:1')}>
+                  <div style={css('font-size:15px;font-weight:var(--weight-semibold)')}>Tiana J.</div>
+                  <div style={css('font-size:11.5px;color:var(--text-muted);margin-top:2px')}>Assistant · 41 shared jobs</div>
+                </div>
+                {v.chipCertified}
+              </div>
+              <div style={css('height:1px;background:var(--border-default);margin:14px 0')} />
+              <div style={css('font-size:12px;font-weight:var(--weight-semibold);margin-bottom:8px')}>Her split on shared jobs</div>
+              <div style={css('display:flex;gap:var(--gap-chip);flex-wrap:wrap')}>{v.splitOpts.map((sp: any, i: number) => <Pill key={i} selected={sp.on} onClick={sp.pick}>{sp.label}</Pill>)}</div>
+              <div style={css('margin-top:12px;font-size:11.5px;line-height:var(--leading-snug);color:var(--ink-soft);background:var(--tint-green);border:1px solid var(--tint-green-line);border-radius:var(--radius-md);padding:10px 12px')}>{v.splitLine}</div>
+            </Card>
+          )}
+        <SectionLabel>{v.liveTeam ? 'What your team can see' : 'What she can see'}</SectionLabel>
         <Card>
           {v.accessRows.map((a: any, i: number) => (
             <div key={i} style={css('display:flex;gap:12px;align-items:flex-start;padding:9px 0')}>
@@ -968,11 +988,12 @@ function Team({ v }: { v: any }) {
             </div>
           ))}
         </Card>
-        <NoteCard tone="pink" icon="🔒">Rates, quotes and client billing are <b>admin-only</b> and can’t be granted — an assistant only ever sees their own number.</NoteCard>
+        <NoteCard tone="pink" icon="🔒">Rates, quotes and client billing are <b>admin-only</b> and can’t be granted — a cleaner only ever sees their own number.</NoteCard>
         <SectionLabel>Growing the network</SectionLabel>
         <Card tone="dashed">
           <p style={css('margin:0 0 12px;font-size:12.5px;line-height:var(--leading-snug);color:var(--ink-soft)')}>Invite a cleaner to certify in The Kee Method™. They work your standard, under your brand — you keep the client relationship and set the split.</p>
-          <Button variant="ghost" icon="💌" onClick={v.previewStaffSetup}>Invite a cleaner</Button>
+          <Button icon="💌" onClick={v.goAddStaff}>Add a cleaner &amp; send their link</Button>
+          <div style={css('margin-top:10px')}><Button variant="ghost" onClick={v.previewStaffSetup}>See what they’ll go through</Button></div>
         </Card>
       </div>
     </>

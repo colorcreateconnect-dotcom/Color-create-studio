@@ -119,6 +119,19 @@ so the clickable prototype never breaks.
   client Ahleyia added already sets their own password on the invite link she
   sends them. The session is persisted to `sb-access-token`, the key the
   anon-key data reads carry, so **RLS always runs as the signed-in user**.
+- **Identity** (`v.me` in `src/app/model.tsx`) — one place the whole app reads
+  who is signed in from: name, first name, initials, role, and what it says
+  under their name. It exists because the name was hardcoded in a dozen screens,
+  so every cleaner Ahleyia hired saw "Ahleyia Kee · Founder" on their own
+  profile. With no backend it falls back to the seed persona so the demo still
+  reads as her studio.
+- **Roles** — `org_admin` owns the business; `cleaner` works. The app hides the
+  Business group (dashboard, client book, hiring, pricing) from a cleaner AND
+  the endpoints that create people (`create-client`, `create-staff`,
+  `send-invite`) require `isOwnerOfBusiness`, so the menu is not the only thing
+  enforcing it. A cleaner's route is narrowed to jobs assigned to them — RLS
+  lets staff read every org job because the scheduling calendar needs that, so
+  the narrowing lives in the view where the difference matters.
 - **Notifications** (`src/lib/push.ts`, `netlify/functions/_shared/notify.ts`) —
   two layers, and the first always works. Every notice is a row in
   `notifications` that its recipient owns (RLS: read your own, mark your own

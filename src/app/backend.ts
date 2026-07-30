@@ -29,6 +29,7 @@ export interface Hydration {
   jobs: Job[]
   properties: Property[]
   clients: User[]
+  staff: User[]
   messages: Message[]
   quotes: Quote[]
   reports: Report[]
@@ -42,7 +43,7 @@ const ACTIVE_PAYMENT_STATES = ['scheduled', 'captured', 'deposit_released', 'awa
  *  drive the money-path actions and the live screens. Safe to call when signed
  *  out (returns signedIn:false) or when the backend is absent. */
 export async function hydrate(): Promise<Hydration> {
-  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [], clients: [], messages: [], quotes: [], reports: [], charges: [] }
+  const empty: Hydration = { signedIn: false, user: null, card: null, jobs: [], properties: [], clients: [], staff: [], messages: [], quotes: [], reports: [], charges: [] }
   if (!backendActive()) return empty
   const session = await restore().catch(() => null)
   if (!session) return empty
@@ -57,6 +58,9 @@ export async function hydrate(): Promise<Hydration> {
   // Owner sees their own properties; staff/admin see the whole org's + its clients.
   const properties = await (isOwner ? data.properties(user.id) : data.orgProperties()).catch(() => [] as Property[])
   const clients = isOwner ? [] : await data.orgClients().catch(() => [] as User[])
+  // Staff see who else works for the studio — the team screen and the
+  // "assign this clean" pickers both need real people.
+  const staff = isOwner ? [] : await data.orgStaff().catch(() => [] as User[])
   const card = isOwner ? await data.cardOnFile(user.id).catch(() => null) : null
   // Owner: their own thread, quotes, reports and receipts. Staff: the org's quotes.
   const messages = isOwner ? await data.messages(threadKeyForOwner(user.id)).catch(() => [] as Message[]) : []
@@ -64,7 +68,7 @@ export async function hydrate(): Promise<Hydration> {
   const reports = isOwner ? await data.reports(user.id).catch(() => [] as Report[]) : []
   const charges = isOwner ? await data.chargesForJobs(jobs.map((j) => j.id)).catch(() => [] as Charge[]) : []
   const active = jobs.find((j) => ACTIVE_PAYMENT_STATES.includes(j.paymentState))
-  return { signedIn: true, user, card, jobs, properties, clients, messages, quotes, reports, charges, activeJobId: active?.id }
+  return { signedIn: true, user, card, jobs, properties, clients, staff, messages, quotes, reports, charges, activeJobId: active?.id }
 }
 
 /** Current device position — the geofence input for check-in. Rejects clearly

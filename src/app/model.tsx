@@ -10,6 +10,7 @@ import { residentialQuote, airbnbQuote, type Staging } from '../lib/pricing'
 import { CONCIERGE_RATE, conciergeTimeCharge, applyExtension } from '../lib/concierge'
 import { groupSteps, checklistProgress } from '../lib/checklist'
 import { SLOTS, windowFor, slotTaken } from '../lib/schedule'
+import { parseInviteInput, INVITE_PARSE_MESSAGE } from '../lib/inviteLink'
 import { WORK_SHOTS, PORTFOLIO_SHOTS } from './portfolioData'
 import {
   backendActive, hydrate, getPosition, errMsg, parseTip,
@@ -193,6 +194,7 @@ function initialState(props: ModelProps): Any {
     nsName: '', nsPhone: '', nsEmail: '', nsConsent: false, nsError: '',
     newStaffLink: '', newStaffName: '', newStaffId: '',
     inviteToken: props.inviteToken || '', inviteLoading: !!props.inviteToken,
+    inviteEntry: '', inviteEntryErr: '',
     invitePreview: null, inviteError: '', inviteFormError: '', inviteDone: false,
     inviteEmail: '', invitePw: '', invitePwShown: false, inviteBusy: false,
     adminEmail: '', adminPw: '', pwShown: false, adminRemember: true,
@@ -211,7 +213,7 @@ function initialState(props: ModelProps): Any {
     // stays empty in the sandbox/demo so every screen runs on seed data.
     gateEmail: '', gatePw: '', gatePwShown: false, gateErr: '',
     beReady: false, beSignedIn: false, beUser: null, beCard: null,
-    beJobs: [], beProps: [], beClients: [], beActiveJobId: null, beBusy: false,
+    beJobs: [], beProps: [], beClients: [], beStaff: [], beActiveJobId: null, beBusy: false,
     beMsgs: [], beQuotes: [], beReports: [], beCharges: [], beThreadOwner: null,
     // The real checklist: rows of job_steps for the job that's open, ticked
     // straight into Postgres. beStepsJobId is what the effect watches.
@@ -349,7 +351,7 @@ export function useModel(props: ModelProps) {
       setState((st: Any) => {
         const patch: Any = {
           ...st, beReady: true, beSignedIn: h.signedIn, beUser: h.user,
-          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beActiveJobId: h.activeJobId ?? null,
+          beCard: h.card, beJobs: h.jobs, beProps: h.properties, beClients: h.clients, beStaff: h.staff, beActiveJobId: h.activeJobId ?? null,
           beMsgs: h.messages, beQuotes: h.quotes, beReports: h.reports, beCharges: h.charges,
         }
         // Land a signed-in user in their own zone — but only from the default
@@ -461,10 +463,11 @@ export function useModel(props: ModelProps) {
     return () => { alive = false }
   }, [s.beStepsJobId])
 
-  /* An invitation link was opened — load what Ahleyia already filled in. The
-     token is the credential here, so this runs before any sign-in. */
+  /* An invitation was opened — from the link she sent, or from a code the
+     person pasted in. Either way the token is the credential, so this runs
+     before any sign-in. */
   useEffect(() => {
-    const token = props.inviteToken
+    const token = state.inviteToken
     if (!token) return
     let alive = true
     if (!backendActive()) {
@@ -480,7 +483,7 @@ export function useModel(props: ModelProps) {
       .then((p) => { if (alive) setState((st: Any) => ({ ...st, inviteLoading: false, invitePreview: p, inviteEmail: p.email || '' })) })
       .catch((e) => { if (alive) setState((st: Any) => ({ ...st, inviteLoading: false, inviteError: errMsg(e, 'That link isn’t valid any more.') })) })
     return () => { alive = false }
-  }, [props.inviteToken]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.inviteToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function buildView(): Any {
     const clientFull = (s.suName || '').trim() || 'James Hartwell'
@@ -618,6 +621,90 @@ export function useModel(props: ModelProps) {
         { name: '3 Bedroom', sub: 'Full Kee Method™ turnover', chip: chip('t3', 'deep', '$160–185') },
         { name: '4+ Bedroom', sub: 'Full Kee Method™ turnover', chip: chip('t4', 'deep', 'from $185'), last: true },
       ],
+    }
+
+    /* ================= who is signed in =================================
+       One place the whole app reads its identity from. Live accounts get their
+       own name, initials and role; with no backend it stays the seed persona so
+       the demo still reads as Ahleyia's studio.
+
+       This exists because the name was hardcoded in a dozen places: every
+       cleaner she hires saw "Ahleyia Kee · Founder" on their own profile, and
+       every client's home said "James". */
+    const signedInUser = backendActive() && s.beSignedIn ? s.beUser : null
+    const nameFromEmail = (email?: string) => {
+      const local = (email || '').split('@')[0].split(/[.+_-]/).filter(Boolean)
+      if (!local.length) return ''
+      return local.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+    }
+    const initialsOf = (name: string) => {
+      const parts = name.trim().split(/\s+/).filter(Boolean)
+      if (!parts.length) return '·'
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    }
+    const myRole: string = signedInUser?.role || (s.role === 'owner' ? 'owner' : 'org_admin')
+    const iAmAdmin = myRole === 'org_admin'
+    const iAmCleanerOnly = myRole === 'cleaner'
+    const seedStaffName = 'Ahleyia Kee'
+    const myName = signedInUser
+      ? (signedInUser.fullName || nameFromEmail(signedInUser.email) || 'Your account')
+      : (s.role === 'owner' ? clientFull : seedStaffName)
+    v.me = {
+      name: myName,
+      first: myName.split(' ')[0],
+      initials: signedInUser ? initialsOf(myName) : (s.role === 'owner' ? clientInitials : 'AK'),
+      email: signedInUser?.email || (s.role === 'owner' ? clientEmail : 'ahleyia@atlluxurycleaning.com'),
+      phone: signedInUser?.phone || (s.role === 'owner' ? undefined : '404.259.3242'),
+      role: myRole,
+      isAdmin: signedInUser ? iAmAdmin : true,          // the demo persona owns the business
+      isCleanerOnly: signedInUser ? iAmCleanerOnly : false,
+      isOwner: myRole === 'owner',
+      // What it says under their name on their own profile.
+      title: signedInUser
+        ? (iAmAdmin ? 'Founder · Lead Housekeeper' : (iAmCleanerOnly ? 'Housekeeper · Kee Method™ certified' : 'Client'))
+        : (s.role === 'owner' ? 'Client' : 'Founder · Lead Housekeeper'),
+    }
+    v.meName = v.me.name
+    v.meInitials = v.me.initials
+    v.meTitle = v.me.title
+    v.meIsAdmin = v.me.isAdmin
+    v.meIsCleanerOnly = v.me.isCleanerOnly
+    v.meLine = v.me.title + (v.me.phone ? ' · ' + v.me.phone : '')
+    // "Ahleyia · admin" was baked in. Say who is actually signed in.
+    const adminView = ['admin', 'team', 'clients', 'bizsettings', 'area', 'assign', 'calendar'].indexOf(s.c) >= 0
+    v.roleLabel = s.role === 'visitor'
+      ? 'Visitor · no account'
+      : (s.role === 'cleaner'
+        ? v.me.first + ' · ' + (adminView && v.me.isAdmin ? 'admin' : 'staff')
+        : v.me.first + ' · client')
+    v.meFirst = v.me.first
+    // Her chips are the founder's; a cleaner she hired gets their own.
+    v.meChips = v.me.isAdmin
+      ? [chip('me1', 'turn', '⭐ 4.98 rating'), chip('me2', 'ghost', '312 cleans'), chip('me3', 'deep', '👑 Admin')]
+      : [chip('me1', 'refresh', '✓ Kee Method™ certified'), chip('me2', 'ghost', 'Housekeeper')]
+    // Real team, so "1 assistant" isn't a fixture on an account with three.
+    const myTeam: Any[] = backendActive() && s.beSignedIn ? (s.beStaff || []) : []
+    const others = myTeam.filter((u: Any) => u.id !== s.beUser?.id)
+    v.teamSub = backendActive() && s.beSignedIn
+      ? (others.length
+        ? others.length + (others.length === 1 ? ' other person' : ' others') + ' · splits · access'
+        : 'Just you so far · add someone')
+      : '1 assistant · splits · access'
+    // The real team on the Team screen. Someone she added who hasn't claimed
+    // their link yet is shown as invited rather than as a working cleaner.
+    if (backendActive() && s.beSignedIn) {
+      v.liveTeam = others.map((u: Any) => {
+        const nm = (u.fullName || nameFromEmail(u.email) || 'Team member').trim()
+        const invited = u.onboardingState === 'invited'
+        return {
+          id: u.id, name: nm, initials: initialsOf(nm),
+          sub: (u.role === 'org_admin' ? 'Admin & housekeeper' : 'Housekeeper')
+            + (invited ? ' · invite not claimed yet' : ''),
+          chip: invited ? chip('tm' + u.id, 'low', 'Invite sent') : chip('tm' + u.id, 'refresh', '✓ Active'),
+        }
+      })
+      v.liveTeamEmpty = others.length === 0
     }
 
     /* ================= the real day: jobs, checklist, scheduling =========
@@ -1536,8 +1623,32 @@ export function useModel(props: ModelProps) {
     }
 
     // 57 · cleaner account builder
+    /* ---- "I'm a cleaner with an invite" ----
+       She adds a cleaner, which provisions their account and produces a
+       one-time link. If they have the link they just open it. If they only have
+       the code (she read it out, it got mangled by a messaging app), this takes
+       it and drops them into the same claim flow.
+
+       There is deliberately no way for a stranger to create a staff account for
+       themselves: anyone who could would be inside her business, able to read
+       client homes and access notes. Her invitation IS the authorization. */
+    v.vInviteEntry = s.role === 'visitor' && s.p === 'invitecode'
+    v.goInviteEntry = () => go({ p: 'invitecode', inviteEntry: '', inviteEntryErr: '' })
+    v.inviteEntry = s.inviteEntry
+    v.setInviteEntry = (e: any) => set({ inviteEntry: e.target.value, inviteEntryErr: '' })
+    v.inviteEntryErr = s.inviteEntryErr
+    v.useInviteCode = () => {
+      // Accepts the whole link, a link with tracking parameters, or the bare
+      // code. See src/lib/invite.ts — tested, so a mistyped code is caught here
+      // rather than sent to the server as a guess.
+      const r = parseInviteInput(s.inviteEntry)
+      if (!r.ok) { set({ inviteEntryErr: INVITE_PARSE_MESSAGE[r.reason] }); return }
+      setState((t: Any) => ({ ...t, inviteToken: r.token, inviteLoading: true, inviteError: '', invitePreview: null, p: 'invite', inviteEntryErr: '' }))
+    }
+
     v.vStaffSetup = s.role === 'visitor' && s.p === 'staffsetup'
-    v.goStaffSetup = () => go({ p: 'staffsetup', staffStep: 1 })
+    v.goStaffSetup = () => go({ p: 'invitecode', inviteEntry: '', inviteEntryErr: '' })
+    v.previewStaffWalkthrough = () => go({ p: 'staffsetup', staffStep: 1 })
     const stp = s.staffStep
     for (let i = 1; i <= 5; i++) v['st' + i] = stp === i
     v.staffNotDone = stp < 5
@@ -1592,13 +1703,21 @@ export function useModel(props: ModelProps) {
     v.chipPendingCheck = chip('bgc', 'turn', 'Pending')
     v.standardsOk = ['method', 'photo', 'eco'].every((k) => s.standardsMap[k])
     v.staffDoneCopy = certCount >= 5 ? 'You’re certified and on the schedule. Your first route shows up the night before.' : 'One shadow clean with Ahleyia on Tuesday and you’re fully certified. Your route shows up the night before.'
-    v.enterStaffApp = () => { go({ role: 'cleaner', c: 'today', cTab: 0 }); say('Welcome to the team 🎉') }
+    // The walkthrough is what setting up LOOKS like. On a live deployment it
+    // cannot hand out a working account — that comes from claiming her
+    // invitation — so it says so instead of dropping them into someone's day.
+    v.staffWalkthroughOnly = backendActive() && !s.beSignedIn
+    v.enterStaffApp = () => {
+      if (v.staffWalkthroughOnly) { go({ p: 'invitecode', inviteEntry: '', inviteEntryErr: '' }); return }
+      go({ role: 'cleaner', c: 'today', cTab: 0 }); say('Welcome to the team 🎉')
+    }
+    v.enterStaffLabel = v.staffWalkthroughOnly ? 'Set up with my invitation' : 'Open my working day'
 
     // 58 · owner account builder
     v.oSetup = s.role === 'owner' && s.o === 'setup'
     v.goSetup = () => go({ o: 'setup' })
     v.goOwnerSetup = () => go({ role: 'owner', o: 'setup', oTab: 0 })
-    v.previewStaffSetup = () => { go({ role: 'visitor', p: 'staffsetup', staffStep: 1 }); say('Certification invite sent 💌') }
+    v.previewStaffSetup = () => go({ role: 'visitor', p: 'staffsetup', staffStep: 1 })
     const tileDone = { background: 'var(--gradient-eco)', color: '#fff', fontWeight: 600, fontSize: '15px' }
     const tileTodo = { background: 'var(--surface-cream)', color: 'var(--ink-soft)', fontWeight: 600, fontSize: '15px' }
     const SETUP = [
@@ -1946,7 +2065,9 @@ export function useModel(props: ModelProps) {
         if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) return
         set({ calYM: { y: d.getFullYear(), m: d.getMonth() }, calPick: null })
       }
-      const live = (s.beJobs || []).filter((j: Any) => j.status !== 'cancelled' && j.windowStart)
+      const live = (s.beJobs || []).filter((j: Any) =>
+        j.status !== 'cancelled' && j.windowStart
+        && (v.me.isAdmin || s.beUser?.role === 'owner' || j.cleanerId === s.beUser?.id))
       const onDay = (d: number) => live.filter((j: Any) => dayKey(j.windowStart) === ym.y + '-' + (ym.m + 1) + '-' + d)
       const pickedJobs = onDay(picked)
       const bookedStarts = pickedJobs.map((j: Any) => j.windowStart)
@@ -2119,14 +2240,17 @@ export function useModel(props: ModelProps) {
       v.todayLine = ljobs.length
         ? ljobs.length + (ljobs.length === 1 ? ' property on today’s route' : ' properties on today’s route')
         : 'No cleans scheduled yet'
-      const meNm = s.beUser.fullName || (s.beUser.email || '').split('@')[0] || 'there'
-      v.liveCleanerName = meNm.charAt(0).toUpperCase() + meNm.slice(1)
     }
 
     if (liveWork) {
       const today = new Date()
       const todayKey = dayKey(today.toISOString())
-      const allJobs = (s.beJobs || []).filter((j: Any) => j.status !== 'cancelled')
+      // A cleaner works their own route; the admin sees the whole studio's.
+      // RLS lets staff read every org job (the calendar needs that), so the
+      // narrowing is here, where the difference actually matters.
+      const visible = (s.beJobs || []).filter((j: Any) =>
+        v.me.isAdmin || s.beUser?.role === 'owner' || j.cleanerId === s.beUser?.id)
+      const allJobs = visible.filter((j: Any) => j.status !== 'cancelled')
       const jobsToday = allJobs.filter((j: Any) => dayKey(j.windowStart) === todayKey)
       // Nothing today? Show what IS next rather than an empty screen that
       // reads like the app is broken.
@@ -2163,6 +2287,17 @@ export function useModel(props: ModelProps) {
       v.liveNextLabel = jobsToday.length ? 'Today’s route' : (upcoming.length ? 'Coming up' : 'Nothing booked yet')
       v.liveTodayCount = String(jobsToday.length)
       if (liveStaffWork) {
+        // The client count is the studio's number. A cleaner's second tile is
+        // her own week.
+        if (!v.me.isAdmin) {
+          const weekEnd = today.getTime() + 7 * 864e5
+          const thisWeek = allJobs.filter((j: Any) => {
+            const t = j.windowStart ? new Date(j.windowStart).getTime() : 0
+            return t >= today.getTime() - 864e5 && t <= weekEnd
+          })
+          v.liveWeekCount = String(thisWeek.length)
+          v.liveClientCount = null
+        }
         v.hasJobs = shown.length > 0
         v.noJobs = shown.length === 0
         v.todayLine = jobsToday.length
@@ -2561,7 +2696,7 @@ export function useModel(props: ModelProps) {
           item('🧼', 'Join her team', 'For cleaners with an invite', () => go({ p: 'staffsetup', staffStep: 1 }), 'staffsetup'),
         ]) },
       ] },
-      cleaner: { title: 'Your day & your business', sub: 'Ahleyia Kee · founder and lead housekeeper', groups: [
+      cleaner: { title: v.me.isAdmin ? 'Your day & your business' : 'Your working day', sub: v.me.name + ' · ' + v.me.title.toLowerCase(), groups: [
         { title: 'Working', items: close([
           item('🏠', 'Today’s route', '3 properties today', () => go({ c: 'today', cTab: 0 }), 'today'),
           item('📍', 'Route map', 'Stops, drive times and windows', () => go({ c: 'map' }), 'map'),
@@ -2587,7 +2722,9 @@ export function useModel(props: ModelProps) {
           item('✏️', 'New message', 'Write to an owner or a lead', () => go({ c: 'compose', draft: '' }), 'compose'),
           item('🔗', 'Your digital card', 'QR to scan, or text the link', () => go({ c: 'share' }), 'share'),
         ]) },
-        { title: 'Business', items: close([
+        // The studio's own side. A cleaner she hired has no business here —
+        // billing, the client book and hiring belong to the owner.
+        ...(v.me.isAdmin ? [{ title: 'Business', items: close([
           item('👑', 'Business dashboard', 'Billing, people, pricing', () => go({ c: 'admin' }), 'admin'),
           item('👥', 'Team & certification', 'Splits and what they can see', () => go({ c: 'team' }), 'team'),
           item('🧽', 'Add someone to your team', 'They set their own sign-in', () => go({ c: 'addstaff', newStaffLink: '' }), 'addstaff'),
@@ -2596,9 +2733,13 @@ export function useModel(props: ModelProps) {
           item('🏠', 'Add a home for a client', 'A second property, or one you kept on paper', () => go({ c: 'addprop', npErr: '' }), 'addprop'),
           item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' }), 'template'),
           item('📍', 'Service area', 'Where you take work', () => go({ c: 'area' }), 'area'),
-          item('🔔', 'Notifications', v.feedUnread ? v.feedUnread + ' unread' : 'Everything the app has told you', () => go({ c: 'notices' }), 'notices'),
-          item('⚙️', 'Settings', 'Your account and notifications', () => go({ c: 'settings' }), 'settings'),
           item('🔐', 'Master login & security', 'Business email, password, two-step', () => go({ role: 'visitor', p: 'adminlogin' }), 'adminlogin'),
+        ]) }] : []),
+        // Everyone who works gets these, admin or not.
+        { title: 'Your account', items: close([
+          item('🔔', 'Notifications', v.feedUnread ? v.feedUnread + ' unread' : 'Everything the app has told you', () => go({ c: 'notices' }), 'notices'),
+          item('📋', 'Kee Method™ templates', 'Turnover and luxury home', () => go({ c: 'template', tpl: 'turn' }), 'template'),
+          item('⚙️', 'Settings', 'Your account and notifications', () => go({ c: 'settings' }), 'settings'),
         ]) },
       ] },
       owner: { title: clientFirst + '’s account', sub: 'Your homes, your standard, your proof', groups: [
@@ -2645,13 +2786,13 @@ export function useModel(props: ModelProps) {
     const acctRole = s.role === 'cleaner' ? (isAdminView ? 'admin' : 'cleaner') : s.role
     const ACCOUNTS: Any[] = [
       ['admin', '👑', 'She’s Maid In ATL', 'Business · owner & admin'],
-      ['cleaner', '🧹', 'Ahleyia Kee', 'Working day · housekeeper'],
+      ['cleaner', '🧹', v.me.isOwner ? 'Ahleyia Kee' : v.me.name, 'Working day · housekeeper'],
       ['owner', '🏡', v.clientFull, 'Client account'],
       ['visitor', '🌐', 'Not signed in', 'What someone with no account sees'],
     ]
     const WHO: Any = {
       visitor: ['Not signed in', 'Anyone with her card link'],
-      cleaner: [v.liveCleanerName || 'Ahleyia Kee', isAdminView ? '👑 Business side · admin' : 'Working side · today’s route'],
+      cleaner: [v.me.isOwner ? 'Ahleyia Kee' : v.me.name, isAdminView && v.me.isAdmin ? '👑 Business side · admin' : 'Working side · today’s route'],
       owner: [v.clientFull, v.liveOwner ? (v.livePropCount || 'Client') : 'Client · 2 properties'],
     }
     const who = WHO[s.role] || WHO.visitor
@@ -2711,7 +2852,7 @@ export function useModel(props: ModelProps) {
           smsConsent: s.ncConsent,
         })
         const h = await hydrate()
-        setState((t: Any) => ({ ...t, beBusy: false, newClientLink: r.inviteUrl, newClientName: name, newClientId: r.clientId, inviteTexted: null, beClients: h.clients, beProps: h.properties }))
+        setState((t: Any) => ({ ...t, beBusy: false, newClientLink: r.inviteUrl, newClientName: name, newClientId: r.clientId, inviteTexted: null, beClients: h.clients, beStaff: h.staff, beProps: h.properties }))
         say(name + ' added ✓')
       } catch (e) { set({ beBusy: false, ncError: errMsg(e, 'Couldn’t add that client') }) }
     }
@@ -2872,7 +3013,7 @@ export function useModel(props: ModelProps) {
         setState((t: Any) => ({
           ...t, inviteBusy: false, inviteDone: true, invitePw: '',
           beSignedIn: true, beUser: h.user, beCard: h.card, beJobs: h.jobs,
-          beProps: h.properties, beClients: h.clients, beMsgs: h.messages,
+          beProps: h.properties, beClients: h.clients, beStaff: h.staff, beMsgs: h.messages,
           beQuotes: h.quotes, beReports: h.reports, beCharges: h.charges,
           // Land them where they belong: a cleaner starts on their route.
           ...(h.user?.role === 'owner'
@@ -2924,6 +3065,7 @@ export function useModel(props: ModelProps) {
         { n: 31, label: 'Notifications', go: jump('visitor', 'notifs') },
         { n: 32, label: 'Icon & opening screen', go: jump('visitor', 'splash') },
         { n: 59, label: 'Create an account', go: jump('visitor', 'signup', { suStep: 1 }) },
+        { n: 66, label: 'Cleaner with an invite', go: jump('visitor', 'invitecode', { inviteEntry: '', inviteEntryErr: '' }) },
         { n: 59, label: 'Sign-up details', go: jump('visitor', 'signup', { suStep: 3 }) },
         { n: 62, label: 'Business sign in', go: jump('visitor', 'adminlogin') },
         { n: 57, label: 'New cleaner setup', go: jump('visitor', 'staffsetup', { staffStep: 1 }) },

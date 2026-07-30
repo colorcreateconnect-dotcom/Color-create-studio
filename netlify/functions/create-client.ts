@@ -9,7 +9,7 @@
  * The client themselves later supplies email, password and card. Nothing here
  * charges anything. */
 import { sbSelect, sbInsert, sbUpdate, json } from './_shared/db'
-import { requireCaller, isStaff } from './_shared/auth'
+import { requireCaller, isOwnerOfBusiness } from './_shared/auth'
 import { newToken, hashToken, expiryFromNow, createAuthUser, deleteAuthUser, emailLooksValid } from './_shared/invite'
 
 const PROPERTY_TYPES = ['airbnb', 'residential', 'loved_one']
@@ -20,8 +20,8 @@ export const handler = async (event: any) => {
   const auth = await requireCaller(event)
   if ('error' in auth) return auth.error
   const { caller } = auth
-  if (!isStaff(caller) || !caller.orgId) {
-    return json(403, { error: 'Only the studio can add a client', code: 'FORBIDDEN' })
+  if (!isOwnerOfBusiness(caller)) {
+    return json(403, { error: 'Only the business owner can add a client', code: 'FORBIDDEN' })
   }
 
   let body: any

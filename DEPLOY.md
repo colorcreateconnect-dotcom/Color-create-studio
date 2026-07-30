@@ -22,6 +22,12 @@ Still seed/sample content (same pattern when needed): service reports, supplies,
 payouts, My Week. Needs your input: Square keys (real payments), a VAPID keypair
 for phone notifications (§8 — two commands, free), custom domain (optional).
 
+**Every account is a real account.** Ahleyia adds a cleaner, they claim their
+link and get their own working day — their name, their route, their checklist,
+their notifications. There is deliberately **no way for a stranger to create a
+staff account for themselves**: anyone who could would be inside her business,
+able to read client homes and access notes. Her invitation is the authorization.
+
 **Texting is no longer part of signing in.** Everyone — client, cleaner,
 business — signs in with an email and a password, and a client Ahleyia added
 sets their password on the invite link she sends. Nothing about getting into the
@@ -210,6 +216,9 @@ demo never breaks.
 | Owner schedule | The client's real upcoming cleans, with window and price. Reschedule / add / cancel open the real thread with the ask written for them. |
 | Add a home for a client | Staff write a `properties` row for an existing client (RLS: their own org only). It's bookable immediately. |
 | Business dashboard | Real month, real counts, and a "Needs you" list built from what's actually outstanding — unassigned cleans, unclaimed invitations, open quotes. |
+| Every account is its own | The greeting, avatar initials, profile, settings and role label all come from the signed-in account. A cleaner she hires sees their own name and their own route, never "Ahleyia Kee · Founder". |
+| A hired cleaner's app | Their own route (jobs assigned to them), their checklist, their notifications and settings. The Business group — dashboard, client book, hiring, pricing, service area — is not in their menu, and `create-client` / `create-staff` / `send-invite` reject a non-admin caller, so hiding the button is not the only thing stopping it. |
+| Adding a cleaner | The owner adds them (name + a phone or email); the account is provisioned straight away so she can assign work, and they set their own email and password from a single-use link. Anyone with only the code (a link mangled in a chat app) can paste it on **"I'm a cleaner with an invite"**. |
 | Notifications | Real `notifications` rows: a feed per person, unread count, mark-read, and a nudge on Home when something is waiting. Written by the functions (arrival, booking, payout, invite claimed) and by Ahleyia ("on my way", "report ready"). |
 | Notification settings | The toggles write `users.notify_prefs` — the same map the server checks before it sends anything. |
 | Phone notifications | Web Push, once a VAPID keypair is set (§8). Per device, opt-in, and never required: a notice is a database row first and a phone buzz second. |

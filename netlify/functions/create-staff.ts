@@ -7,7 +7,7 @@
  * certification are completed inside the app once they are signed in — those
  * belong to them, not to her. */
 import { sbSelect, sbInsert, sbUpdate, json } from './_shared/db'
-import { requireCaller, isStaff } from './_shared/auth'
+import { requireCaller, isOwnerOfBusiness } from './_shared/auth'
 import { newToken, hashToken, expiryFromNow, createAuthUser, deleteAuthUser, emailLooksValid } from './_shared/invite'
 
 export const handler = async (event: any) => {
@@ -17,7 +17,7 @@ export const handler = async (event: any) => {
   if ('error' in auth) return auth.error
   const { caller } = auth
   // Hiring is the business owner's call, not any cleaner's.
-  if (caller.role !== 'org_admin' || !caller.orgId) {
+  if (!isOwnerOfBusiness(caller)) {
     return json(403, { error: 'Only the business owner can add someone to the team', code: 'FORBIDDEN' })
   }
 
