@@ -9,7 +9,7 @@
  * The browser sends its Supabase access token (the same JWT the anon-key reads
  * carry). We verify it with GoTrue — a forged token fails there — and then load
  * the caller's app row (role + org) with the service key. */
-import { sbSelect, json } from './db'
+import { sbSelect, json, configErrorResponse } from './db'
 
 const URL = process.env.SUPABASE_URL || ''
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -75,8 +75,15 @@ export const unauthorized = () => json(401, { error: 'Sign in to continue', code
 /** 403 response when the caller is known but not allowed to do this. */
 export const forbidden = (msg = 'You don’t have access to that') => json(403, { error: msg, code: 'FORBIDDEN' })
 
-/** Require a signed-in caller; returns the Caller or an error response to return. */
+/** Require a signed-in caller; returns the Caller or an error response to return.
+ *
+ *  Checks the deployment's own configuration first. Without SUPABASE_URL the
+ *  caller lookup can't even be attempted, and reporting that as "Sign in to
+ *  continue" blames the person for a missing environment variable — which is
+ *  precisely the wrong place to go looking. */
 export async function requireCaller(event: any): Promise<{ caller: Caller } | { error: any }> {
+  const badConfig = configErrorResponse()
+  if (badConfig) return { error: badConfig }
   const caller = await getCaller(event)
   if (!caller) return { error: unauthorized() }
   return { caller }
